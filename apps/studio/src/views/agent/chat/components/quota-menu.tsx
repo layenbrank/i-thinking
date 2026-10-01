@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -10,7 +11,6 @@ import {
 } from '@i-thinking/design/components/popover'
 import { Progress } from '@i-thinking/design/components/progress'
 import { Skeleton } from '@i-thinking/design/components/skeleton'
-import { GaugeIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAccountSession } from '@/features/account/session.ts'
@@ -193,7 +193,7 @@ export function QuotaMenu() {
           className="text-muted-foreground hover:text-foreground h-8 shrink-0 gap-1 rounded-md px-2"
           aria-label="额度与用量"
           title={findTriggerTitle(view)}>
-          <GaugeIcon className="size-4" />
+          <Icon icon="lucide:gauge" className="size-4" />
           {view ? (
             <span
               className={

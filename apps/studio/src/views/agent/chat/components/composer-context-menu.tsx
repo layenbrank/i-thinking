@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { useAui } from '@assistant-ui/react'
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
@@ -5,17 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@i-thinking/design/comp
 import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import {
-  ChevronRightIcon,
-  FolderTreeIcon,
-  Loader2Icon,
-  PlusIcon,
-  TargetIcon,
-  PuzzleIcon,
-  WrenchIcon,
-  ListTodoIcon
-} from 'lucide-react'
-import { useState, type ComponentType } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useActiveWorkspaceID } from '@/features/agent/workspace/client.ts'
@@ -35,16 +26,16 @@ type AttachCategory = 'goal' | 'plan' | 'files' | 'plugins' | 'skills'
 interface CategoryItem {
   key: AttachCategory
   label: string
-  icon: ComponentType<{ className?: string }>
+  icon: string
   enabled: boolean
 }
 
 const CATEGORIES: readonly CategoryItem[] = [
-  { key: 'goal', label: '目标', icon: TargetIcon, enabled: false },
-  { key: 'plan', label: '计划', icon: ListTodoIcon, enabled: false },
-  { key: 'files', label: '工作区', icon: FolderTreeIcon, enabled: true },
-  { key: 'plugins', label: '插件', icon: PuzzleIcon, enabled: false },
-  { key: 'skills', label: '技能', icon: WrenchIcon, enabled: true }
+  { key: 'goal', label: '目标', icon: 'lucide:target', enabled: false },
+  { key: 'plan', label: '计划', icon: 'lucide:list-todo', enabled: false },
+  { key: 'files', label: '工作区', icon: 'lucide:folder-tree', enabled: true },
+  { key: 'plugins', label: '插件', icon: 'lucide:puzzle', enabled: false },
+  { key: 'skills', label: '技能', icon: 'lucide:wrench', enabled: true }
 ]
 
 function SkillsPane(props: {
@@ -90,7 +81,7 @@ function SkillsPane(props: {
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
         {skillsQuery.isFetching ? (
           <p className="text-muted-foreground flex items-center gap-1.5 p-2.5 text-xs">
-            <Loader2Icon className="size-3.5 animate-spin" />
+            <Icon icon="lucide:loader-circle" className="size-3.5 animate-spin" />
             读取中…
           </p>
         ) : null}
@@ -105,7 +96,7 @@ function SkillsPane(props: {
                   onClick={function () {
                     props.onPick(skill.relative)
                   }}>
-                  <WrenchIcon className="text-muted-foreground size-3.5 shrink-0" />
+                  <Icon icon="lucide:wrench" className="text-muted-foreground size-3.5 shrink-0" />
                   <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                     <span className="w-full truncate text-start">{skill.name}</span>
                     {skill.description ? (
@@ -162,7 +153,7 @@ export function ComposerContextMenu() {
               size="icon"
               aria-label="添加上下文"
               className="text-muted-foreground hover:text-foreground size-7 rounded-md">
-              <PlusIcon />
+              <Icon icon="lucide:plus" />
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -180,7 +171,6 @@ export function ComposerContextMenu() {
         <div className="flex h-80 min-h-0 w-full">
           <div className="border-border/60 bg-muted/30 flex w-33 shrink-0 flex-col gap-0.5 border-r p-1.5">
             {CATEGORIES.map(function (item) {
-              const Icon = item.icon
               const isActive = category === item.key
               return (
                 <button
@@ -201,10 +191,16 @@ export function ComposerContextMenu() {
                     }
                     updateCategory(item.key)
                   }}>
-                  <Icon className="text-muted-foreground size-3.5 shrink-0" />
+                  <Icon
+                    icon={item.icon}
+                    className="text-muted-foreground size-3.5 shrink-0"
+                  />
                   <span className="flex-1 truncate">{item.label}</span>
                   {item.key === 'files' || item.key === 'skills' ? (
-                    <ChevronRightIcon className="text-muted-foreground size-3.5 shrink-0" />
+                    <Icon
+                      icon="lucide:chevron-right"
+                      className="text-muted-foreground size-3.5 shrink-0"
+                    />
                   ) : null}
                 </button>
               )

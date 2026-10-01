@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   FormControl,
   FormField,
@@ -6,7 +7,6 @@ import {
   FormMessage
 } from '@i-thinking/design/components/form'
 import { Input } from '@i-thinking/design/components/input'
-import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import type { Control, FieldPath, FieldValues } from 'react-hook-form'
 
@@ -80,7 +80,7 @@ function AuthField<T extends FieldValues>(props: AuthFieldProps<T>) {
                     })
                   }}
                   aria-label={isRevealed ? '隐藏密码' : '显示密码'}>
-                  {isRevealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  {isRevealed ? <Icon icon="lucide:eye-off" className="size-4" /> : <Icon icon="lucide:eye" className="size-4" />}
                 </button>
               )}
             </div>

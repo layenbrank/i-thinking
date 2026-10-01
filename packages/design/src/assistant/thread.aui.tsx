@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
@@ -17,20 +18,6 @@ import {
   type ToolCallMessagePartStatus
 } from '@assistant-ui/react'
 import { cn } from 'cn'
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CopyIcon,
-  DownloadIcon,
-  MicIcon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  RefreshCwIcon,
-  SquareIcon
-} from 'lucide-react'
 import {
   createContext,
   Fragment,
@@ -258,7 +245,7 @@ const ThreadScrollToBottom: FC = () => {
         tooltip={labels.scrollToBottom}
         variant="outline"
         className="aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible">
-        <ArrowDownIcon />
+        <Icon icon="lucide:arrow-down" />
       </TooltipIconButton>
     </ThreadPrimitive.ScrollToBottom>
   )
@@ -364,7 +351,7 @@ const ComposerAction: FC = () => {
                 size="icon"
                 className="aui-composer-dictate text-muted-foreground hover:text-foreground size-7 rounded-full"
                 aria-label={labels.startDictation}>
-                <MicIcon className="aui-composer-dictate-icon size-4" />
+                <Icon icon="lucide:mic" className="aui-composer-dictate-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Dictate>
           </AuiIf>
@@ -378,7 +365,7 @@ const ComposerAction: FC = () => {
                 size="icon"
                 className="aui-composer-stop-dictation text-destructive size-7 rounded-full"
                 aria-label={labels.stopDictation}>
-                <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
+                <Icon icon="lucide:square" className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
               </TooltipIconButton>
             </ComposerPrimitive.StopDictation>
           </AuiIf>
@@ -393,7 +380,7 @@ const ComposerAction: FC = () => {
               size="icon"
               className="aui-composer-send size-7 rounded-md"
               aria-label={labels.send}>
-              <ArrowUpIcon className="aui-composer-send-icon size-4" />
+              <Icon icon="lucide:arrow-up" className="aui-composer-send-icon size-4" />
             </TooltipIconButton>
           </ComposerPrimitive.Send>
         </AuiIf>
@@ -405,7 +392,7 @@ const ComposerAction: FC = () => {
               size="icon"
               className="aui-composer-cancel size-7 rounded-md"
               aria-label={labels.stopGenerating}>
-              <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
+              <Icon icon="lucide:square" className="aui-composer-cancel-icon size-3.5 fill-current" />
             </Button>
           </ComposerPrimitive.Cancel>
         </AuiIf>
@@ -711,16 +698,16 @@ const AssistantActionBar: FC = () => {
       <ActionBarPrimitive.Copy asChild>
         <TooltipIconButton tooltip={labels.copy}>
           <AuiIf condition={(s) => s.message.isCopied}>
-            <CheckIcon className="animate-in zoom-in-50 fade-in duration-200 ease-out" />
+            <Icon icon="lucide:check" className="animate-in zoom-in-50 fade-in duration-200 ease-out" />
           </AuiIf>
           <AuiIf condition={(s) => !s.message.isCopied}>
-            <CopyIcon className="animate-in zoom-in-75 fade-in duration-150" />
+            <Icon icon="lucide:copy" className="animate-in zoom-in-75 fade-in duration-150" />
           </AuiIf>
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
       <ActionBarPrimitive.Reload asChild>
         <TooltipIconButton tooltip={labels.reload}>
-          <RefreshCwIcon />
+          <Icon icon="lucide:refresh-cw" />
         </TooltipIconButton>
       </ActionBarPrimitive.Reload>
       <ActionBarMorePrimitive.Root>
@@ -728,7 +715,7 @@ const AssistantActionBar: FC = () => {
           <TooltipIconButton
             tooltip={labels.more}
             className="data-[state=open]:bg-accent">
-            <MoreHorizontalIcon />
+            <Icon icon="lucide:ellipsis" />
           </TooltipIconButton>
         </ActionBarMorePrimitive.Trigger>
         <ActionBarMorePrimitive.Content
@@ -738,7 +725,7 @@ const AssistantActionBar: FC = () => {
           className="aui-action-bar-more-content bg-popover text-popover-foreground data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:animate-out data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] overflow-hidden rounded-xl border p-1.5">
           <ActionBarPrimitive.ExportMarkdown asChild>
             <ActionBarMorePrimitive.Item className="aui-action-bar-more-item hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none">
-              <DownloadIcon className="size-4" />
+              <Icon icon="lucide:download" className="size-4" />
               {labels.exportMarkdown}
             </ActionBarMorePrimitive.Item>
           </ActionBarPrimitive.ExportMarkdown>
@@ -801,7 +788,7 @@ const UserActionBar: FC = () => {
         <TooltipIconButton
           tooltip={labels.edit}
           className="aui-user-action-edit">
-          <PencilIcon />
+          <Icon icon="lucide:pencil" />
         </TooltipIconButton>
       </ActionBarPrimitive.Edit>
     </ActionBarPrimitive.Root>
@@ -855,7 +842,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
       {...rest}>
       <BranchPickerPrimitive.Previous asChild>
         <TooltipIconButton tooltip={labels.previous}>
-          <ChevronLeftIcon />
+          <Icon icon="lucide:chevron-left" />
         </TooltipIconButton>
       </BranchPickerPrimitive.Previous>
       <span className="aui-branch-picker-state font-medium">
@@ -863,7 +850,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
       </span>
       <BranchPickerPrimitive.Next asChild>
         <TooltipIconButton tooltip={labels.next}>
-          <ChevronRightIcon />
+          <Icon icon="lucide:chevron-right" />
         </TooltipIconButton>
       </BranchPickerPrimitive.Next>
     </BranchPickerPrimitive.Root>

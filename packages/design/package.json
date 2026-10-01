@@ -21,7 +21,8 @@
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cn": "catalog:",
-    "lucide-react": "catalog:",
+    "@iconify/react": "catalog:",
+    "motion": "catalog:",
     "radix-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -43,12 +44,14 @@
   "imports": {
     "#components/*": "./src/components/*.tsx",
     "#assistant/*": "./src/assistant/*.tsx",
-    "#hooks/*": "./src/hooks/*.ts"
+    "#hooks/*": "./src/hooks/*.ts",
+    "#lib/*": "./src/lib/*.ts"
   },
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./components/*": "./src/components/*.tsx",
     "./assistant/*": "./src/assistant/*.tsx",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib/*": "./src/lib/*.ts"
   }
 }

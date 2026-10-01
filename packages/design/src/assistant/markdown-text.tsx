@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import '@assistant-ui/react-markdown/styles/dot.css'
 
 import type { TextMessagePartProps } from '@assistant-ui/react'
@@ -7,7 +8,6 @@ import {
   unstable_memoizeMarkdownComponents as memoizeMarkdownComponents,
   useIsMarkdownCodeBlock
 } from '@assistant-ui/react-markdown'
-import { CheckIcon, CopyIcon } from 'lucide-react'
 import { type FC, memo, useMemo, useRef } from 'react'
 import remarkGfm from 'remark-gfm'
 
@@ -72,8 +72,8 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
       <TooltipIconButton
         tooltip={labels.copy}
         onClick={onCopy}>
-        {!isCopied && <CopyIcon className="animate-in zoom-in-75 fade-in duration-150" />}
-        {isCopied && <CheckIcon className="animate-in zoom-in-50 fade-in duration-200 ease-out" />}
+        {!isCopied && <Icon icon="lucide:copy" className="animate-in zoom-in-75 fade-in duration-150" />}
+        {isCopied && <Icon icon="lucide:check" className="animate-in zoom-in-50 fade-in duration-200 ease-out" />}
       </TooltipIconButton>
     </div>
   )

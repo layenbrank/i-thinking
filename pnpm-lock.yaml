@@ -323,9 +323,9 @@ catalogs:
     go-captcha-react:
       specifier: 1.0.5
       version: 1.0.5
-    lucide-react:
-      specifier: ^1.45.0
-      version: 1.45.0
+    motion:
+      specifier: ^12.29.0
+      version: 12.42.2
     qrcode.react:
       specifier: ^4.2.0
       version: 4.2.0
@@ -1163,6 +1163,9 @@ importers:
 
   apps/extension:
     dependencies:
+      '@iconify/json':
+        specifier: ^2.2.402
+        version: 2.2.498
       '@iconify/react':
         specifier: 'catalog:'
         version: 6.0.2(react@19.2.7)
@@ -1224,6 +1227,12 @@ importers:
       '@i-thinking/wasm':
         specifier: workspace:*
         version: link:../../packages/wasm
+      '@iconify/json':
+        specifier: ^2.2.402
+        version: 2.2.498
+      '@iconify/react':
+        specifier: 'catalog:'
+        version: 6.0.2(react@19.2.7)
       '@opencode/client':
         specifier: 'catalog:'
         version: 2.0.15
@@ -1245,9 +1254,6 @@ importers:
       go-captcha-react:
         specifier: 'catalog:'
         version: 1.0.5(react@19.2.7)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.45.0(react@19.2.7)
       qrcode.react:
         specifier: 'catalog:'
         version: 4.2.0(react@19.2.7)
@@ -1378,6 +1384,9 @@ importers:
       '@base-ui/react':
         specifier: 'catalog:'
         version: 1.8.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@iconify/react':
+        specifier: 'catalog:'
+        version: 6.0.2(react@19.2.7)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1387,9 +1396,9 @@ importers:
       cn:
         specifier: 'catalog:'
         version: 0.3.0
-      lucide-react:
+      motion:
         specifier: 'catalog:'
-        version: 1.45.0(react@19.2.7)
+        version: 12.42.2(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       radix-ui:
         specifier: 'catalog:'
         version: 1.6.7(@types/react-dom@19.2.4(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -10615,11 +10624,6 @@ packages:
   lru.min@1.1.4:
     resolution: {integrity: sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==}
     engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
-
-  lucide-react@1.45.0:
-    resolution: {integrity: sha512-yH1ubCAduho9UR7oJhRXIQXogksRILBiTuZC4/bQIGeB9JOkxMlSuEHyyZpo1Z3S0yWJO2KTSUZbjiNvVxeOUw==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   lunar-typescript@1.8.6:
     resolution: {integrity: sha512-5Eo4T/cnuXfrgO4k5LCpOGHIUOuz5hCF/IfNv0T29WY2shR36Hiz+ecN9WjnUuxUKhql9gbOkPaQoqLFKtPRNA==}
@@ -23439,10 +23443,6 @@ snapshots:
 
   lru.min@1.1.4:
     optional: true
-
-  lucide-react@1.45.0(react@19.2.7):
-    dependencies:
-      react: 19.2.7
 
   lunar-typescript@1.8.6: {}
 

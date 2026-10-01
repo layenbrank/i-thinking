@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   Select,
   SelectContent,
@@ -6,8 +7,6 @@ import {
   SelectValue
 } from '@i-thinking/design/components/select'
 import { Switch } from '@i-thinking/design/components/switch'
-import { CircleAlertIcon } from 'lucide-react'
-
 import { APPROVAL_POLICIES, findApprovalPolicy } from '@/features/chat/approval.ts'
 import { findPlatformBlocker, findPlatformRow } from '@/features/chat/platform.ts'
 import { useProviders } from '@/features/chat/provider/query.ts'
@@ -129,7 +128,7 @@ export function GeneralSection() {
 
         {blocker ? (
           <p className="text-muted-foreground flex items-start gap-1.5 pb-2.5 text-xs">
-            <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" />
+            <Icon icon="lucide:circle-alert" className="mt-0.5 size-3.5 shrink-0" />
             组织模型当前不可用：{blocker}
           </p>
         ) : null}

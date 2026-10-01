@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -10,26 +11,7 @@ import {
 } from '@i-thinking/design/components/dialog'
 import { Input } from '@i-thinking/design/components/input'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  ArchiveIcon,
-  BookIcon,
-  CloudIcon,
-  CodeIcon,
-  CoffeeIcon,
-  DatabaseIcon,
-  FolderIcon,
-  FolderPlusIcon,
-  GlobeIcon,
-  LayoutGridIcon,
-  LightbulbIcon,
-  MonitorIcon,
-  PlusIcon,
-  RocketIcon,
-  SettingsIcon,
-  WrenchIcon,
-  XIcon
-} from 'lucide-react'
-import { useEffect, useState, type ComponentType } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useWorkspaces, type Workspace } from '@/features/agent/workspace/client.ts'
@@ -53,22 +35,22 @@ interface FolderDraft {
   isPrimary: boolean
 }
 
-const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
-  folder: FolderIcon,
-  code: CodeIcon,
-  layout: LayoutGridIcon,
-  cloud: CloudIcon,
-  atom: LightbulbIcon,
-  setting: SettingsIcon,
-  database: DatabaseIcon,
-  bulb: LightbulbIcon,
-  rocket: RocketIcon,
-  book: BookIcon,
-  api: WrenchIcon,
-  tool: WrenchIcon,
-  global: GlobeIcon,
-  desktop: MonitorIcon,
-  coffee: CoffeeIcon
+const ICON_MAP: Record<string, string> = {
+  folder: 'lucide:folder',
+  code: 'lucide:code',
+  layout: 'lucide:layout-grid',
+  cloud: 'lucide:cloud',
+  atom: 'lucide:lightbulb',
+  setting: 'lucide:settings',
+  database: 'lucide:database',
+  bulb: 'lucide:lightbulb',
+  rocket: 'lucide:rocket',
+  book: 'lucide:book',
+  api: 'lucide:wrench',
+  tool: 'lucide:wrench',
+  global: 'lucide:globe',
+  desktop: 'lucide:monitor',
+  coffee: 'lucide:coffee'
 }
 
 function basename(folderPath: string): string {
@@ -231,7 +213,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
     }
   }
 
-  const IconPreview = ICON_MAP[icon] ?? FolderIcon
+  const previewIcon = ICON_MAP[icon] ?? 'lucide:folder'
 
   return (
     <Dialog
@@ -258,7 +240,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
                   onClick={function () {
                     void handleAddFolder()
                   }}>
-                  <PlusIcon />
+                  <Icon icon="lucide:plus" />
                   添加
                 </Button>
               ) : null}
@@ -271,7 +253,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
                 onClick={function () {
                   void handleAddFolder()
                 }}>
-                <FolderPlusIcon className="text-muted-foreground size-7" />
+                <Icon icon="lucide:folder-plus" className="text-muted-foreground size-7" />
                 <span className="text-muted-foreground">点击添加可读写文件夹</span>
               </button>
             ) : (
@@ -281,7 +263,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
                     <li
                       key={folder.id}
                       className="border-border flex items-center gap-2 rounded-md border px-2 py-1.5">
-                      <FolderIcon className="text-muted-foreground size-4 shrink-0" />
+                      <Icon icon="lucide:folder" className="text-muted-foreground size-4 shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{basename(folder.path)}</p>
                         <p className="text-muted-foreground truncate text-xs">{folder.path}</p>
@@ -308,7 +290,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
                         onClick={function () {
                           handleRemoveFolder(folder.id)
                         }}>
-                        <XIcon />
+                        <Icon icon="lucide:x" />
                       </Button>
                     </li>
                   )
@@ -337,7 +319,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
             <span className="text-sm font-medium">工作区图标</span>
             <div className="flex flex-wrap gap-1.5">
               {WORKSPACE_ICONS.map(function (item) {
-                const Icon = ICON_MAP[item.key] ?? FolderIcon
+                const glyph = ICON_MAP[item.key] ?? 'lucide:folder'
                 const isActive = icon === item.key
                 return (
                   <button
@@ -350,7 +332,10 @@ function WorkspaceForm(props: WorkspaceFormProps) {
                     onClick={function () {
                       updateIcon(item.key)
                     }}>
-                    <Icon className="size-4" />
+                    <Icon
+                      icon={glyph}
+                      className="size-4"
+                    />
                   </button>
                 )
               })}
@@ -383,7 +368,10 @@ function WorkspaceForm(props: WorkspaceFormProps) {
             <span
               className="flex size-8 items-center justify-center rounded-md text-white"
               style={{ backgroundColor: color }}>
-              <IconPreview className="size-4" />
+              <Icon
+                icon={previewIcon}
+                className="size-4"
+              />
             </span>
             <span className="truncate text-sm font-medium">{title.trim() || '工作区预览'}</span>
           </div>
@@ -399,7 +387,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
               onClick={function () {
                 void handleArchive()
               }}>
-              <ArchiveIcon />
+              <Icon icon="lucide:archive" />
               归档工作区
             </Button>
           ) : (

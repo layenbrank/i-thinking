@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -18,7 +19,6 @@ import {
   SelectValue
 } from '@i-thinking/design/components/select'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -156,7 +156,7 @@ function PlatformProviderSection() {
           onClick={function () {
             updateDraft(emptyDraft())
           }}>
-          <PlusIcon />
+          <Icon icon="lucide:plus" />
           新增供应商
         </Button>
       </div>
@@ -225,7 +225,7 @@ function PlatformProviderSection() {
                       onClick={function () {
                         updateDraft(draftOf(row))
                       }}>
-                      <PencilIcon />
+                      <Icon icon="lucide:pencil" />
                       编辑
                     </Button>
                     <Button
@@ -236,7 +236,7 @@ function PlatformProviderSection() {
                       onClick={function () {
                         updateRemoving(row)
                       }}>
-                      <TrashIcon />
+                      <Icon icon="lucide:trash" />
                       删除
                     </Button>
                   </div>

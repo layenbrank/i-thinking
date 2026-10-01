@@ -1,7 +1,7 @@
+import { Icon } from '@iconify/react/offline'
 import { useScrollLock } from '@assistant-ui/react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
-import { ChevronDownIcon, LoaderIcon } from 'lucide-react'
 import { memo, useCallback, useRef, useState, type FC, type PropsWithChildren } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
 import { useAssistantLabels } from './labels'
@@ -105,10 +105,9 @@ function ToolGroupTrigger({
       )}
       {...props}>
       {active && (
-        <LoaderIcon
+        <Icon icon="lucide:loader"
           data-slot="tool-group-trigger-loader"
-          className="aui-tool-group-trigger-loader size-3 shrink-0 animate-spin [animation-duration:0.6s]"
-        />
+          className="aui-tool-group-trigger-loader size-3 shrink-0 animate-spin [animation-duration:0.6s]" />
       )}
       <span
         data-slot="tool-group-trigger-label"
@@ -121,7 +120,7 @@ function ToolGroupTrigger({
         )}>
         {text}
       </span>
-      <ChevronDownIcon
+      <Icon icon="lucide:chevron-down"
         data-slot="tool-group-trigger-chevron"
         className={cn(
           'aui-tool-group-trigger-chevron size-3 shrink-0',
@@ -129,8 +128,7 @@ function ToolGroupTrigger({
           '-rotate-90',
           'group-data-open/trigger:rotate-0',
           'group-data-panel-open/trigger:rotate-0'
-        )}
-      />
+        )} />
     </CollapsibleTrigger>
   )
 }

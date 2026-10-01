@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Avatar, AvatarFallback } from '@i-thinking/design/components/avatar'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -8,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@i-thinking/design/components/dropdown-menu'
-import { LogInIcon, LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useAccountSession, useSignOut } from '@/features/account/session.ts'
@@ -35,7 +35,7 @@ function AccountAvatar(props: { initials: string | null; className?: string }) {
       size="sm"
       className={props.className}>
       <AvatarFallback className={props.initials ? 'text-3xs font-medium' : undefined}>
-        {props.initials ?? <UserIcon className="size-3.5" />}
+        {props.initials ?? <Icon icon="lucide:user" className="size-3.5" />}
       </AvatarFallback>
     </Avatar>
   )
@@ -76,7 +76,7 @@ export function AccountMenuContent(props: AccountMenuContentProps) {
           <DropdownMenuSeparator />
           {props.onOpenSettings ? (
             <DropdownMenuItem onSelect={props.onOpenSettings}>
-              <SettingsIcon />
+              <Icon icon="lucide:settings" />
               设置
             </DropdownMenuItem>
           ) : null}
@@ -84,13 +84,13 @@ export function AccountMenuContent(props: AccountMenuContentProps) {
             variant="destructive"
             disabled={isPending}
             onSelect={signOut}>
-            <LogOutIcon />
+            <Icon icon="lucide:log-out" />
             退出登录
           </DropdownMenuItem>
         </>
       ) : (
         <DropdownMenuItem onSelect={props.onSignIn}>
-          <LogInIcon />
+          <Icon icon="lucide:log-in" />
           登录 i-thinking
         </DropdownMenuItem>
       )}

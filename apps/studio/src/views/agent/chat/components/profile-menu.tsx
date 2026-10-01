@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   Dialog,
@@ -19,7 +20,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@i-thinking/design/components/dropdown-menu'
-import { InfoIcon, MonitorIcon, MoonIcon, PaletteIcon, SettingsIcon, SunIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -35,9 +35,9 @@ interface ProfileMenuProps {
 }
 
 const MODE_ICONS = {
-  system: MonitorIcon,
-  light: SunIcon,
-  dark: MoonIcon
+  system: 'lucide:monitor',
+  light: 'lucide:sun',
+  dark: 'lucide:moon'
 } as const
 
 function findSettingsShortcut() {
@@ -76,7 +76,7 @@ export function ProfileMenu(props: ProfileMenuProps) {
             className="text-muted-foreground hover:text-foreground size-8 shrink-0 rounded-md"
             aria-label="设置"
             title="设置">
-            <SettingsIcon className="size-4" />
+            <Icon icon="lucide:settings" className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -84,19 +84,19 @@ export function ProfileMenu(props: ProfileMenuProps) {
           align="end"
           className="w-52">
           <DropdownMenuItem onSelect={props.onOpenSettings}>
-            <SettingsIcon />
+            <Icon icon="lucide:settings" />
             设置
             <DropdownMenuShortcut>{findSettingsShortcut()}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <PaletteIcon />
+              <Icon icon="lucide:palette" />
               外观
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-40">
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
-                  <MoonIcon />
+                  <Icon icon="lucide:moon" />
                   明暗模式
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
@@ -104,12 +104,11 @@ export function ProfileMenu(props: ProfileMenuProps) {
                     value={mode}
                     onValueChange={chooseMode}>
                     {APPEARANCE_MODES.map(function (item) {
-                      const Icon = MODE_ICONS[item.value]
                       return (
                         <DropdownMenuRadioItem
                           key={item.value}
                           value={item.value}>
-                          <Icon />
+                          <Icon icon={MODE_ICONS[item.value]} />
                           {item.label}
                         </DropdownMenuRadioItem>
                       )
@@ -124,7 +123,7 @@ export function ProfileMenu(props: ProfileMenuProps) {
             onSelect={function () {
               updateAboutOpen(true)
             }}>
-            <InfoIcon />
+            <Icon icon="lucide:info" />
             关于
           </DropdownMenuItem>
         </DropdownMenuContent>

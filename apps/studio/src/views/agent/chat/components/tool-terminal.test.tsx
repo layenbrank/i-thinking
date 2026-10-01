@@ -103,7 +103,8 @@ describe('ToolCommand', function () {
     fireEvent.click(screen.getByRole('button'))
 
     expect(screen.getByText(`line ${total - 1}`)).toBeInTheDocument()
-    expect(screen.queryByText('展开全部（还有 5 行）', { exact: false })).toBeNull()
+    expect(screen.getByRole('button', { name: '收起' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /展开全部/ })).toBeNull()
   })
 })
 

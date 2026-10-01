@@ -1,6 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { useCopyToClipboard } from '@i-thinking/design/hooks/use-copy-to-clipboard'
-import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import type { AsideSection } from '@/views/agent/chat/components/use-aside-panel.ts'
@@ -88,7 +88,7 @@ export function AsideCopy(props: AsideCopyProps) {
       onClick={function () {
         copyToClipboard(value)
       }}>
-      {isCopied ? <CheckIcon /> : <CopyIcon />}
+      {isCopied ? <Icon icon="lucide:check" /> : <Icon icon="lucide:copy" />}
     </Button>
   )
 }

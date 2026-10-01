@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   Dialog,
@@ -15,7 +16,6 @@ import {
   SelectValue
 } from '@i-thinking/design/components/select'
 import { Switch } from '@i-thinking/design/components/switch'
-import { BoxIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -150,7 +150,7 @@ export function ModelSettings(props: ModelSettingsProps) {
                     className="grid grid-cols-[minmax(0,1.3fr)_7.5rem_4.5rem_minmax(8rem,1fr)] items-center gap-2 border-t px-1 py-2.5">
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-                        <BoxIcon className="size-4" />
+                        <Icon icon="lucide:box" className="size-4" />
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm">{row.model}</span>

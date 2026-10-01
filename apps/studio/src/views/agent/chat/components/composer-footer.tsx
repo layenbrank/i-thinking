@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   DropdownMenu,
@@ -6,7 +7,6 @@ import {
   DropdownMenuTrigger
 } from '@i-thinking/design/components/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
-import { CheckIcon, FolderIcon, GitBranchIcon, HardDriveIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useActiveWorkspace, useActiveWorkspaceID } from '@/features/agent/workspace/client.ts'
@@ -74,7 +74,7 @@ export function ComposerFooter() {
       <div className="text-muted-foreground flex min-h-7 items-center gap-0 px-1 text-xs">
         <div className="flex min-w-0 flex-1 items-center justify-start gap-0">
           <span className="flex max-w-50 min-w-0 items-center gap-1.5 px-2.5 opacity-90">
-            <FolderIcon className="size-3 shrink-0" />
+            <Icon icon="lucide:folder" className="size-3 shrink-0" />
             <span
               className="truncate"
               title={
@@ -94,7 +94,7 @@ export function ComposerFooter() {
           <span
             className="flex shrink-0 items-center gap-1.5 px-2.5 opacity-90"
             title="Agent 在本机运行，工作区文件不出本机；模型请求按所选 provider 发出">
-            <HardDriveIcon className="size-3 shrink-0" />
+            <Icon icon="lucide:hard-drive" className="size-3 shrink-0" />
             本机运行
           </span>
 
@@ -112,7 +112,7 @@ export function ComposerFooter() {
                     size="sm"
                     title="切换分支"
                     className="text-muted-foreground hover:text-foreground h-7 gap-1 rounded-md px-2.5 text-xs">
-                    <GitBranchIcon className="size-3" />
+                    <Icon icon="lucide:git-branch" className="size-3" />
                     <span className="max-w-28 truncate">{git.data?.branch}</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -129,7 +129,7 @@ export function ComposerFooter() {
                           onSelect={function () {
                             void handleCheckout(branch)
                           }}>
-                          <CheckIcon className={isActive ? 'opacity-100' : 'opacity-0'} />
+                          <Icon icon="lucide:check" className={isActive ? 'opacity-100' : 'opacity-0'} />
                           <span className="truncate">{branch}</span>
                         </DropdownMenuItem>
                       )

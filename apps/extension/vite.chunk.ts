@@ -55,7 +55,7 @@ export const chunks: CodeSplitting[] = [
     name: 'utils',
     priority: 40,
     test(id) {
-      return /[\\/]node_modules[\\/](dexie|zod|clsx|lucide-react|@iconify|@tanstack)[\\/]/.test(id)
+      return /[\\/]node_modules[\\/](dexie|zod|clsx|@iconify|@tanstack)[\\/]/.test(id)
     }
   }
 ]

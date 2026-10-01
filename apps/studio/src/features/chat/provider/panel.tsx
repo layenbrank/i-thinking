@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   Dialog,
@@ -7,7 +8,6 @@ import {
   DialogTitle
 } from '@i-thinking/design/components/dialog'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BuildingIcon, PencilIcon, PlusIcon, ServerIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -152,7 +152,7 @@ function ProviderPanel() {
           onClick={function () {
             updateCreating(true)
           }}>
-          <PlusIcon />
+          <Icon icon="lucide:plus" />
           添加模型
         </Button>
       </div>
@@ -163,7 +163,7 @@ function ProviderPanel() {
         <div className="border-border flex flex-col gap-3 rounded-lg border px-3 py-3">
           <div className="flex items-center gap-3">
             <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-              <BuildingIcon className="size-4" />
+              <Icon icon="lucide:building" className="size-4" />
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -207,7 +207,7 @@ function ProviderPanel() {
                   key={provider.id}
                   className="flex items-center gap-3 px-3 py-3">
                   <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-                    <ServerIcon className="size-4" />
+                    <Icon icon="lucide:server" className="size-4" />
                   </div>
 
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -224,7 +224,7 @@ function ProviderPanel() {
                     onClick={function () {
                       updateEditing(provider)
                     }}>
-                    <PencilIcon />
+                    <Icon icon="lucide:pencil" />
                     更新 API Key
                   </Button>
 
@@ -236,7 +236,7 @@ function ProviderPanel() {
                     onClick={function () {
                       removeMutation.mutate(provider.id)
                     }}>
-                    <TrashIcon />
+                    <Icon icon="lucide:trash" />
                     删除
                   </Button>
                 </div>

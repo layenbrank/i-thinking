@@ -1,8 +1,8 @@
+import { Icon } from '@iconify/react/offline'
 import { useAuiState } from '@assistant-ui/react'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import { useQuery } from '@tanstack/react-query'
-import { CircleCheckIcon, CircleIcon, FileIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -54,9 +54,9 @@ function PlanRow(props: { item: PlanItem }) {
   return (
     <li className="flex items-start gap-1.5 text-xs leading-relaxed">
       {item.status === 'completed' ? (
-        <CircleCheckIcon className="text-muted-foreground mt-0.5 size-3.5 shrink-0" />
+        <Icon icon="lucide:circle-check" className="text-muted-foreground mt-0.5 size-3.5 shrink-0" />
       ) : (
-        <CircleIcon className="text-muted-foreground/60 mt-0.5 size-3.5 shrink-0" />
+        <Icon icon="lucide:circle" className="text-muted-foreground/60 mt-0.5 size-3.5 shrink-0" />
       )}
       <span className={item.status === 'completed' ? 'text-muted-foreground' : ''}>
         {item.text}
@@ -196,7 +196,7 @@ export default function AgentAside(props: AsideProps) {
             aria-label="关闭任务详情"
             title="关闭任务详情"
             onClick={props.onClose}>
-            <XIcon className="size-3.5" />
+            <Icon icon="lucide:x" className="size-3.5" />
           </Button>
         ) : null}
       </header>
@@ -273,7 +273,7 @@ export default function AgentAside(props: AsideProps) {
                     key={name}
                     className="flex items-center gap-1.5 text-xs"
                     title={name}>
-                    <FileIcon className="text-muted-foreground size-3.5 shrink-0" />
+                    <Icon icon="lucide:file" className="text-muted-foreground size-3.5 shrink-0" />
                     <span className="truncate font-mono">{name}</span>
                   </li>
                 )

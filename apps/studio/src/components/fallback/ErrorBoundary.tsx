@@ -1,5 +1,5 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
-import { TriangleAlertIcon } from 'lucide-react'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 import { ERROR } from '@/components/fallback/constants.ts'
@@ -58,10 +58,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         role="alert"
         aria-live="assertive">
         <div className="flex max-w-md flex-col items-center gap-3 text-center">
-          <TriangleAlertIcon
+          <Icon icon="lucide:triangle-alert"
             aria-hidden
-            className="size-12 text-destructive"
-          />
+            className="size-12 text-destructive" />
           <h1 className="text-lg font-medium">{title}</h1>
           <p className="text-sm text-muted-foreground">{subTitle}</p>
           <div className="mt-2 flex items-center gap-3">

@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +12,6 @@ import {
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
 import { clsx } from 'clsx'
-import { PlusIcon, SearchIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import wallpaper from '@/assets/wallpaper/r2e391.png'
@@ -129,11 +129,10 @@ export default function Overview() {
           </div>
 
           <div className={clsx('relative')}>
-            <SearchIcon
+            <Icon icon="lucide:search"
               className={clsx(
                 'pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground'
-              )}
-            />
+              )} />
             <Input
               value={keyword}
               placeholder="搜索磁贴"
@@ -148,7 +147,7 @@ export default function Overview() {
           <Button
             type="button"
             onClick={openCreate}>
-            <PlusIcon />
+            <Icon icon="lucide:plus" />
             添加磁贴
           </Button>
         </header>

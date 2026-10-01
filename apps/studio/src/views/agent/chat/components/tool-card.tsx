@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import type { ToolCallMessagePartProps } from '@assistant-ui/react'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
@@ -6,14 +7,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@i-thinking/design/components/collapsible'
-import {
-  CheckIcon,
-  ChevronRightIcon,
-  Loader2Icon,
-  ShieldAlertIcon,
-  TerminalIcon,
-  XIcon
-} from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -109,7 +102,7 @@ function ApprovalBar(props: Pick<ToolCallMessagePartProps, 'approval' | 'toolCal
 
   return (
     <div className="bg-muted flex items-center gap-2 border-t px-2.5 py-2">
-      <ShieldAlertIcon className="text-primary size-3.5 shrink-0" />
+      <Icon icon="lucide:shield-alert" className="text-primary size-3.5 shrink-0" />
       <span className="min-w-0 flex-1 truncate text-xs">
         {approval.prompt ?? '需要你确认后才会执行'}
       </span>
@@ -120,7 +113,7 @@ function ApprovalBar(props: Pick<ToolCallMessagePartProps, 'approval' | 'toolCal
         onClick={function () {
           handleApprove(false)
         }}>
-        <XIcon />
+        <Icon icon="lucide:x" />
         拒绝
       </Button>
       <Button
@@ -129,7 +122,7 @@ function ApprovalBar(props: Pick<ToolCallMessagePartProps, 'approval' | 'toolCal
         onClick={function () {
           handleApprove(true)
         }}>
-        <CheckIcon />
+        <Icon icon="lucide:check" />
         放行
       </Button>
     </div>
@@ -152,17 +145,16 @@ function GenericToolCard(props: GenericToolCardProps) {
       <CollapsibleTrigger
         className="text-foreground hover:bg-muted flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-start text-xs"
         aria-label={`${toAgentToolLabel(props.toolName)} 详情`}>
-        <ChevronRightIcon
+        <Icon icon="lucide:chevron-right"
           data-open={isOpen ? 'true' : 'false'}
-          className="text-muted-foreground size-3 shrink-0 transition-transform data-[open=true]:rotate-90"
-        />
-        <TerminalIcon className="text-muted-foreground size-3.5 shrink-0" />
+          className="text-muted-foreground size-3 shrink-0 transition-transform data-[open=true]:rotate-90" />
+        <Icon icon="lucide:terminal" className="text-muted-foreground size-3.5 shrink-0" />
         <span className="shrink-0 font-medium">{toAgentToolLabel(props.toolName)}</span>
         <span className="text-muted-foreground min-w-0 flex-1 truncate">
           {summarize(props.args)}
         </span>
         {props.isRunning ? (
-          <Loader2Icon className="text-muted-foreground size-3.5 shrink-0 animate-spin" />
+          <Icon icon="lucide:loader-circle" className="text-muted-foreground size-3.5 shrink-0 animate-spin" />
         ) : null}
         {props.needsApproval ? (
           <Badge

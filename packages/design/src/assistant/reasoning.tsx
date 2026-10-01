@@ -1,6 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
-import { BrainIcon, ChevronDownIcon } from 'lucide-react'
 import {
   createContext,
   useCallback,
@@ -172,10 +172,9 @@ function ReasoningTrigger({
         className
       )}
       {...props}>
-      <BrainIcon
+      <Icon icon="lucide:brain"
         data-slot="reasoning-trigger-icon"
-        className="aui-reasoning-trigger-icon size-4 shrink-0"
-      />
+        className="aui-reasoning-trigger-icon size-4 shrink-0" />
       <span
         data-slot="reasoning-trigger-label"
         className={cn(
@@ -184,7 +183,7 @@ function ReasoningTrigger({
         )}>
         {label ?? labels.reasoning(duration)}
       </span>
-      <ChevronDownIcon
+      <Icon icon="lucide:chevron-down"
         data-slot="reasoning-trigger-chevron"
         className={cn(
           'aui-reasoning-trigger-chevron mt-0.5 size-4 shrink-0',
@@ -192,8 +191,7 @@ function ReasoningTrigger({
           '-rotate-90',
           'group-data-open/trigger:rotate-0',
           'group-data-panel-open/trigger:rotate-0'
-        )}
-      />
+        )} />
     </CollapsibleTrigger>
   )
 }

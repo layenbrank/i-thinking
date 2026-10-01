@@ -1,7 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { useAuiState } from '@assistant-ui/react'
 import { Button } from '@i-thinking/design/components/button'
-import { PanelLeftIcon, PanelRightIcon } from 'lucide-react'
-
 interface HeadProps {
   isSidebarOpen: boolean
   isAsideOpen: boolean
@@ -38,7 +37,7 @@ export default function AgentHead(props: HeadProps) {
             : 'text-foreground bg-muted size-8 rounded-lg'
         }
         onClick={props.onToggleSidebar}>
-        <PanelLeftIcon className="size-4" />
+        <Icon icon="lucide:panel-left" className="size-4" />
       </Button>
 
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -66,7 +65,7 @@ export default function AgentHead(props: HeadProps) {
             : 'text-muted-foreground hover:text-foreground size-8 rounded-lg'
         }
         onClick={props.onToggleAside}>
-        <PanelRightIcon className="size-4" />
+        <Icon icon="lucide:panel-right" className="size-4" />
       </Button>
     </header>
   )

@@ -1,7 +1,11 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
+import { motion, useReducedMotion } from 'motion/react'
 import { Slot } from 'radix-ui'
 import * as React from 'react'
+
+import { FOCUS_INVALID, FOCUS_RING } from '../lib/focus'
+import { omitMotionConflicts, TAP_SCALE, TAP_TRANSITION } from '../lib/motion'
 
 /**
  * Button —— shadcn `new-york` 变体，并对齐 antd 的语义面。
@@ -21,18 +25,20 @@ import * as React from 'react'
  * | `shape="circle"` | `size="icon"` / `icon-sm` / `icon-lg` |
  * | `shape="round"` | `className="rounded-full"` |
  * | `block` | `className="w-full"`（不设时按钮宽度由父容器决定）|
- * | 按下反馈（antd wave）| 各变体按 antd 色阶下沉（hover 变浅 / active 变深）+ `active:scale-*` |
+ * | 按下反馈（antd wave）| motion `whileTap` + 各变体色阶下沉 |
  * | `loading` | 自行组合 `components/spinner`（不做内置 prop）|
  * | `color` 预设色（blue/cyan/…）| 无对应 token，不提供 |
  */
 
 const buttonVariants = cva(
-  // `active:scale-[0.98]`：按下反馈，与包内其它可交互组件同一套手感；reduced-motion 下关掉。
-  // hover / active 一律引用 globals.css 的交互态 token（--primary-hover / --primary-active 等），
-  // 不在组件里用 alpha 或 color-mix 现算：状态色要能被主题统一调整，且 alpha 在白底上常看不出差别。
   // 宽度交给父容器：column flex / grid 会把按钮拉满（CSS 的 align-items: stretch，antd 同理），
   // 需要满宽时像 antd 的 `block` 一样显式 `className="w-full"`。
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 motion-reduce:transition-none motion-reduce:active:scale-100",
+  // 按下缩放交给 motion `whileTap`，这里只保留色阶过渡。
+  cn(
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 motion-reduce:transition-none",
+    FOCUS_RING,
+    FOCUS_INVALID
+  ),
   {
     variants: {
       variant: {
@@ -42,7 +48,6 @@ const buttonVariants = cva(
           'bg-destructive text-destructive-foreground hover:bg-destructive-hover active:bg-destructive-active focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40',
         outline:
           'border bg-background shadow-xs hover:bg-accent-hover hover:text-accent-foreground active:border-primary active:text-primary dark:border-input dark:bg-input/30 dark:hover:bg-accent-hover',
-        // antd 的 dashed：弱强调动作（新增、导入…）
         dashed:
           'border border-dashed bg-background shadow-xs hover:bg-accent-hover hover:text-accent-foreground active:border-primary active:text-primary dark:border-input dark:bg-input/30 dark:hover:bg-accent-hover',
         secondary:
@@ -50,7 +55,6 @@ const buttonVariants = cva(
         ghost:
           'hover:bg-accent-hover hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:text-primary-hover hover:underline active:text-primary-active',
-        // danger 补齐 antd 的六档（solid / outlined / dashed / filled / text / link）
         'destructive-outline':
           'border border-destructive/60 bg-background text-destructive shadow-xs hover:bg-destructive/15 active:border-destructive active:bg-destructive/25 dark:border-destructive/50 dark:bg-input/30 dark:hover:bg-destructive/20',
         'destructive-dashed':
@@ -90,15 +94,30 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
-  const Comp = asChild ? Slot.Root : 'button'
+  const isReducedMotion = useReducedMotion()
+  const classes = cn(buttonVariants({ variant, size, className }))
+
+  if (asChild) {
+    return (
+      <Slot.Root
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        className={classes}
+        {...props}
+      />
+    )
+  }
 
   return (
-    <Comp
+    <motion.button
+      {...omitMotionConflicts(props)}
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
+      className={classes}
+      whileTap={isReducedMotion || props.disabled ? undefined : { scale: TAP_SCALE }}
+      transition={TAP_TRANSITION}
     />
   )
 }

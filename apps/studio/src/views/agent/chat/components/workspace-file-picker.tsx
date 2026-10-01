@@ -1,8 +1,8 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { cn } from 'cn'
-import { ChevronLeftIcon, FileIcon, FolderIcon, Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -72,7 +72,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
             onClick={function () {
               updateRelative(parentRelative)
             }}>
-            <ChevronLeftIcon />
+            <Icon icon="lucide:chevron-left" />
           </Button>
         ) : null}
         <Input
@@ -92,7 +92,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
           type="button"
           className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-1.5 border-b px-2.5 py-1.5 text-start text-xs"
           onClick={props.onBack}>
-          <ChevronLeftIcon className="size-3.5 shrink-0" />
+          <Icon icon="lucide:chevron-left" className="size-3.5 shrink-0" />
           返回工作区列表
         </button>
       ) : null}
@@ -104,7 +104,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
       <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5', props.listClassName)}>
         {isPending ? (
           <p className="text-muted-foreground flex items-center gap-1.5 p-2.5 text-xs">
-            <Loader2Icon className="size-3.5 animate-spin" />
+            <Icon icon="lucide:loader-circle" className="size-3.5 animate-spin" />
             读取中…
           </p>
         ) : null}
@@ -129,9 +129,9 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
                         props.onPick(entry.relative)
                       }}>
                       {isDir ? (
-                        <FolderIcon className="text-muted-foreground size-3.5 shrink-0" />
+                        <Icon icon="lucide:folder" className="text-muted-foreground size-3.5 shrink-0" />
                       ) : (
-                        <FileIcon className="text-muted-foreground size-3.5 shrink-0" />
+                        <Icon icon="lucide:file" className="text-muted-foreground size-3.5 shrink-0" />
                       )}
                       <span className="min-w-0 flex-1 truncate text-start">{entry.name}</span>
                       {parentLabel ? (

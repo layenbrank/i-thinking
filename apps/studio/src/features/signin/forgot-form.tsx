@@ -1,8 +1,8 @@
+import { Icon } from '@iconify/react/offline'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@i-thinking/design/components/button'
 import { Form } from '@i-thinking/design/components/form'
 import { Tabs, TabsList, TabsTrigger } from '@i-thinking/design/components/tabs'
-import { LockIcon, MailIcon, SmartphoneIcon, UserIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -115,7 +115,7 @@ function ForgotForm(props: ForgotFormProps) {
                 name="username"
                 label="用户名"
                 placeholder="请输入用户名"
-                icon={<UserIcon />}
+                icon={<Icon icon="lucide:user" />}
                 maxLength={LIMIT.USERNAME}
                 autoComplete="username"
               />
@@ -129,7 +129,7 @@ function ForgotForm(props: ForgotFormProps) {
                 name="phone"
                 label="手机号"
                 placeholder="请输入手机号"
-                icon={<SmartphoneIcon />}
+                icon={<Icon icon="lucide:smartphone" />}
                 inputMode="numeric"
                 maxLength={LIMIT.PHONE}
                 autoComplete="tel"
@@ -144,7 +144,7 @@ function ForgotForm(props: ForgotFormProps) {
                 name="email"
                 label="邮箱"
                 placeholder="请输入邮箱"
-                icon={<MailIcon />}
+                icon={<Icon icon="lucide:mail" />}
                 maxLength={LIMIT.EMAIL}
                 autoComplete="email"
               />
@@ -168,7 +168,7 @@ function ForgotForm(props: ForgotFormProps) {
               type="password"
               label="新密码"
               placeholder="请输入新密码"
-              icon={<LockIcon />}
+              icon={<Icon icon="lucide:lock" />}
               maxLength={LIMIT.PASSWORD}
               autoComplete="new-password"
             />
@@ -181,7 +181,7 @@ function ForgotForm(props: ForgotFormProps) {
               type="password"
               label="确认密码"
               placeholder="请再次输入新密码"
-              icon={<LockIcon />}
+              icon={<Icon icon="lucide:lock" />}
               maxLength={LIMIT.PASSWORD}
               autoComplete="new-password"
             />

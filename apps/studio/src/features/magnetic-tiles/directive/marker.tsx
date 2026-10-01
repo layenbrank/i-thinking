@@ -1,6 +1,5 @@
+import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
-import { Zap } from 'lucide-react'
-
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/directive/marker.module.scss'
 
@@ -16,7 +15,7 @@ export default function Marker(props: Props) {
       <span
         className={styles.icon}
         aria-hidden="true">
-        <Zap />
+        <Icon icon="lucide:zap" />
       </span>
       <span className={styles.name}>{props.title}</span>
     </MagneticTile.Marker>

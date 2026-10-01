@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   toolApprovalAcceptsText,
   useScrollLock,
@@ -9,7 +10,6 @@ import {
   type ToolCallMessagePartStatus
 } from '@assistant-ui/react'
 import { cn } from 'cn'
-import { AlertCircleIcon, CheckIcon, ChevronDownIcon, LoaderIcon, XCircleIcon } from 'lucide-react'
 import { memo, useCallback, useRef, useState } from 'react'
 import { Button } from '../components/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
@@ -74,11 +74,11 @@ function ToolFallbackRoot({
 
 type ToolStatus = ToolCallMessagePartStatus['type']
 
-const statusIconMap: Record<ToolStatus, React.ElementType> = {
-  running: LoaderIcon,
-  complete: CheckIcon,
-  incomplete: XCircleIcon,
-  'requires-action': AlertCircleIcon
+const statusIconMap: Record<ToolStatus, string> = {
+  running: 'lucide:loader',
+  complete: 'lucide:check',
+  incomplete: 'lucide:circle-x',
+  'requires-action': 'lucide:circle-alert'
 }
 
 const formatToolDuration = (ms: number) => {
@@ -119,7 +119,7 @@ function ToolFallbackTrigger({
   const isRunning = statusType === 'running'
   const isCancelled = status?.type === 'incomplete' && status.reason === 'cancelled'
 
-  const Icon = statusIconMap[statusType]
+  const statusIcon = statusIconMap[statusType]
   const label = isCancelled ? 'Cancelled tool' : 'Used tool'
 
   return (
@@ -131,6 +131,7 @@ function ToolFallbackTrigger({
       )}
       {...props}>
       <Icon
+        icon={statusIcon}
         data-slot="tool-fallback-trigger-icon"
         className={cn(
           'aui-tool-fallback-trigger-icon size-4 shrink-0',
@@ -148,7 +149,7 @@ function ToolFallbackTrigger({
         {label}: <b>{toolName}</b>
       </span>
       <ToolFallbackDuration />
-      <ChevronDownIcon
+      <Icon icon="lucide:chevron-down"
         data-slot="tool-fallback-trigger-chevron"
         className={cn(
           'aui-tool-fallback-trigger-chevron size-4 shrink-0',
@@ -156,8 +157,7 @@ function ToolFallbackTrigger({
           '-rotate-90',
           'group-data-open/trigger:rotate-0',
           'group-data-panel-open/trigger:rotate-0'
-        )}
-      />
+        )} />
     </CollapsibleTrigger>
   )
 }

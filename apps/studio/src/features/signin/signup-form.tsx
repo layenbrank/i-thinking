@@ -1,7 +1,7 @@
+import { Icon } from '@iconify/react/offline'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@i-thinking/design/components/button'
 import { Form } from '@i-thinking/design/components/form'
-import { LockIcon, UserIcon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
@@ -60,7 +60,7 @@ function SignupForm(props: SignupFormProps) {
               name="username"
               label="用户名"
               placeholder="请输入用户名"
-              icon={<UserIcon />}
+              icon={<Icon icon="lucide:user" />}
               maxLength={LIMIT.USERNAME}
               autoComplete="username"
             />
@@ -73,7 +73,7 @@ function SignupForm(props: SignupFormProps) {
               type="password"
               label="密码"
               placeholder="请输入密码"
-              icon={<LockIcon />}
+              icon={<Icon icon="lucide:lock" />}
               maxLength={LIMIT.PASSWORD}
               autoComplete="new-password"
             />
@@ -86,7 +86,7 @@ function SignupForm(props: SignupFormProps) {
               type="password"
               label="确认密码"
               placeholder="请再次输入密码"
-              icon={<LockIcon />}
+              icon={<Icon icon="lucide:lock" />}
               maxLength={LIMIT.PASSWORD}
               autoComplete="new-password"
             />

@@ -1,8 +1,7 @@
+import { Icon } from '@iconify/react/offline'
 import { useAuiState } from '@assistant-ui/react'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
-import { FilePenLineIcon, RotateCcwIcon, ScanSearchIcon } from 'lucide-react'
-
 import { useSessionChanges, useUndoChanges } from '@/features/agent/changes.ts'
 import { useSessionID } from '@/features/chat/session.ts'
 import { useAsidePanel } from '@/views/agent/chat/components/use-aside-panel.ts'
@@ -38,7 +37,7 @@ function ChangeSummaryBar(props: { sessionID: string }) {
   return (
     <div className="border-border bg-card mb-2 overflow-hidden rounded-lg border shadow-xs">
       <div className="flex items-center gap-2 px-3 py-2">
-        <FilePenLineIcon className="text-muted-foreground size-4 shrink-0" />
+        <Icon icon="lucide:file-pen-line" className="text-muted-foreground size-4 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">已编辑 {entries.length} 个文件</p>
           <p className="text-muted-foreground flex items-center gap-2 text-xs">
@@ -63,7 +62,7 @@ function ChangeSummaryBar(props: { sessionID: string }) {
           onClick={function () {
             undo.mutate(undefined)
           }}>
-          <RotateCcwIcon />
+          <Icon icon="lucide:rotate-ccw" />
           撤销
         </Button>
         <Button
@@ -74,7 +73,7 @@ function ChangeSummaryBar(props: { sessionID: string }) {
           onClick={function () {
             open('changes')
           }}>
-          <ScanSearchIcon />
+          <Icon icon="lucide:scan-search" />
           审阅
         </Button>
       </div>

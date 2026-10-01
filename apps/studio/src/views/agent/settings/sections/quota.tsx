@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -10,7 +11,6 @@ import {
 } from '@i-thinking/design/components/dialog'
 import { Progress } from '@i-thinking/design/components/progress'
 import { Skeleton } from '@i-thinking/design/components/skeleton'
-import { TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -308,7 +308,7 @@ export function QuotaSection() {
                     onClick={function () {
                       updateRemovingID(active.id)
                     }}>
-                    <TrashIcon />
+                    <Icon icon="lucide:trash" />
                     取消订阅
                   </Button>
                 ) : null}

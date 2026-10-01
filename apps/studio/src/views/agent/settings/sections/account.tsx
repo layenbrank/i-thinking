@@ -1,7 +1,7 @@
+import { Icon } from '@iconify/react/offline'
 import { Avatar, AvatarFallback } from '@i-thinking/design/components/avatar'
 import { Button } from '@i-thinking/design/components/button'
 import { Skeleton } from '@i-thinking/design/components/skeleton'
-import { LogInIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useAccountSession, useSignOut } from '@/features/account/session.ts'
@@ -53,7 +53,7 @@ export function AccountSection() {
                 onClick={function () {
                   updateSignInOpen(true)
                 }}>
-                <LogInIcon />
+                <Icon icon="lucide:log-in" />
                 登录
               </Button>
             }

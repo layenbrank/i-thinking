@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   ComposerPrimitive,
   useAui,
@@ -9,7 +10,6 @@ import {
   type Unstable_TriggerItem
 } from '@assistant-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { FileIcon, Loader2Icon, WrenchIcon } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 
@@ -69,7 +69,7 @@ function TriggerListShell(props: {
     <div className="border-border/60 bg-popover absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-lg border shadow-md">
       {props.isLoading ? (
         <p className="text-muted-foreground flex items-center gap-1.5 px-3 py-2.5 text-xs">
-          <Loader2Icon className="size-3.5 animate-spin" />
+          <Icon icon="lucide:loader-circle" className="size-3.5 animate-spin" />
           读取中…
         </p>
       ) : null}
@@ -219,7 +219,7 @@ function ComposerTriggers() {
                       item={item}
                       index={index}
                       className="data-highlighted:bg-muted hover:bg-muted flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs outline-none">
-                      <FileIcon className="text-muted-foreground size-3.5 shrink-0" />
+                      <Icon icon="lucide:file" className="text-muted-foreground size-3.5 shrink-0" />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.description ? (
                         <span className="text-muted-foreground max-w-[40%] truncate text-[11px]">
@@ -256,7 +256,7 @@ function ComposerTriggers() {
                       item={item}
                       index={index}
                       className="data-highlighted:bg-muted hover:bg-muted flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs outline-none">
-                      <WrenchIcon className="text-muted-foreground size-3.5 shrink-0" />
+                      <Icon icon="lucide:wrench" className="text-muted-foreground size-3.5 shrink-0" />
                       <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                         <span className="w-full truncate">{item.label}</span>
                         {item.description ? (

@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   findProviderSource,
   PROVIDER_SOURCE_LABELS,
@@ -15,14 +16,6 @@ import {
   DropdownMenuTrigger
 } from '@i-thinking/design/components/dropdown-menu'
 import { Input } from '@i-thinking/design/components/input'
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  CircleAlertIcon,
-  PlusIcon,
-  SearchIcon,
-  SettingsIcon
-} from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -95,7 +88,7 @@ function ModelItem(props: { option: ModelOption; isActive: boolean; onPick: () =
 
   return (
     <DropdownMenuItem onSelect={props.onPick}>
-      <CheckIcon className={props.isActive ? 'text-primary' : 'opacity-0'} />
+      <Icon icon="lucide:check" className={props.isActive ? 'text-primary' : 'opacity-0'} />
       <span className="min-w-0 flex-1 truncate">{option.model.name || option.model.id}</span>
 
       {option.model.providerName ? (
@@ -227,7 +220,7 @@ export function ModelPicker(props: ModelPickerProps) {
         aria-label="选择模型"
         title={blocker ?? '还没有可用模型，去设置里添加'}
         onClick={props.onOpenSettings}>
-        <CircleAlertIcon />
+        <Icon icon="lucide:circle-alert" />
         <span className="truncate">添加模型</span>
       </Button>
     )
@@ -248,7 +241,7 @@ export function ModelPicker(props: ModelPickerProps) {
             aria-label="选择模型"
             title={trigger.title}>
             <span className="truncate">{trigger.text}</span>
-            <ChevronDownIcon className="size-3.5 shrink-0 opacity-60" />
+            <Icon icon="lucide:chevron-down" className="size-3.5 shrink-0 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
 
@@ -256,7 +249,7 @@ export function ModelPicker(props: ModelPickerProps) {
           align="end"
           className="w-80 p-0">
           <div className="border-border relative border-b p-2">
-            <SearchIcon className="text-muted-foreground pointer-events-none absolute start-4 top-1/2 size-3.5 -translate-y-1/2" />
+            <Icon icon="lucide:search" className="text-muted-foreground pointer-events-none absolute start-4 top-1/2 size-3.5 -translate-y-1/2" />
             <Input
               value={query}
               placeholder="搜索模型…"
@@ -280,7 +273,7 @@ export function ModelPicker(props: ModelPickerProps) {
                   void update('chat', { providerID: null, model: '' })
                 }}
                 title="跟随当前可用模型（组织模型优先）">
-                <CheckIcon className={isAuto ? 'text-primary' : 'opacity-0'} />
+                <Icon icon="lucide:check" className={isAuto ? 'text-primary' : 'opacity-0'} />
                 <span className="min-w-0 flex-1 truncate">自动</span>
                 <span className="text-muted-foreground shrink-0 text-3xs">
                   {target ? target.model : '还没有可用模型'}
@@ -318,14 +311,14 @@ export function ModelPicker(props: ModelPickerProps) {
               onSelect={function () {
                 props.onOpenSettings?.()
               }}>
-              <PlusIcon />
+              <Icon icon="lucide:plus" />
               添加模型
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={function () {
                 updateSettingsOpen(true)
               }}>
-              <SettingsIcon />
+              <Icon icon="lucide:settings" />
               模型设置
             </DropdownMenuItem>
           </div>

@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@iconify/react": "catalog:",
+    "@iconify/json": "^2.2.402",
     "@tanstack/react-query": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

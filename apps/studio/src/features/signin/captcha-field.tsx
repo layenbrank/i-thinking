@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   FormControl,
@@ -7,7 +8,6 @@ import {
   FormMessage
 } from '@i-thinking/design/components/form'
 import { Input } from '@i-thinking/design/components/input'
-import { ShieldCheckIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FieldPath, FieldValues, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -114,7 +114,7 @@ function CaptchaField<T extends FieldValues>(props: CaptchaFieldProps<T>) {
             <div className={styles.captcha}>
               <div className="relative flex-1">
                 <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground [&_svg]:size-4">
-                  <ShieldCheckIcon />
+                  <Icon icon="lucide:shield-check" />
                 </span>
                 <FormControl>
                   <Input

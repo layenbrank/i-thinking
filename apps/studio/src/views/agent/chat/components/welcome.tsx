@@ -1,6 +1,5 @@
+import { Icon } from '@iconify/react/offline'
 import { useAui } from '@assistant-ui/react'
-import { BookOpenIcon, HistoryIcon, ListTodoIcon, PuzzleIcon, SparklesIcon } from 'lucide-react'
-
 import { useActiveWorkspace } from '@/features/agent/workspace/client.ts'
 import { useSessionID } from '@/features/chat/session.ts'
 
@@ -11,17 +10,17 @@ import { useSessionID } from '@/features/chat/session.ts'
 
 const SUGGESTIONS = [
   {
-    icon: BookOpenIcon,
+    icon: 'lucide:book-open',
     title: '读懂这个仓库',
     prompt: '概览一下当前工作区：主要模块、技术栈，以及程序的入口文件在哪。'
   },
   {
-    icon: PuzzleIcon,
+    icon: 'lucide:puzzle',
     title: '解释目录结构',
     prompt: '解释一下当前工作区的目录结构，每个顶层目录各自负责什么。'
   },
   {
-    icon: ListTodoIcon,
+    icon: 'lucide:list-todo',
     title: '收拢待办',
     prompt: '在当前工作区里找出所有 TODO 注释，按所在模块归类列出来。'
   }
@@ -38,7 +37,7 @@ function NoHistoryNotice() {
     <div className="mb-2 flex w-full flex-col items-center gap-6 px-2 text-center">
       <div className="flex flex-col items-center gap-3">
         <span className="bg-muted text-muted-foreground inline-flex size-12 items-center justify-center rounded-lg">
-          <HistoryIcon className="size-6" />
+          <Icon icon="lucide:history" className="size-6" />
         </span>
         <div className="flex flex-col gap-2">
           <h1 className="text-foreground text-2xl leading-[1.35] font-semibold tracking-[-0.01em]">
@@ -74,7 +73,7 @@ function ThreadGreeting() {
     <div className="mb-2 flex w-full flex-col items-center gap-6 px-2 text-center">
       <div className="flex flex-col items-center gap-3">
         <span className="bg-primary/10 text-primary inline-flex size-12 items-center justify-center rounded-lg">
-          <SparklesIcon className="size-6" />
+          <Icon icon="lucide:sparkles" className="size-6" />
         </span>
         <div className="flex flex-col gap-2">
           <h1 className="text-foreground text-2xl leading-[1.35] font-semibold tracking-[-0.01em]">
@@ -100,8 +99,6 @@ function ThreadGreeting() {
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {SUGGESTIONS.map(function (item) {
-              const Icon = item.icon
-
               return (
                 <button
                   key={item.title}
@@ -111,7 +108,10 @@ function ThreadGreeting() {
                     handleSuggestion(item.prompt)
                   }}>
                   <span className="bg-muted text-muted-foreground inline-flex size-7 items-center justify-center rounded-md">
-                    <Icon className="size-3.5" />
+                    <Icon
+                      icon={item.icon}
+                      className="size-3.5"
+                    />
                   </span>
                   <span className="text-foreground line-clamp-2 text-sm font-medium">
                     {item.title}

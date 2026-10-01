@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import {
   AuiIf,
   ThreadListItemMorePrimitive,
@@ -7,15 +8,6 @@ import {
   useAuiState
 } from '@assistant-ui/react'
 import { cn } from 'cn'
-import {
-  ArchiveIcon,
-  Loader2Icon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  PlusIcon,
-  SearchIcon,
-  TrashIcon
-} from 'lucide-react'
 import {
   forwardRef,
   Fragment,
@@ -62,10 +54,9 @@ export const ThreadListSearch = forwardRef<
     <div
       data-slot="aui_thread-list-search"
       className="relative px-0.5 py-1">
-      <SearchIcon
+      <Icon icon="lucide:search"
         data-slot="aui_thread-list-search-icon"
-        className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
-      />
+        className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2" />
       <Input
         ref={ref}
         type="search"
@@ -230,10 +221,9 @@ export const ThreadListNew = forwardRef<
         {...props}>
         {children ?? (
           <>
-            <PlusIcon
+            <Icon icon="lucide:plus"
               data-slot="aui_thread-list-new-icon"
-              className="size-4 shrink-0"
-            />
+              className="size-4 shrink-0" />
             <span
               data-slot="aui_thread-list-new-label"
               className={cn('whitespace-nowrap', labelClassName)}>
@@ -300,11 +290,10 @@ export const ThreadListItem: FC = () => {
           data-slot="aui_thread-list-item-trigger"
           className="focus-visible:ring-ring/50 flex h-full min-w-0 flex-1 items-center rounded-md px-2.5 text-start text-sm outline-none group-hover:pe-9 group-has-focus-visible:pe-9 group-has-data-[state=open]:pe-9 group-data-active:pe-9 focus-visible:ring-1">
           {isRunning && (
-            <Loader2Icon
+            <Icon icon="lucide:loader-circle"
               aria-hidden
               data-slot="aui_thread-list-item-running"
-              className="text-muted-foreground me-1.5 size-3.5 shrink-0 animate-spin"
-            />
+              className="text-muted-foreground me-1.5 size-3.5 shrink-0 animate-spin" />
           )}
           <span
             data-slot="aui_thread-list-item-title"
@@ -395,7 +384,7 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
           size="icon"
           data-slot="aui_thread-list-item-more"
           className="data-[state=open]:bg-accent absolute end-1.5 top-1/2 size-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100 group-has-focus-visible:opacity-100 group-data-active:opacity-100 data-[state=open]:opacity-100">
-          <MoreHorizontalIcon className="size-3.5" />
+          <Icon icon="lucide:ellipsis" className="size-3.5" />
           <span className="sr-only">{labels.moreOptions}</span>
         </Button>
       </ThreadListItemMorePrimitive.Trigger>
@@ -409,14 +398,14 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
           data-slot="aui_thread-list-item-more-item"
           className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none"
           onSelect={onRename}>
-          <PencilIcon className="size-4" />
+          <Icon icon="lucide:pencil" className="size-4" />
           {labels.rename}
         </ThreadListItemMorePrimitive.Item>
         <ThreadListItemPrimitive.Archive asChild>
           <ThreadListItemMorePrimitive.Item
             data-slot="aui_thread-list-item-more-item"
             className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none">
-            <ArchiveIcon className="size-4" />
+            <Icon icon="lucide:archive" className="size-4" />
             {labels.archive}
           </ThreadListItemMorePrimitive.Item>
         </ThreadListItemPrimitive.Archive>
@@ -424,7 +413,7 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
           <ThreadListItemMorePrimitive.Item
             data-slot="aui_thread-list-item-more-item"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none">
-            <TrashIcon className="size-4" />
+            <Icon icon="lucide:trash" className="size-4" />
             {labels.delete}
           </ThreadListItemMorePrimitive.Item>
         </ThreadListItemPrimitive.Delete>

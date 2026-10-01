@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   Form,
@@ -18,7 +19,6 @@ import {
 } from '@i-thinking/design/components/select'
 import { Switch } from '@i-thinking/design/components/switch'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch, type Control, type ControllerRenderProps } from 'react-hook-form'
 
@@ -84,7 +84,7 @@ function KeyField(props: {
             return !current
           })
         }}>
-        {isVisible ? <EyeOffIcon /> : <EyeIcon />}
+        {isVisible ? <Icon icon="lucide:eye-off" /> : <Icon icon="lucide:eye" />}
       </Button>
     </div>
   )

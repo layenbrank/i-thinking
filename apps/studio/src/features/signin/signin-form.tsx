@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@i-thinking/design/components/button'
 import { Checkbox } from '@i-thinking/design/components/checkbox'
@@ -9,7 +10,6 @@ import {
   FormLabel
 } from '@i-thinking/design/components/form'
 import { Tabs, TabsList, TabsTrigger } from '@i-thinking/design/components/tabs'
-import { LockIcon, MailIcon, SmartphoneIcon, UserIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -145,7 +145,7 @@ function SigninForm(props: SigninFormProps) {
                   name="username"
                   label="用户名"
                   placeholder="请输入用户名"
-                  icon={<UserIcon />}
+                  icon={<Icon icon="lucide:user" />}
                   maxLength={LIMIT.USERNAME}
                   autoComplete="username"
                 />
@@ -157,7 +157,7 @@ function SigninForm(props: SigninFormProps) {
                   type="password"
                   label="密码"
                   placeholder="请输入密码"
-                  icon={<LockIcon />}
+                  icon={<Icon icon="lucide:lock" />}
                   maxLength={LIMIT.PASSWORD}
                   autoComplete="current-password"
                 />
@@ -173,7 +173,7 @@ function SigninForm(props: SigninFormProps) {
                   name="phone"
                   label="手机号"
                   placeholder="请输入手机号"
-                  icon={<SmartphoneIcon />}
+                  icon={<Icon icon="lucide:smartphone" />}
                   inputMode="numeric"
                   maxLength={LIMIT.PHONE}
                   autoComplete="tel"
@@ -199,7 +199,7 @@ function SigninForm(props: SigninFormProps) {
                   name="email"
                   label="邮箱"
                   placeholder="请输入邮箱"
-                  icon={<MailIcon />}
+                  icon={<Icon icon="lucide:mail" />}
                   maxLength={LIMIT.EMAIL}
                   autoComplete="email"
                 />

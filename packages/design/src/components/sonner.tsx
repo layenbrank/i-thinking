@@ -1,10 +1,4 @@
-import {
-  CircleCheckIcon,
-  InfoIcon,
-  Loader2Icon,
-  OctagonXIcon,
-  TriangleAlertIcon
-} from 'lucide-react'
+import { Icon } from '@iconify/react/offline'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
 import { cn } from 'cn'
@@ -20,11 +14,11 @@ function Toaster({ className, ...props }: ToasterProps) {
     <Sonner
       className={cn('toaster group', className)}
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />
+        success: <Icon icon="lucide:circle-check" className="size-4" />,
+        info: <Icon icon="lucide:info" className="size-4" />,
+        warning: <Icon icon="lucide:triangle-alert" className="size-4" />,
+        error: <Icon icon="lucide:octagon-x" className="size-4" />,
+        loading: <Icon icon="lucide:loader-circle" className="size-4 animate-spin" />
       }}
       style={
         {

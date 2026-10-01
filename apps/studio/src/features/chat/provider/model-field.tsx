@@ -1,10 +1,10 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import { Checkbox } from '@i-thinking/design/components/checkbox'
 import { Input } from '@i-thinking/design/components/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@i-thinking/design/components/popover'
 import { cn } from 'cn'
-import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useState, type ComponentProps } from 'react'
 
 import { addModelIDs, filterModelOptions, toggleModelID } from '@/features/chat/provider/models.ts'
@@ -46,7 +46,7 @@ function Trigger(props: TriggerProps) {
       aria-expanded={isOpen}
       className={cn('w-full justify-between font-normal', className)}>
       <span className={cn('truncate', isPlaceholder && 'text-muted-foreground')}>{text}</span>
-      <ChevronDownIcon className="text-muted-foreground size-4 shrink-0" />
+      <Icon icon="lucide:chevron-down" className="text-muted-foreground size-4 shrink-0" />
     </Button>
   )
 }
@@ -61,7 +61,7 @@ function SearchBox(props: {
   return (
     <div className="border-border border-b p-1.5">
       <div className="relative">
-        <SearchIcon className="text-muted-foreground pointer-events-none absolute inset-s-2 top-1/2 size-3.5 -translate-y-1/2" />
+        <Icon icon="lucide:search" className="text-muted-foreground pointer-events-none absolute inset-s-2 top-1/2 size-3.5 -translate-y-1/2" />
         <Input
           autoFocus
           value={props.query}
@@ -91,9 +91,8 @@ function OptionRow(props: { label: string; isActive: boolean; onPick: () => void
       aria-selected={props.isActive}
       onClick={props.onPick}
       className="hover:bg-accent h-auto w-full justify-start gap-2 rounded-sm px-2 py-1.5 text-xs">
-      <CheckIcon
-        className={cn('size-3.5 shrink-0', props.isActive ? 'text-primary' : 'opacity-0')}
-      />
+      <Icon icon="lucide:check"
+        className={cn('size-3.5 shrink-0', props.isActive ? 'text-primary' : 'opacity-0')} />
       <span className="min-w-0 flex-1 truncate">{props.label}</span>
     </Button>
   )
@@ -344,7 +343,7 @@ function ModelChips(props: { models: readonly string[]; onChange: (models: strin
               onClick={function () {
                 props.onChange(toggleModelID(props.models, id))
               }}>
-              <XIcon className="size-3" />
+              <Icon icon="lucide:x" className="size-3" />
             </Button>
           </Badge>
         )

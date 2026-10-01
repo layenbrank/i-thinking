@@ -1,9 +1,10 @@
+import { Icon, type IconProps } from '@iconify/react/offline'
 import { cn } from 'cn'
-import { Loader2Icon } from 'lucide-react'
 
-function Spinner({ className, ...props }: React.ComponentProps<'svg'>) {
+function Spinner({ className, ...props }: Omit<IconProps, 'icon'>) {
   return (
-    <Loader2Icon
+    <Icon
+      icon="lucide:loader-circle"
       role="status"
       aria-label="Loading"
       className={cn('size-4 animate-spin', className)}

@@ -1,18 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
-import {
-  BoxesIcon,
-  ChartColumnIcon,
-  ChevronLeftIcon,
-  GaugeIcon,
-  KeyboardIcon,
-  ScrollTextIcon,
-  SearchIcon,
-  ServerIcon,
-  Settings2Icon,
-  SparklesIcon,
-  UserRoundIcon
-} from 'lucide-react'
 import { useMemo, useState, type ComponentType } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -41,7 +29,7 @@ import { ShortcutsSection } from '@/views/agent/settings/sections/shortcuts.tsx'
 interface SettingsItem {
   id: string
   label: string
-  icon: ComponentType<{ className?: string }>
+  icon: string
   section: ComponentType
 }
 
@@ -56,11 +44,11 @@ const GROUPS: SettingsGroup[] = [
   {
     label: '个人',
     items: [
-      { id: 'account', label: '账号', icon: UserRoundIcon, section: AccountSection },
-      { id: 'general', label: '常规', icon: Settings2Icon, section: GeneralSection },
-      { id: 'shortcuts', label: '快捷键', icon: KeyboardIcon, section: ShortcutsSection },
-      { id: 'model', label: '模型', icon: SparklesIcon, section: ModelSection },
-      { id: 'quota', label: '额度', icon: GaugeIcon, section: QuotaSection }
+      { id: 'account', label: '账号', icon: 'lucide:user-round', section: AccountSection },
+      { id: 'general', label: '常规', icon: 'lucide:settings-2', section: GeneralSection },
+      { id: 'shortcuts', label: '快捷键', icon: 'lucide:keyboard', section: ShortcutsSection },
+      { id: 'model', label: '模型', icon: 'lucide:sparkles', section: ModelSection },
+      { id: 'quota', label: '额度', icon: 'lucide:gauge', section: QuotaSection }
     ]
   },
   {
@@ -70,17 +58,17 @@ const GROUPS: SettingsGroup[] = [
       {
         id: 'platform-providers',
         label: '供应商',
-        icon: ServerIcon,
+        icon: 'lucide:server',
         section: PlatformProviderSection
       },
       {
         id: 'platform-models',
         label: '平台模型',
-        icon: BoxesIcon,
+        icon: 'lucide:boxes',
         section: PlatformModelSection
       },
-      { id: 'platform-usage', label: '用量', icon: ChartColumnIcon, section: UsageSection },
-      { id: 'platform-audit', label: '审计', icon: ScrollTextIcon, section: AuditSection }
+      { id: 'platform-usage', label: '用量', icon: 'lucide:chart-column', section: UsageSection },
+      { id: 'platform-audit', label: '审计', icon: 'lucide:scroll-text', section: AuditSection }
     ]
   }
 ]
@@ -159,7 +147,7 @@ export default function Settings() {
           onClick={function () {
             void navigate('/agent/chat')
           }}>
-          <ChevronLeftIcon />
+          <Icon icon="lucide:chevron-left" />
           返回应用
         </Button>
         <span className="text-sm font-medium">设置</span>
@@ -168,7 +156,7 @@ export default function Settings() {
       <div className="bg-muted/30 flex min-h-0 flex-1 gap-0 p-3">
         <nav className="bg-background border-border flex w-56 shrink-0 flex-col gap-3 rounded-xl border p-2">
           <div className="relative">
-            <SearchIcon className="text-muted-foreground pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+            <Icon icon="lucide:search" className="text-muted-foreground pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2" />
             <Input
               value={query}
               placeholder="搜索设置…"
@@ -191,7 +179,6 @@ export default function Settings() {
                   </span>
                   {group.items.map(function (item) {
                     const isActive = item.id === active.id
-                    const Icon = item.icon
 
                     return (
                       <Button
@@ -208,7 +195,10 @@ export default function Settings() {
                         onClick={function () {
                           openSection(item.id)
                         }}>
-                        <Icon className="size-4" />
+                        <Icon
+                          icon={item.icon}
+                          className="size-4"
+                        />
                         {item.label}
                       </Button>
                     )

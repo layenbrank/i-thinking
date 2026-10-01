@@ -7,10 +7,12 @@ import '@/styles/index.scss'
 import { CSSVAR } from '@/themes'
 
 import AntIconify from '@iconify/json/json/ant-design.json'
+import LucideIconify from '@iconify/json/json/lucide.json'
 import MDIconify from '@iconify/json/json/mdi.json'
 
 addCollection(MDIconify)
 addCollection(AntIconify)
+addCollection(LucideIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement
 

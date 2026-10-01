@@ -1,5 +1,5 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
-import { ChevronDownIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { DIFF_PREVIEW_LIMIT, toDiffPreview } from '@/views/agent/chat/components/diff-lines.ts'
@@ -120,7 +120,7 @@ export function DiffView(props: { patch: string }) {
           onClick={function () {
             updateFull(true)
           }}>
-          <ChevronDownIcon className="size-3" />
+          <Icon icon="lucide:chevron-down" className="size-3" />
           展开剩余 {preview.hidden} 行
         </Button>
       ) : null}

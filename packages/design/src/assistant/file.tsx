@@ -1,14 +1,6 @@
-import { memo, type FC } from 'react'
+import { Icon } from '@iconify/react/offline'
+import { memo } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
-import {
-  FileIcon,
-  FileTextIcon,
-  ImageIcon,
-  MusicIcon,
-  VideoIcon,
-  BracesIcon,
-  DownloadIcon
-} from 'lucide-react'
 import type { FileMessagePartComponent } from '@assistant-ui/react'
 import { cn } from 'cn'
 import { useAssistantLabels } from './labels'
@@ -35,27 +27,27 @@ const fileVariants = cva(
   }
 )
 
-function getMimeTypeIcon(mimeType: string): FC<{ className?: string }> {
+function getMimeTypeIcon(mimeType: string): string {
   const type = mimeType.toLowerCase()
   if (type.startsWith('image/')) {
-    return ImageIcon
+    return 'lucide:image'
   }
   if (type === 'application/pdf') {
-    return FileTextIcon
+    return 'lucide:file-text'
   }
   if (type === 'application/json') {
-    return BracesIcon
+    return 'lucide:braces'
   }
   if (type.startsWith('text/')) {
-    return FileTextIcon
+    return 'lucide:file-text'
   }
   if (type.startsWith('audio/')) {
-    return MusicIcon
+    return 'lucide:music'
   }
   if (type.startsWith('video/')) {
-    return VideoIcon
+    return 'lucide:video'
   }
-  return FileIcon
+  return 'lucide:file'
 }
 
 export type FileDataKind = 'data-uri' | 'url' | 'base64' | 'id'
@@ -137,15 +129,19 @@ type FileIconDisplayProps = React.ComponentProps<'span'> & {
 }
 
 function FileIconDisplay({ mimeType, className, children, ...props }: FileIconDisplayProps) {
-  const IconComponent = mimeType ? getMimeTypeIcon(mimeType) : FileIcon
+  const icon = mimeType ? getMimeTypeIcon(mimeType) : 'lucide:file'
 
   return (
     <span
       data-slot="file-icon"
       className={cn('text-muted-foreground shrink-0', className)}
       {...props}>
-      {/* eslint-disable-next-line react-hooks/static-components -- The helper only selects module-level icon components. */}
-      {children ?? <IconComponent className="size-5" />}
+      {children ?? (
+        <Icon
+          icon={icon}
+          className="size-5"
+        />
+      )}
     </span>
   )
 }
@@ -211,7 +207,7 @@ function FileDownload({
       )}
       aria-label={!children ? labels.downloadFile(filename) : undefined}
       {...props}>
-      {children || <DownloadIcon className="size-4" />}
+      {children || <Icon icon="lucide:download" className="size-4" />}
     </a>
   )
 }

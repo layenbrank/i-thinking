@@ -1,5 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
-import { CheckIcon, ChevronDownIcon, Loader2Icon, TerminalIcon, XIcon } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState, type ReactNode } from 'react'
 
 import {
@@ -17,39 +18,85 @@ import {
  * 面板**恒为深色**（不随主题切换）：终端就是深色的，浅色主题下用浅底反而与正文混淆。
  */
 
-/** 输出正文：短输出原样铺，长输出先给前 `maxLines` 行，其余折起来 */
+const EXPAND = {
+  duration: 0.22,
+  ease: 'easeOut' as const
+}
+
+function OutputLines(props: { lines: readonly string[]; keyPrefix: string }) {
+  return props.lines.map(function (line, index) {
+    // 输出是逐行日志，行内容本身会重复，序号是最可靠的 key
+    return (
+      <div
+        key={`${props.keyPrefix}-${index}`}
+        className="whitespace-pre-wrap break-all">
+        {line}
+      </div>
+    )
+  })
+}
+
+/** 输出正文：短输出原样铺，长输出先给前 `maxLines` 行，其余折起来；展开/收起带动高过渡 */
 function TerminalOutput(props: { text: string; maxLines: number }) {
   const [isExpanded, updateExpanded] = useState(false)
+  const isReducedMotion = useReducedMotion()
   const collapsed = collapseOutput(props.text, props.maxLines)
-  const lines = isExpanded
-    ? collapseOutput(props.text, Number.MAX_SAFE_INTEGER).lines
-    : collapsed.lines
+  const preview = collapsed.lines
+  const rest =
+    collapsed.hidden > 0
+      ? collapseOutput(props.text, Number.MAX_SAFE_INTEGER).lines.slice(props.maxLines)
+      : []
 
-  if (collapsed.lines.length === 0) return null
+  if (preview.length === 0) return null
+
+  const transition = isReducedMotion
+    ? { duration: 0.01 }
+    : { duration: EXPAND.duration, ease: EXPAND.ease }
 
   return (
     <div>
-      {lines.map(function (line, index) {
-        return (
-          // 输出是逐行日志，行内容本身会重复，序号是最可靠的 key
-          <div
-            key={index}
-            className="whitespace-pre-wrap break-all">
-            {line}
-          </div>
-        )
-      })}
-      {collapsed.hidden > 0 && !isExpanded ? (
+      <OutputLines
+        lines={preview}
+        keyPrefix="preview"
+      />
+
+      <AnimatePresence initial={false}>
+        {isExpanded && rest.length > 0 ? (
+          <motion.div
+            key="rest"
+            initial={isReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={isReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={transition}
+            className="overflow-hidden">
+            <OutputLines
+              lines={rest}
+              keyPrefix="rest"
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {collapsed.hidden > 0 ? (
         <Button
           type="button"
           variant="ghost"
           size="xs"
-          className="text-terminal-muted hover:bg-terminal-surface hover:text-terminal-foreground mt-1"
+          className="text-terminal-muted hover:bg-terminal-surface hover:text-terminal-foreground mt-1 cursor-pointer"
           onClick={function () {
-            updateExpanded(true)
+            updateExpanded(!isExpanded)
           }}>
-          <ChevronDownIcon className="size-3" />
-          展开全部（还有 {collapsed.hidden} 行）
+          {isExpanded ? (
+            <>
+              <Icon icon="lucide:chevron-up" className="size-3" />
+              收起
+            </>
+          ) : (
+            <>
+              <Icon icon="lucide:chevron-down" className="size-3" />
+              展开全部（还有 {collapsed.hidden} 行）
+            </>
+          )}
         </Button>
       ) : null}
     </div>
@@ -80,14 +127,14 @@ function TerminalShell(props: TerminalShellProps) {
       data-state={props.isRunning ? 'running' : props.isError ? 'error' : 'done'}
       className="border-terminal-border bg-terminal text-terminal-foreground overflow-hidden rounded-md border">
       <div className="border-terminal-border bg-terminal-surface/60 flex items-center gap-2 border-b px-2.5 py-1">
-        <TerminalIcon className="text-terminal-muted size-3 shrink-0" />
+        <Icon icon="lucide:terminal" className="text-terminal-muted size-3 shrink-0" />
         <div className="min-w-0 flex-1 font-mono text-2xs break-all">{props.header}</div>
         {props.isRunning ? (
-          <Loader2Icon className="text-terminal-muted size-3 shrink-0 animate-spin" />
+          <Icon icon="lucide:loader-circle" className="text-terminal-muted size-3 shrink-0 animate-spin" />
         ) : props.isError ? (
-          <XIcon className="text-terminal-danger size-3 shrink-0" />
+          <Icon icon="lucide:x" className="text-terminal-danger size-3 shrink-0" />
         ) : (
-          <CheckIcon className="text-terminal-accent size-3 shrink-0" />
+          <Icon icon="lucide:check" className="text-terminal-accent size-3 shrink-0" />
         )}
       </div>
 

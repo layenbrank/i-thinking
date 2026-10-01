@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -10,7 +11,6 @@ import {
 } from '@i-thinking/design/components/dialog'
 import { Separator } from '@i-thinking/design/components/separator'
 import { Spinner } from '@i-thinking/design/components/spinner'
-import { CheckCircle2Icon } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -265,7 +265,7 @@ export function CheckoutDialog(props: CheckoutDialogProps) {
 
             {paid ? (
               <div className="flex items-center gap-2 py-2 text-sm">
-                <CheckCircle2Icon className="text-primary size-4" />
+                <Icon icon="lucide:circle-check" className="text-primary size-4" />
                 已开通「{current.plan}」，当天配额即按新档位计算。
               </div>
             ) : null}

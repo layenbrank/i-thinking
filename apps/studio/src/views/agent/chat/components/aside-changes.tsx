@@ -1,6 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
-import { ChevronRightIcon, FilePenLineIcon, RotateCcwIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useChangePatch, useSessionChanges, useUndoChanges } from '@/features/agent/changes.ts'
@@ -43,12 +43,11 @@ function ChangeRow(props: ChangeRowProps) {
           onClick={function () {
             updateOpen(!isOpen)
           }}>
-          <ChevronRightIcon
+          <Icon icon="lucide:chevron-right"
             data-open={isOpen ? 'true' : 'false'}
-            className="transition-transform data-[open=true]:rotate-90"
-          />
+            className="transition-transform data-[open=true]:rotate-90" />
         </Button>
-        <FilePenLineIcon className="text-muted-foreground size-3.5 shrink-0" />
+        <Icon icon="lucide:file-pen-line" className="text-muted-foreground size-3.5 shrink-0" />
         <span
           className={
             entry.undone
@@ -68,7 +67,7 @@ function ChangeRow(props: ChangeRowProps) {
           title={entry.undone ? '已撤销' : '撤销这个文件'}
           disabled={entry.undone || props.isUndoing}
           onClick={props.onUndo}>
-          <RotateCcwIcon />
+          <Icon icon="lucide:rotate-ccw" />
         </Button>
       </div>
 
@@ -122,7 +121,7 @@ export function AsideChanges(props: { sessionID: string | null; isRunning: boole
             onClick={function () {
               undo.mutate(undefined)
             }}>
-            <RotateCcwIcon className="size-3" />
+            <Icon icon="lucide:rotate-ccw" className="size-3" />
             全部撤销
           </Button>
         ) : null

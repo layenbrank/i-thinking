@@ -1,7 +1,6 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { cn } from 'cn'
-import { RefreshCwIcon } from 'lucide-react'
-
 /**
  * 只读面板上的「现在取一次」按钮。
  *
@@ -30,7 +29,7 @@ function RefreshButton(props: {
       aria-label={props.iconOnly ? label : undefined}
       title={label}
       onClick={props.onRefresh}>
-      <RefreshCwIcon className={cn(props.isFetching && 'animate-spin')} />
+      <Icon icon="lucide:refresh-cw" className={cn(props.isFetching && 'animate-spin')} />
       {props.iconOnly ? null : label}
     </Button>
   )

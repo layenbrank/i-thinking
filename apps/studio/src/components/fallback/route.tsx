@@ -1,4 +1,4 @@
-import { Loader2Icon } from 'lucide-react'
+import { Icon } from '@iconify/react/offline'
 import { useEffect, useState } from 'react'
 
 import { ROUTE } from '@/components/fallback/constants.ts'
@@ -23,10 +23,9 @@ export default function RouteFallback() {
       role="status"
       aria-live="polite"
       className="fixed inset-0 flex items-center justify-center gap-2 text-muted-foreground">
-      <Loader2Icon
+      <Icon icon="lucide:loader-circle"
         aria-hidden
-        className="size-5 animate-spin"
-      />
+        className="size-5 animate-spin" />
       <span className="text-sm">{ROUTE.LABEL}</span>
     </div>
   )

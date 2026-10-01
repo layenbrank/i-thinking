@@ -1,7 +1,7 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { Spinner } from '@i-thinking/design/components/spinner'
 import { cn } from 'cn'
-import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 /**
@@ -95,7 +95,7 @@ function TableFooter(props: {
           size="sm"
           disabled={props.isFetching}
           onClick={props.onRefresh}>
-          <RefreshCwIcon className={cn(props.isFetching && 'animate-spin')} />
+          <Icon icon="lucide:refresh-cw" className={cn(props.isFetching && 'animate-spin')} />
           刷新
         </Button>
       ) : null}
@@ -109,7 +109,7 @@ function TableFooter(props: {
           onClick={function () {
             props.onPage(props.page - 1)
           }}>
-          <ChevronLeftIcon />
+          <Icon icon="lucide:chevron-left" />
           上一页
         </Button>
         <Button
@@ -121,7 +121,7 @@ function TableFooter(props: {
             props.onPage(props.page + 1)
           }}>
           下一页
-          <ChevronRightIcon />
+          <Icon icon="lucide:chevron-right" />
         </Button>
       </div>
     </div>

@@ -1,8 +1,13 @@
 import * as React from 'react'
 import { cn } from 'cn'
+import { motion, useReducedMotion } from 'motion/react'
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 
+import { POP_TRANSITION, omitMotionConflicts } from '../lib/motion'
 import { Button } from './button'
+
+const MotionOverlay = motion.create(AlertDialogPrimitive.Overlay)
+const MotionContent = motion.create(AlertDialogPrimitive.Content)
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return (
@@ -37,14 +42,16 @@ function AlertDialogOverlay({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
+  const isReducedMotion = useReducedMotion()
+
   return (
-    <AlertDialogPrimitive.Overlay
+    <MotionOverlay
       data-slot="alert-dialog-overlay"
-      className={cn(
-        'fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
-        className
-      )}
-      {...props}
+      initial={isReducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={POP_TRANSITION}
+      className={cn('fixed inset-0 z-50 bg-black/50', className)}
+      {...omitMotionConflicts(props)}
     />
   )
 }
@@ -56,17 +63,26 @@ function AlertDialogContent({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   size?: 'default' | 'sm'
 }) {
+  const isReducedMotion = useReducedMotion()
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <AlertDialogPrimitive.Content
+      <MotionContent
         data-slot="alert-dialog-content"
         data-size={size}
+        initial={
+          isReducedMotion
+            ? false
+            : { opacity: 0, scale: 0.98, x: '-50%', y: 'calc(-50% + 6px)' }
+        }
+        animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+        transition={POP_TRANSITION}
         className={cn(
-          'group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg',
+          'group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border bg-background p-6 shadow-lg data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg',
           className
         )}
-        {...props}
+        {...omitMotionConflicts(props)}
       />
     </AlertDialogPortal>
   )

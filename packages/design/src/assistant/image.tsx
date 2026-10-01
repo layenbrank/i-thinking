@@ -1,16 +1,7 @@
+import { Icon } from '@iconify/react/offline'
 import type { ImageMessagePart, ImageMessagePartComponent } from '@assistant-ui/react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
-import {
-  CopyIcon,
-  DownloadIcon,
-  ImageIcon,
-  ImageOffIcon,
-  Loader2Icon,
-  RefreshCwIcon,
-  ShieldAlertIcon,
-  XIcon
-} from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState, type PropsWithChildren } from 'react'
 import { createPortal } from 'react-dom'
 import { useAssistantLabels } from './labels'
@@ -170,14 +161,14 @@ function ImagePreview({
         <div
           data-slot="image-preview-loading"
           className="bg-muted/50 absolute inset-0 flex items-center justify-center">
-          <ImageIcon className="text-muted-foreground size-8 animate-pulse" />
+          <Icon icon="lucide:image" className="text-muted-foreground size-8 animate-pulse" />
         </div>
       )}
       {error ? (
         <div
           data-slot="image-preview-error"
           className="bg-muted/50 flex min-h-32 items-center justify-center p-4">
-          <ImageOffIcon className="text-muted-foreground size-8" />
+          <Icon icon="lucide:image-off" className="text-muted-foreground size-8" />
         </div>
       ) : (
         <img
@@ -321,7 +312,7 @@ function ImageZoom({ src, alt, children }: ImageZoomProps) {
                 handleClose()
               }}
               className="text-muted-foreground hover:text-foreground bg-background/80 absolute end-4 top-4 cursor-pointer rounded-md p-2">
-              <XIcon className="size-5" />
+              <Icon icon="lucide:x" className="size-5" />
             </button>
           </div>,
           document.body
@@ -337,7 +328,7 @@ function ImageGenerating({ className }: { className?: string }) {
     <div
       data-slot="image-generating"
       className={cn('bg-muted/50 flex min-h-32 items-center justify-center p-4', className)}>
-      <Loader2Icon className="text-muted-foreground size-8 animate-spin" />
+      <Icon icon="lucide:loader-circle" className="text-muted-foreground size-8 animate-spin" />
       <span className="sr-only">{labels.generatingImage}</span>
     </div>
   )
@@ -353,7 +344,7 @@ function ImageContentFilterError({ className, reason }: { className?: string; re
         'bg-muted/50 flex min-h-32 flex-col items-center justify-center gap-2 p-4 text-center',
         className
       )}>
-      <ShieldAlertIcon className="text-muted-foreground size-8" />
+      <Icon icon="lucide:shield-alert" className="text-muted-foreground size-8" />
       <p className="text-sm font-medium">{labels.imageGenerationFailed}</p>
       {reason && <p className="text-muted-foreground text-xs">{reason}</p>}
     </div>
@@ -389,7 +380,7 @@ function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise
       data-slot="image-regenerate"
       aria-label={labels.regenerateImage}
       className="hover:bg-muted inline-flex size-7 items-center justify-center rounded disabled:opacity-50">
-      <RefreshCwIcon className={cn('size-4', isRegenerating && 'animate-spin')} />
+      <Icon icon="lucide:refresh-cw" className={cn('size-4', isRegenerating && 'animate-spin')} />
     </button>
   )
 }
@@ -407,7 +398,7 @@ function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
         data-slot="image-download"
         aria-label={labels.downloadImage}
         className="hover:bg-muted inline-flex size-7 items-center justify-center rounded">
-        <DownloadIcon className="size-4" />
+        <Icon icon="lucide:download" className="size-4" />
       </button>
       <button
         type="button"
@@ -417,7 +408,7 @@ function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
         data-slot="image-copy"
         aria-label={labels.copyImage}
         className="hover:bg-muted inline-flex size-7 items-center justify-center rounded">
-        <CopyIcon className="size-4" />
+        <Icon icon="lucide:copy" className="size-4" />
       </button>
       {onRegenerate && <RegenerateButton onRegenerate={onRegenerate} />}
     </div>

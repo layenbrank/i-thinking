@@ -7,6 +7,7 @@ import '@/styles/tailwind.css'
 import '@/styles/index.scss'
 
 import AntIconify from '@iconify/json/json/ant-design.json'
+import LucideIconify from '@iconify/json/json/lucide.json'
 import MDIconify from '@iconify/json/json/mdi.json'
 
 /** React 生成 DOM id 的前缀，避免与页面既有 id 冲突 */
@@ -14,6 +15,7 @@ const IDENTIFIER_PREFIX = 'ith'
 
 addCollection(MDIconify)
 addCollection(AntIconify)
+addCollection(LucideIconify)
 watchAppearance()
 
 const rootElement = document.getElementById('root') as HTMLElement

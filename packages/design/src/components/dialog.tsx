@@ -1,9 +1,14 @@
+import { Icon } from '@iconify/react/offline'
 import * as React from 'react'
 import { cn } from 'cn'
-import { XIcon } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 
+import { POP_TRANSITION, omitMotionConflicts } from '../lib/motion'
 import { Button } from './button'
+
+const MotionOverlay = motion.create(DialogPrimitive.Overlay)
+const MotionContent = motion.create(DialogPrimitive.Content)
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return (
@@ -45,14 +50,16 @@ function DialogOverlay({
   className,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  const isReducedMotion = useReducedMotion()
+
   return (
-    <DialogPrimitive.Overlay
+    <MotionOverlay
       data-slot="dialog-overlay"
-      className={cn(
-        'fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
-        className
-      )}
-      {...props}
+      initial={isReducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={POP_TRANSITION}
+      className={cn('fixed inset-0 z-50 bg-black/50', className)}
+      {...omitMotionConflicts(props)}
     />
   )
 }
@@ -65,26 +72,35 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const isReducedMotion = useReducedMotion()
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
-      <DialogPrimitive.Content
+      <MotionContent
         data-slot="dialog-content"
+        initial={
+          isReducedMotion
+            ? false
+            : { opacity: 0, scale: 0.98, x: '-50%', y: 'calc(-50% + 6px)' }
+        }
+        animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+        transition={POP_TRANSITION}
         className={cn(
-          'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border-0 bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg',
+          'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border-0 bg-background p-6 shadow-lg outline-none sm:max-w-lg',
           className
         )}
-        {...props}>
+        {...omitMotionConflicts(props)}>
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
-            <XIcon />
+            className="absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:ring-ring/40 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+            <Icon icon="lucide:x" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
-      </DialogPrimitive.Content>
+      </MotionContent>
     </DialogPortal>
   )
 }

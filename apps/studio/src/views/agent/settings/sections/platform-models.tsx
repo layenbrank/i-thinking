@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import {
@@ -19,7 +20,6 @@ import {
 } from '@i-thinking/design/components/select'
 import { Switch } from '@i-thinking/design/components/switch'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -224,7 +224,7 @@ function PlatformModelSection() {
           onClick={function () {
             updateDraft(emptyDraft(providers[0]?.id ?? ''))
           }}>
-          <PlusIcon />
+          <Icon icon="lucide:plus" />
           新增模型
         </Button>
       </div>
@@ -321,7 +321,7 @@ function PlatformModelSection() {
                       onClick={function () {
                         updateDraft(draftOf(row))
                       }}>
-                      <PencilIcon />
+                      <Icon icon="lucide:pencil" />
                       编辑
                     </Button>
                     <Button
@@ -332,7 +332,7 @@ function PlatformModelSection() {
                       onClick={function () {
                         updateRemoving(row)
                       }}>
-                      <TrashIcon />
+                      <Icon icon="lucide:trash" />
                       删除
                     </Button>
                   </div>

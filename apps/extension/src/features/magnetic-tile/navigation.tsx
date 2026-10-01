@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import {
   DropdownMenu,
@@ -6,7 +7,6 @@ import {
   DropdownMenuTrigger
 } from '@i-thinking/design/components/dropdown-menu'
 import { clsx } from 'clsx'
-import { MoreHorizontalIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { findGridSpan } from '@/features/magnetic-tile/layout.ts'
@@ -79,7 +79,7 @@ export function NavigationTile(props: {
               size="icon-sm"
               variant="secondary"
               aria-label={`${tile.title} 操作`}>
-              <MoreHorizontalIcon />
+              <Icon icon="lucide:ellipsis" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

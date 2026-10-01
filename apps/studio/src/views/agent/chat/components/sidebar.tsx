@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import { ThreadListPrimitive, useAui, useAuiState } from '@assistant-ui/react'
 import { useAssistantLabels } from '@i-thinking/design/assistant/labels'
 import { ThreadListItem, ThreadListSearch } from '@i-thinking/design/assistant/thread-list.aui'
@@ -14,14 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@i-thinking/design/components/dropdown-menu'
-import {
-  ArchiveRestoreIcon,
-  ChevronRightIcon,
-  FolderIcon,
-  MoreHorizontalIcon,
-  PinIcon,
-  PlusIcon
-} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 
@@ -194,7 +187,7 @@ export default function AgentSidebar(props: SidebarProps) {
             variant="ghost"
             size="sm"
             className="hover:bg-muted h-8 w-full justify-start gap-1.5 rounded-md px-2 text-md font-medium">
-            <PlusIcon className="size-4" />
+            <Icon icon="lucide:plus" className="size-4" />
             {labels.newThread}
           </Button>
         </ThreadListPrimitive.New>
@@ -216,7 +209,7 @@ export default function AgentSidebar(props: SidebarProps) {
           aria-label="新建工作区"
           title="新建工作区"
           onClick={openCreate}>
-          <PlusIcon className="size-3.5" />
+          <Icon icon="lucide:plus" className="size-3.5" />
         </Button>
       </div>
 
@@ -252,7 +245,7 @@ export default function AgentSidebar(props: SidebarProps) {
                     onClick={function () {
                       handleNewThreadIn(item.id)
                     }}>
-                    <PlusIcon className="size-3.5" />
+                    <Icon icon="lucide:plus" className="size-3.5" />
                   </Button>
 
                   <DropdownMenu>
@@ -263,7 +256,7 @@ export default function AgentSidebar(props: SidebarProps) {
                         size="icon-xs"
                         className="opacity-0 group-hover:opacity-100"
                         aria-label="工作区菜单">
-                        <MoreHorizontalIcon className="size-3.5" />
+                        <Icon icon="lucide:ellipsis" className="size-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -330,13 +323,12 @@ export default function AgentSidebar(props: SidebarProps) {
                   size="icon-xs"
                   className="text-muted-foreground shrink-0"
                   aria-label={sidebarState.archivedOpen ? '收起已归档' : '展开已归档'}>
-                  <ChevronRightIcon
+                  <Icon icon="lucide:chevron-right"
                     className={
                       sidebarState.archivedOpen
                         ? 'size-3.5 rotate-90 transition-transform'
                         : 'size-3.5 transition-transform'
-                    }
-                  />
+                    } />
                 </Button>
               </CollapsibleTrigger>
               <span className="text-muted-foreground px-1 text-xs font-medium">
@@ -370,7 +362,7 @@ export default function AgentSidebar(props: SidebarProps) {
                         onClick={function () {
                           void handleRestore(item.id)
                         }}>
-                        <ArchiveRestoreIcon className="size-3.5" />
+                        <Icon icon="lucide:archive-restore" className="size-3.5" />
                       </Button>
                     }>
                     <ThreadIndices
@@ -420,7 +412,7 @@ interface WorkspaceRowProps {
 /** 一行工作区（活跃 / 归档共用）：折叠头 + 名下任务列表 */
 function WorkspaceRow(props: WorkspaceRowProps) {
   const { item, isOpen, isActive, taskCount, onToggle, onSelect, actions, children } = props
-  const Icon = ICON_MAP[item.icon] ?? FolderIcon
+  const glyph = ICON_MAP[item.icon] ?? 'lucide:folder'
   const titleClass = isActive
     ? 'min-w-0 flex-1 truncate text-xs font-semibold'
     : 'min-w-0 flex-1 truncate text-xs font-medium'
@@ -428,7 +420,10 @@ function WorkspaceRow(props: WorkspaceRowProps) {
     <span
       className="flex size-5 shrink-0 items-center justify-center rounded text-white"
       style={{ backgroundColor: item.color }}>
-      <Icon className="size-3" />
+      <Icon
+        icon={glyph}
+        className="size-3"
+      />
     </span>
   )
   const body = (
@@ -438,7 +433,7 @@ function WorkspaceRow(props: WorkspaceRowProps) {
       {taskCount > 0 ? (
         <span className="text-muted-foreground shrink-0 text-3xs tabular-nums">{taskCount}</span>
       ) : null}
-      {item.pinned ? <PinIcon className="text-muted-foreground size-3 shrink-0" /> : null}
+      {item.pinned ? <Icon icon="lucide:pin" className="text-muted-foreground size-3 shrink-0" /> : null}
     </>
   )
 
@@ -456,11 +451,10 @@ function WorkspaceRow(props: WorkspaceRowProps) {
             size="icon-xs"
             className="text-muted-foreground shrink-0"
             aria-label={isOpen ? '折叠' : '展开'}>
-            <ChevronRightIcon
+            <Icon icon="lucide:chevron-right"
               className={
                 isOpen ? 'size-3.5 rotate-90 transition-transform' : 'size-3.5 transition-transform'
-              }
-            />
+              } />
           </Button>
         </CollapsibleTrigger>
 

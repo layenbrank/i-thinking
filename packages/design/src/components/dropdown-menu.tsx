@@ -1,7 +1,12 @@
+import { Icon } from '@iconify/react/offline'
 import * as React from 'react'
 import { cn } from 'cn'
-import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
+
+import { POP_ANIMATE, POP_INITIAL, POP_TRANSITION, omitMotionConflicts } from '../lib/motion'
+
+const MotionContent = motion.create(DropdownMenuPrimitive.Content)
 
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return (
@@ -39,16 +44,21 @@ function DropdownMenuContent({
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  const isReducedMotion = useReducedMotion()
+
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
+      <MotionContent
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
+        initial={isReducedMotion ? false : POP_INITIAL}
+        animate={POP_ANIMATE}
+        transition={POP_TRANSITION}
         className={cn(
-          'z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          'z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
           className
         )}
-        {...props}
+        {...omitMotionConflicts(props)}
       />
     </DropdownMenuPrimitive.Portal>
   )
@@ -103,7 +113,7 @@ function DropdownMenuCheckboxItem({
       {...props}>
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <Icon icon="lucide:check" className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -137,7 +147,7 @@ function DropdownMenuRadioItem({
       {...props}>
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <CircleIcon className="size-2 fill-current" />
+          <Icon icon="lucide:circle" className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -212,7 +222,7 @@ function DropdownMenuSubTrigger({
       )}
       {...props}>
       {children}
-      <ChevronRightIcon className="ml-auto size-4" />
+      <Icon icon="lucide:chevron-right" className="ml-auto size-4" />
     </DropdownMenuPrimitive.SubTrigger>
   )
 }
