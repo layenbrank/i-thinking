@@ -18,8 +18,9 @@ import { appendRunFrame, dropRunFrames, flushRunFrames, registerRun } from './ru
  * 跑一律透传给 corex —— 宿主不自己拼 YAML，也就不存在「编辑器里的模型」与 corex 真跑的
  * 那份悄悄错位。sidecar 未就绪时目录为空、运行抛错，由 UI 呈现，不在这里吞。
  *
- * 运行是**多任务**的：corex 每个连接跑一个任务，宿主每次运行发一条请求，同一条指令可以
- * 同时在跑多次。所以状态是 `runs` 数组而不是一个 `isRunning` —— 帧靠 `runId` 各归各位。
+ * 运行是**多任务**的：不同指令可以并行，状态是 `runs` 数组而不是一个 `isRunning`，
+ * 帧靠 `runId` 各归各位。同一条指令在运行台只占一个选项卡 —— 重跑会换掉已结束的那次；
+ * 还在跑时再点运行则聚焦已有任务（宿主没法叫停 corex，也就没法「顶掉」进行中的那次）。
  *
  * 「这条指令的结果看没看过」是**宿主**的事（corex 不记谁看没看），故存在这里、落到宿主自己的
  * KV：重启之后卡片上的未读圆点还得对得上。
@@ -114,6 +115,9 @@ interface CorexStore {
   /**
    * 起一次运行，**立刻**返回它的编号；进度与结果随后落进 `runs`，调用方不等它结束。
    * 返回编号而不是 Promise —— 界面要的是「拿到哪一次」，不是「跑完了没」。
+   *
+   * 同名已在跑：直接返回那次的编号（不另开选项卡）。
+   * 同名已结束：换掉旧记录再起新的。
    */
   startRun: (name: string, input: Record<string, unknown>) => string
   removeRun: (id: string) => void
@@ -123,6 +127,27 @@ interface CorexStore {
 
 let unsubscribeProgress: (() => void) | null = null
 let runSeq = 0
+
+/**
+ * 进度订阅只该有一份。HMR / 热更新会把本模块重跑一遍，模块级变量归零，
+ * 但 preload 里 `ipcRenderer.on` 挂上的旧回调还在 —— 不先拆掉就会 2 份、3 份地叠，
+ * 同一帧在日志里出现好几遍（截图里同一时刻四条 step_start 就是这个）。
+ */
+function bindProgress(onFrame: (frame: Parameters<Parameters<typeof itc.sidecar.onProgress>[0]>[0]) => void) {
+  if (unsubscribeProgress) {
+    unsubscribeProgress()
+    unsubscribeProgress = null
+  }
+  unsubscribeProgress = itc.sidecar.onProgress(onFrame)
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(function () {
+    if (!unsubscribeProgress) return
+    unsubscribeProgress()
+    unsubscribeProgress = null
+  })
+}
 
 /**
  * 运行编号：只在宿主内区分任务，不参与 corex 协议。
@@ -237,18 +262,17 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
       if (getter().isLoaded || getter().isLoading) return
       setter({ isLoading: true })
 
-      if (!unsubscribeProgress) {
-        unsubscribeProgress = itc.sidecar.onProgress(function (frame) {
-          appendRunFrame({ ...frame, receivedAt: new Date() })
+      // 每次初始化都重新绑：若上次失败留下了半截状态，或 HMR 拆掉了模块变量，都能收干净
+      bindProgress(function (frame) {
+        appendRunFrame({ ...frame, receivedAt: new Date() })
 
-          // 只有「一步走完」要惊动元数据；输出帧一个都不碰，列表便不跟着输出流重渲染
-          if (frame.kind === 'step_end') {
-            patchRun(frame.runId, function (run) {
-              return { doneSteps: run.doneSteps + 1 }
-            })
-          }
-        })
-      }
+        // 只有「一步走完」要惊动元数据；输出帧一个都不碰，列表便不跟着输出流重渲染
+        if (frame.kind === 'step_end') {
+          patchRun(frame.runId, function (run) {
+            return { doneSteps: run.doneSteps + 1 }
+          })
+        }
+      })
 
       try {
         const [catalog, directives, seenAt] = await Promise.all([
@@ -307,6 +331,33 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
     },
 
     startRun(name, input) {
+      const current = getter().runs
+      const alive = current.find(function (run) {
+        return run.name === name && run.status === 'running'
+      })
+      // 同名还在跑：运行台只留一枚标签，再点运行就回到那次，别叠第二条
+      if (alive) {
+        toast.message(`「${name}」已在运行`, {
+          description: '同一条指令同时只跑一次；跑完后再点即可重跑'
+        })
+        return alive.id
+      }
+
+      // 同名已结束的那几次让位给新的 —— 模拟终端按指令名开选项卡，不是按每一次运行
+      const stale = current.filter(function (run) {
+        return run.name === name
+      })
+      if (stale.length > 0) {
+        dropRunFrames(
+          stale.map(function (run) {
+            return run.id
+          })
+        )
+      }
+      const others = current.filter(function (run) {
+        return run.name !== name
+      })
+
       const id = nextRunId()
       const run: CorexRun = {
         id,
@@ -320,7 +371,7 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
       }
       // 先登记再落库：进度帧只认登记过的运行，编号也不会重用，登记绝不会晚于第一帧
       registerRun(id)
-      setter(commitRuns([...getter().runs, run]))
+      setter(commitRuns([...others, run]))
 
       void (async function () {
         try {

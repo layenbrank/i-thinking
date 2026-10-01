@@ -84,12 +84,33 @@ function flushRunFrames(): void {
   })
 }
 
+/**
+ * 控制帧（起止 / 进度）相邻完全一样时只留一条。
+ *
+ * 输出帧（`step_output`）不能去重 —— 子进程完全可能连打两行相同的文本。
+ * 订阅叠了多层时，同一条 step_start 会连着进好几遍；这里挡一层，日志不至于花。
+ */
+function isDuplicateControl(prev: CorexFrame | undefined, next: CorexFrame): boolean {
+  if (!prev || next.kind === 'step_output' || prev.kind !== next.kind) return false
+  return (
+    prev.step === next.step &&
+    prev.action === next.action &&
+    prev.ok === next.ok &&
+    prev.done === next.done &&
+    prev.total === next.total &&
+    prev.unit === next.unit
+  )
+}
+
 /** 收一帧：先记账，落地可以等（等不及的地方自己叫 `flushRunFrames`） */
 function appendRunFrame(frame: CorexFrame): void {
   if (!liveRuns.has(frame.runId)) return
 
   if (!pending) pending = new Map()
   const frames = pending.get(frame.runId)
+  const lastPending = frames?.[frames.length - 1]
+  const lastLanded = findRunFrames(frame.runId).frames.at(-1)
+  if (isDuplicateControl(lastPending ?? lastLanded, frame)) return
 
   if (frames) frames.push(frame)
   else pending.set(frame.runId, [frame])

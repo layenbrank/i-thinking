@@ -136,14 +136,43 @@ describe('directives', function () {
 })
 
 describe('runs', function () {
+  it('replaces a finished run of the same name instead of stacking tabs', async function () {
+    stubSidecar({
+      run: function () {
+        return Promise.resolve({ ok: true })
+      }
+    })
+
+    const first = await finishRun('demo')
+    expect(findRunFrames(first).frames).toHaveLength(1)
+
+    const second = await finishRun('demo')
+    const { runs } = useCorexStore.getState()
+
+    expect(second).not.toBe(first)
+    expect(runs).toHaveLength(1)
+    expect(runs[0].id).toBe(second)
+    expect(findRunFrames(first).frames).toHaveLength(0)
+  })
+
+  it('reuses the alive run when the same name is started again', function () {
+    stubRun('long')
+    const first = useCorexStore.getState().startRun('long', {})
+    const again = useCorexStore.getState().startRun('long', { x: 1 })
+
+    expect(again).toBe(first)
+    expect(useCorexStore.getState().runs).toHaveLength(1)
+  })
+
   it('drops the frames of the runs it evicts', async function () {
     stubRun('long')
-    const first = await finishRun('demo')
+    const first = await finishRun('demo-0')
     // 先确认帧真落了地，否则下面「帧没了」证明不了是回收干的
     expect(findRunFrames(first).frames).toHaveLength(1)
 
-    for (let i = 0; i < MAX_FINISHED_RUNS; i += 1) {
-      await finishRun('demo')
+    // 淘汰按「已结束条数」掐，得用不同名字 —— 同名重跑会直接换掉旧的，到不了上限
+    for (let i = 1; i <= MAX_FINISHED_RUNS; i += 1) {
+      await finishRun(`demo-${i}`)
     }
 
     const { runs } = useCorexStore.getState()
@@ -161,7 +190,7 @@ describe('runs', function () {
     const alive = useCorexStore.getState().startRun('long', {})
 
     for (let i = 0; i < MAX_FINISHED_RUNS + 1; i += 1) {
-      await finishRun('demo')
+      await finishRun(`demo-${i}`)
     }
 
     const { runs } = useCorexStore.getState()

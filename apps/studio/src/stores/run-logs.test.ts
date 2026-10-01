@@ -60,6 +60,29 @@ describe('appendRunFrame', function () {
     expect(texts('a')).toEqual(['a-0'])
   })
 
+  it('drops consecutive duplicate control frames but keeps repeated output', function () {
+    const start: CorexFrame = {
+      kind: 'step_start',
+      runId: 'a',
+      step: 'build',
+      action: 'shell.run',
+      receivedAt: AT
+    }
+    appendRunFrame(start)
+    appendRunFrame({ ...start, receivedAt: new Date(AT.getTime() + 1) })
+    appendRunFrame({ ...start, receivedAt: new Date(AT.getTime() + 2) })
+    appendRunFrame(frame('a', 0))
+    appendRunFrame(frame('a', 0))
+
+    vi.advanceTimersByTime(80)
+
+    const actual = findRunFrames('a').frames
+    expect(actual).toHaveLength(3)
+    expect(actual[0].kind).toBe('step_start')
+    expect(actual[1].text).toBe('a-0')
+    expect(actual[2].text).toBe('a-0')
+  })
+
   it('flushes everything appended inside one window together', function () {
     appendRunFrame(frame('a', 0))
     appendRunFrame(frame('a', 1))
