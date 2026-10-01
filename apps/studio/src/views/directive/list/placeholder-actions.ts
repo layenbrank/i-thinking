@@ -25,7 +25,7 @@ const PLACEHOLDER_ACTIONS: Record<
     return []
   },
   empty: function (options) {
-    // 一条指令都没有时，除了现写一条，最常见的来路是导入手上已有的 YAML
+    // 空列表时占位区也给导入入口；有列表时走工具栏的 `DirectiveImport`
     return [
       {
         label: options.isCompact ? '新增' : '新增指令',

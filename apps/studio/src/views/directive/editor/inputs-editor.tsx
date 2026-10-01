@@ -3,7 +3,7 @@ import { Checkbox } from '@i-thinking/design/components/checkbox'
 import { Input } from '@i-thinking/design/components/input'
 import { cn } from 'cn'
 
-import { CONTROL_CLASS, Glyph } from './controls'
+import { CONTROL_CLASS, Glyph, ITEM_CARD_CLASS } from './controls'
 import type { DirectiveInput } from './types'
 
 /**
@@ -47,19 +47,21 @@ function InputsEditor(props: InputsEditorProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2">
       {inputs.length === 0 ? (
-        <p className="text-xs text-muted-foreground">还没声明输入；运行时按下面的「运行参数」填值</p>
+        <p className="rounded-lg border border-dashed border-border/60 px-3 py-2.5 text-center text-[11px] text-muted-foreground">
+          还没声明输入；运行时按下面的「运行参数」填值
+        </p>
       ) : null}
       {inputs.map(function (input, index) {
         // 名字可以边改边空，按序号做 key 才不会把光标和内容搬错行
         return (
           <div
             key={index}
-            className="flex flex-col gap-2 rounded-md border border-dashed p-2">
+            className={ITEM_CARD_CLASS}>
             <div className="flex items-center gap-1.5">
               <Input
-                className={CONTROL_CLASS}
+                className={cn(CONTROL_CLASS, 'min-w-0 flex-1')}
                 value={input.name}
                 placeholder="名字，如 target"
                 aria-label="输入名字"
@@ -73,7 +75,7 @@ function InputsEditor(props: InputsEditorProps) {
                 size="icon-sm"
                 aria-label="删除输入"
                 title="删除输入"
-                className="shrink-0 text-muted-foreground hover:text-destructive"
+                className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={function () {
                   remove(index)
                 }}>
@@ -89,8 +91,8 @@ function InputsEditor(props: InputsEditorProps) {
                 patch(index, { description: event.target.value })
               }}
             />
-            <div className="flex items-center gap-2">
-              <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+              <label className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border/50 bg-background/80 px-2 text-[11px] text-muted-foreground">
                 <Checkbox
                   checked={Boolean(input.required)}
                   aria-label="必填"
@@ -101,9 +103,9 @@ function InputsEditor(props: InputsEditorProps) {
                 必填
               </label>
               <Input
-                className={cn(CONTROL_CLASS, 'min-w-0 flex-1')}
+                className={CONTROL_CLASS}
                 value={input.default === undefined || input.default === null ? '' : String(input.default)}
-                placeholder="默认值（留空 = 没默认值）"
+                placeholder="默认值（留空 = 无）"
                 aria-label="默认值"
                 onChange={function (event) {
                   patch(index, { default: parseDefault(event.target.value) })
@@ -117,7 +119,7 @@ function InputsEditor(props: InputsEditorProps) {
         type="button"
         variant="dashed"
         size="sm"
-        className="w-fit"
+        className="h-8 w-full cursor-pointer rounded-lg"
         onClick={function () {
           props.onChange([...inputs, { name: '', description: '', required: false }])
         }}>

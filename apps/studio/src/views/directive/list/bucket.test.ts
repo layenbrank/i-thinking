@@ -83,7 +83,20 @@ describe('findBucketMark', function () {
 
   it('marks a bucket like the group it lands in', function () {
     const group = groupByBucket([entry('a', 'logic')])[0]
+    const mark = findBucketMark(group.key)
 
-    expect(findBucketMark(group.key)).toEqual({ label: group.label, icon: group.icon })
+    expect(mark.label).toBe(group.label)
+    expect(mark.icon).toBe(group.icon)
+    expect(mark.tile).toBeTruthy()
+  })
+
+  it('gives every bucket its own tile tone', function () {
+    const tiles = (['system', 'network', 'data', 'ui', 'logic', 'plugin'] as const).map(
+      function (bucket) {
+        return findBucketMark(bucket).tile
+      }
+    )
+
+    expect(new Set(tiles).size).toBe(tiles.length)
   })
 })

@@ -95,3 +95,24 @@ body,
 *[data-region='false'] {
   -webkit-app-region: no-drag;
 }
+
+/*
+ * react-resizable-panels 的尺寸写在根节点 `[data-panel]` 的 flex-grow 上，
+ * `className` 却加在内层 —— 内层写 transition 无效。程序化 expand/collapse
+ * 要直接过渡根节点；拖拽时关掉，避免拖动手感发黏。
+ */
+#directive-wall > [data-panel],
+#directive-stack > [data-panel],
+#directive-panel > [data-panel],
+#agent-workbench > [data-panel] {
+  @media (prefers-reduced-motion: no-preference) {
+    transition: flex-grow 200ms ease-out;
+  }
+}
+
+#directive-wall:has([data-separator='active']) > [data-panel],
+#directive-stack:has([data-separator='active']) > [data-panel],
+#directive-panel:has([data-separator='active']) > [data-panel],
+#agent-workbench:has([data-separator='active']) > [data-panel] {
+  transition: none;
+}

@@ -33,7 +33,7 @@ function RunDockPanel(props: Props) {
       collapsedSize={RUN_COLLAPSED}
       groupResizeBehavior="preserve-pixel-size"
       onResize={dock.onRunResize}
-      className="min-h-0">
+      className="min-h-0 overflow-hidden">
       <RunPanel
         runs={dock.runs}
         stepCounts={dock.stepCounts}

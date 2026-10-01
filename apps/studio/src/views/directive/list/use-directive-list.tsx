@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { ImportResult } from '@/shared/ipc/specs/sidecar'
 import { useCorexStore } from '@/stores/corex'
 
 import { findFreeName } from '../draft'
 import { indexLastRuns, indexRunSummaries } from '../run/run-status'
 import { useNow } from '../use-now'
 import { type SortMode, findSortMode, groupDirectives, writeSortMode } from './group'
+import {
+  ImportOverwriteDialog,
+  type OverwritePrompt
+} from './import-overwrite-dialog'
 import type { PlaceholderState } from './placeholder'
 
 /**
@@ -18,6 +23,26 @@ import type { PlaceholderState } from './placeholder'
 
 /** 相对时间按分钟级刷新就够，不必像任务耗时那样每 500ms 走一次 */
 const CLOCK_MS = 30_000
+
+/** 把导入结果说清楚：四个数 + 失败文件逐条；然后刷新列表 */
+async function finishImport(result: ImportResult) {
+  toast.success('导入完成', {
+    description: `新增 ${result.created} · 更新 ${result.updated} · 跳过 ${result.skipped} · 失败 ${result.failed}`
+  })
+  const failures = result.entries.filter(function (entry) {
+    return entry.status === 'failed'
+  })
+  if (failures.length > 0) {
+    toast.error(`${failures.length} 个文件没能导入`, {
+      description: failures
+        .map(function (entry) {
+          return `${entry.name}：${entry.error ?? '原因未知'}`
+        })
+        .join('\n')
+    })
+  }
+  await useCorexStore.getState().refreshDirectives()
+}
 
 function useDirectiveList() {
   const directives = useCorexStore(function (state) {
@@ -44,6 +69,7 @@ function useDirectiveList() {
 
   const [query, updateQuery] = useState('')
   const [sortMode, updateSortMode] = useState(findSortMode)
+  const [overwritePrompt, updateOverwritePrompt] = useState<OverwritePrompt | null>(null)
 
   /** corex 账本里的「上次运行」，本会话跑过的那些以实时记录为准（见 `indexRunSummaries`） */
   const lastRuns = useMemo(
@@ -127,11 +153,26 @@ function useDirectiveList() {
     void useCorexStore.getState().initialize()
   }
 
+  async function applyImport(path: string, isOverwrite: boolean) {
+    try {
+      const result = await useCorexStore.getState().importDirectives({
+        path,
+        is_overwrite: isOverwrite
+      })
+      await finishImport(result)
+    } catch (error) {
+      console.error('[directive] 导入指令失败', error)
+      toast.error('导入失败', {
+        description: error instanceof Error ? error.message : String(error)
+      })
+    }
+  }
+
   /**
-   * 导入 YAML：先选目录或文件，再交给 corex 的 `import_directives`。
+   * 导入 YAML：先选目录或文件，再 dry_run 扫同名。
    *
-   * 结果用 toast 报出四个数（新增 / 更新 / 跳过 / 失败），失败的文件逐个列出来 ——
-   * 只说「失败 3 个」等于没说，用户还得自己猜是哪三个。导完刷新列表。
+   * 有同名就弹确认（跳过 / 覆盖 / 取消）；没有冲突直接落库。
+   * 结果用 toast 报四个数，失败文件逐个列出来。
    */
   async function importFrom(kind: 'dir' | 'file') {
     let picked: string[] | null
@@ -152,36 +193,64 @@ function useDirectiveList() {
     const path = picked?.[0]
     if (!path) return
 
+    let preview: ImportResult
     try {
-      const result = await useCorexStore.getState().importDirectives({ path })
-      toast.success('导入完成', {
-        description: `新增 ${result.created} · 更新 ${result.updated} · 跳过 ${result.skipped} · 失败 ${result.failed}`
+      preview = await useCorexStore.getState().importDirectives({
+        path,
+        is_dry_run: true
       })
-      const failures = result.entries.filter(function (entry) {
-        return entry.status === 'failed'
-      })
-      if (failures.length > 0) {
-        toast.error(`${failures.length} 个文件没能导入`, {
-          description: failures
-            .map(function (entry) {
-              return `${entry.name}：${entry.error ?? '原因未知'}`
-            })
-            .join('\n')
-        })
-      }
-      await useCorexStore.getState().refreshDirectives()
     } catch (error) {
-      console.error('[directive] 导入指令失败', error)
-      toast.error('导入失败', {
+      console.error('[directive] 预检导入失败', error)
+      toast.error('导入预检失败', {
         description: error instanceof Error ? error.message : String(error)
       })
+      return
     }
+
+    const skippedNames = preview.entries
+      .filter(function (entry) {
+        return entry.status === 'skipped'
+      })
+      .map(function (entry) {
+        return entry.name
+      })
+
+    if (skippedNames.length > 0) {
+      updateOverwritePrompt({ path, names: skippedNames })
+      return
+    }
+
+    await applyImport(path, false)
   }
+
+  function clearOverwritePrompt() {
+    updateOverwritePrompt(null)
+  }
+
+  function confirmSkip(path: string) {
+    clearOverwritePrompt()
+    void applyImport(path, false)
+  }
+
+  function confirmOverwrite(path: string) {
+    clearOverwritePrompt()
+    void applyImport(path, true)
+  }
+
+  const importDialog = (
+    <ImportOverwriteDialog
+      prompt={overwritePrompt}
+      onCancel={clearOverwritePrompt}
+      onSkip={confirmSkip}
+      onOverwrite={confirmOverwrite}
+    />
+  )
 
   return {
     catalog,
     directives,
     groups,
+    importDialog,
     isLoaded,
     isLoading,
     loadError,

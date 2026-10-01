@@ -1,15 +1,18 @@
 import { Button } from '@i-thinking/design/components/button'
 import { Icon } from '@iconify/react/offline'
+import { AnimatePresence, motion } from 'motion/react'
 
 import type { CorexRun } from '@/stores/corex'
 import { useCorexStore } from '@/stores/corex'
 
 import { EMPTY_RUNS } from '../run/run-status'
-import { DirectiveMarkAllRead, DirectiveSearch, DirectiveSort } from './controls'
+import { DirectiveImport, DirectiveMarkAllRead, DirectiveSearch, DirectiveSort } from './controls'
 import DirectiveCard from './directive-card'
+import { DirectiveGroupSection } from './group-section'
 import { DirectivePlaceholder } from './placeholder'
 import { makePlaceholderActions } from './placeholder-actions'
 import { useDirectiveList } from './use-directive-list'
+import { useGroupCollapse } from './use-group-collapse'
 
 /**
  * 指令列表（左栏）：搜索 + 分组 + 卡片。卡片上的状态徽标与最近执行时间都来自运行记录，
@@ -34,6 +37,8 @@ function DirectiveList(props: Props) {
   const list = useDirectiveList()
   const { catalog, directives, groups, isSearching, now, shown, summaries } = list
   const isSortedByRecency = list.sortMode === 'RECENT'
+  const collapse = useGroupCollapse(groups, list.sortMode)
+  const listKey = `${list.sortMode}:${list.query}`
 
   return (
     <div className="flex h-full min-h-0 flex-col border-r bg-background">
@@ -62,6 +67,15 @@ function DirectiveList(props: Props) {
             <Icon icon="mdi:plus" />
             新增
           </Button>
+          <DirectiveImport
+            isCompact
+            onImportFolder={function () {
+              void list.importFrom('dir')
+            }}
+            onImportFile={function () {
+              void list.importFrom('file')
+            }}
+          />
           <Button
             type="button"
             variant="ghost"
@@ -116,38 +130,47 @@ function DirectiveList(props: Props) {
             })}
           />
         ) : (
-          groups.map(function (group) {
-            return (
-              <section
-                key={group.key}
-                className="pb-1">
-                <h3 className="sticky top-0 z-10 -mx-2.5 flex items-center gap-1.5 bg-background px-2.5 py-1.5 text-xs text-muted-foreground">
-                  <Icon
-                    icon={group.icon}
-                    className="size-3.5"
-                  />
-                  {group.label}
-                  <span className="tabular-nums">{group.items.length}</span>
-                </h3>
-                <div className="flex flex-col gap-1.5">
-                  {group.items.map(function (entry) {
-                    return (
-                      <DirectiveCard
-                        key={entry.name}
-                        entry={entry}
-                        isActive={entry.name === props.activeName}
-                        runs={summaries[entry.name] ?? EMPTY_RUNS}
-                        stepCount={props.stepCounts[entry.name] ?? 0}
-                        now={now}
-                        onOpen={props.onOpen}
-                        onRun={props.onRun}
-                      />
-                    )
-                  })}
-                </div>
-              </section>
-            )
-          })
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={listKey}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -2 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}>
+              {groups.map(function (group) {
+                return (
+                  <DirectiveGroupSection
+                    key={group.key}
+                    group={group}
+                    variant="rail"
+                    isOpen={collapse.isOpen(group.key)}
+                    onOpenChange={function (open) {
+                      collapse.updateOpen(group.key, open)
+                    }}>
+                    <div className="flex flex-col gap-1.5">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {group.items.map(function (entry, index) {
+                          return (
+                            <DirectiveCard
+                              key={entry.name}
+                              entry={entry}
+                              isActive={entry.name === props.activeName}
+                              runs={summaries[entry.name] ?? EMPTY_RUNS}
+                              stepCount={props.stepCounts[entry.name] ?? 0}
+                              now={now}
+                              motionIndex={index}
+                              onOpen={props.onOpen}
+                              onRun={props.onRun}
+                            />
+                          )
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  </DirectiveGroupSection>
+                )
+              })}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
 
@@ -167,6 +190,7 @@ function DirectiveList(props: Props) {
           {catalog.length} 动作
         </span>
       </footer>
+      {list.importDialog}
     </div>
   )
 }

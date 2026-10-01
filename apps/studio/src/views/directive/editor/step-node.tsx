@@ -37,7 +37,7 @@ import {
   type CompareKind,
   type ConditionKind
 } from './condition'
-import { CONTROL_CLASS, Field, Glyph } from './controls'
+import { CONTROL_CLASS, Field, Glyph, STEP_CARD_CLASS } from './controls'
 import { OnErrorSelect } from './on-error'
 import {
   CONTROL_KINDS,
@@ -67,6 +67,14 @@ const STEP_KIND_ICONS: Record<StepKind, string> = {
   repeat: 'mdi:repeat',
   parallel: 'mdi:call-split',
   steps: 'mdi:format-list-numbered'
+}
+
+/** 控制流步骤的色块：动作步骤用分类 tile，这里只管 if/repeat/… */
+const STEP_KIND_TILES: Record<Exclude<StepKind, 'action'>, string> = {
+  if: 'bg-chart-4/22 text-foreground',
+  repeat: 'bg-primary/12 text-primary',
+  parallel: 'bg-chart-1/15 text-chart-1',
+  steps: 'bg-secondary text-secondary-foreground'
 }
 
 function findAction(catalog: CorexAction[], id: string | undefined): CorexAction | undefined {
@@ -368,7 +376,7 @@ function AddStepButton(props: AddStepButtonProps) {
         <Button
           type="button"
           variant="dashed"
-          className="w-full">
+          className="w-full cursor-pointer rounded-xl border-border/70 py-5 text-muted-foreground hover:text-foreground">
           <Glyph icon="mdi:plus" />
           添加步骤
         </Button>
@@ -574,6 +582,8 @@ function IconAction(props: IconActionProps) {
 
 interface StepHeaderProps {
   icon: ReactNode
+  /** 图标色块；动作步骤用分类色，控制流用类型色 */
+  tileClass?: string
   /** 当前类型；下拉里可以直接换一种（就地重建，id 保留） */
   kind: StepKind
   id: string
@@ -590,7 +600,11 @@ interface StepHeaderProps {
 function StepHeader(props: StepHeaderProps) {
   return (
     <div className="flex items-center gap-2.5 px-3">
-      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary [&_svg]:size-4">
+      <span
+        className={cn(
+          'inline-flex size-8 shrink-0 items-center justify-center rounded-xl [&_svg]:size-4',
+          props.tileClass ?? 'bg-primary/10 text-primary'
+        )}>
         {props.icon}
       </span>
       <div className="flex min-w-0 flex-col gap-1">
@@ -729,13 +743,19 @@ interface ActionStepCardProps extends StepOps {
 function ActionStepCard(props: ActionStepCardProps) {
   const { step, catalog } = props
   const action = findAction(catalog, step.action)
-  const mark = findBucketMark(action?.bucket).icon
+  const mark = findBucketMark(action?.bucket)
   const [advanced, setAdvanced] = useState(Boolean(step.when !== undefined || step.save_to))
 
   return (
-    <Card className="gap-3 rounded-xl py-3 shadow-sm">
+    <Card className={STEP_CARD_CLASS}>
       <StepHeader
-        icon={<Glyph icon={mark} className="size-4" />}
+        icon={
+          <Glyph
+            icon={mark.icon}
+            className="size-4"
+          />
+        }
+        tileClass={mark.tile}
         kind="action"
         onKindChange={props.onKindChange}
         onWrapSteps={props.onWrapSteps}
@@ -857,9 +877,10 @@ interface IfStepCardProps extends StepOps {
 function IfStepCard(props: IfStepCardProps) {
   const { step, catalog } = props
   return (
-    <Card className="gap-3 rounded-xl py-3 shadow-sm">
+    <Card className={STEP_CARD_CLASS}>
       <StepHeader
         icon={<Glyph icon="mdi:source-branch" className="size-4" />}
+        tileClass={STEP_KIND_TILES.if}
         kind="if"
         onKindChange={props.onKindChange}
         onWrapSteps={props.onWrapSteps}
@@ -929,9 +950,10 @@ function RepeatStepCard(props: RepeatStepCardProps) {
   const hasEach = Boolean(step.repeat.each)
   const hasCount = step.repeat.count !== undefined
   return (
-    <Card className="gap-3 rounded-xl py-3 shadow-sm">
+    <Card className={STEP_CARD_CLASS}>
       <StepHeader
         icon={<Glyph icon="mdi:repeat" className="size-4" />}
+        tileClass={STEP_KIND_TILES.repeat}
         kind="repeat"
         onKindChange={props.onKindChange}
         onWrapSteps={props.onWrapSteps}
@@ -1034,9 +1056,10 @@ interface ParallelStepCardProps extends StepOps {
 function ParallelStepCard(props: ParallelStepCardProps) {
   const { step, catalog } = props
   return (
-    <Card className="gap-3 rounded-xl py-3 shadow-sm">
+    <Card className={STEP_CARD_CLASS}>
       <StepHeader
         icon={<Glyph icon="mdi:call-split" className="size-4" />}
+        tileClass={STEP_KIND_TILES.parallel}
         kind="parallel"
         onKindChange={props.onKindChange}
         onWrapSteps={props.onWrapSteps}
@@ -1097,9 +1120,10 @@ interface StepsStepCardProps extends StepOps {
 function StepsStepCard(props: StepsStepCardProps) {
   const { step, catalog } = props
   return (
-    <Card className="gap-3 rounded-xl py-3 shadow-sm">
+    <Card className={STEP_CARD_CLASS}>
       <StepHeader
         icon={<Glyph icon="mdi:format-list-numbered" className="size-4" />}
+        tileClass={STEP_KIND_TILES.steps}
         kind="steps"
         onKindChange={props.onKindChange}
         onWrapSteps={props.onWrapSteps}

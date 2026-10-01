@@ -1,4 +1,5 @@
 import { Button } from '@i-thinking/design/components/button'
+import { Skeleton } from '@i-thinking/design/components/skeleton'
 import { Spinner } from '@i-thinking/design/components/spinner'
 import { Icon } from '@iconify/react/offline'
 import { cn } from 'cn'
@@ -48,9 +49,58 @@ interface Props {
   actions?: readonly PlaceholderAction[]
 }
 
+function LoadingSkeleton(props: { isCompact?: boolean }) {
+  if (props.isCompact) {
+    return (
+      <div className="flex w-full flex-col gap-2 px-1 pt-2">
+        {Array.from({ length: 4 }, function (_, i) {
+          return (
+            <Skeleton
+              key={i}
+              className="h-14 w-full rounded-xl"
+            />
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid w-full gap-3.5 pt-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {Array.from({ length: 8 }, function (_, i) {
+        return (
+          <Skeleton
+            key={i}
+            className="h-28 w-full rounded-2xl"
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 function DirectivePlaceholder(props: Props) {
   const { state, label, icon, detail, isCompact, actions = [] } = props
   const isFailed = state === 'error'
+
+  if (state === 'loading') {
+    return (
+      <div
+        className={cn(
+          'flex flex-col items-center text-muted-foreground',
+          isCompact ? 'gap-2 px-1 py-2 text-xs' : 'gap-3 px-0 py-2 text-sm'
+        )}
+        role="status"
+        aria-live="polite"
+        aria-label={label ?? PLACEHOLDER_TEXT.loading}>
+        <LoadingSkeleton isCompact={isCompact} />
+        <span className="flex items-center gap-2 pt-2 text-xs">
+          <Spinner className="size-3.5" />
+          {label ?? PLACEHOLDER_TEXT.loading}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -58,14 +108,10 @@ function DirectivePlaceholder(props: Props) {
         'flex flex-col items-center text-center text-muted-foreground',
         isCompact ? 'gap-2 px-3 py-10 text-xs' : 'gap-3 px-6 py-24 text-sm'
       )}>
-      {state === 'loading' ? (
-        <Spinner className={isCompact ? 'size-5' : 'size-7'} />
-      ) : (
-        <Icon
-          icon={icon ?? PLACEHOLDER_ICONS[state]}
-          className={cn(isCompact ? 'size-6' : 'size-8', 'opacity-60')}
-        />
-      )}
+      <Icon
+        icon={icon ?? PLACEHOLDER_ICONS[state]}
+        className={cn(isCompact ? 'size-6' : 'size-8', 'opacity-60')}
+      />
       <p className={isFailed ? 'text-destructive' : undefined}>
         {label ?? PLACEHOLDER_TEXT[state]}
       </p>
@@ -87,6 +133,7 @@ function DirectivePlaceholder(props: Props) {
                 type="button"
                 variant={action.variant ?? 'outline'}
                 size={isCompact ? 'xs' : 'sm'}
+                className="cursor-pointer"
                 onClick={action.onClick}>
                 {action.icon ? <Icon icon={action.icon} /> : null}
                 {action.label}

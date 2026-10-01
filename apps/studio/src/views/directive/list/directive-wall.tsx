@@ -1,27 +1,25 @@
 import { Button } from '@i-thinking/design/components/button'
+import { ScrollArea } from '@i-thinking/design/components/scroll-area'
 import { Separator } from '@i-thinking/design/components/separator'
 import { Icon } from '@iconify/react/offline'
+import { AnimatePresence, motion } from 'motion/react'
 
 import { useCorexStore } from '@/stores/corex'
 
 import { EMPTY_RUNS } from '../run/run-status'
-import { DirectiveMarkAllRead, DirectiveSearch, DirectiveSort } from './controls'
+import { DirectiveImport, DirectiveMarkAllRead, DirectiveSearch, DirectiveSort } from './controls'
 import DirectiveCard from './directive-card'
+import { DirectiveGroupSection } from './group-section'
 import { DirectivePlaceholder } from './placeholder'
 import { makePlaceholderActions } from './placeholder-actions'
 import { useDirectiveList } from './use-directive-list'
+import { useGroupCollapse } from './use-group-collapse'
 
 /**
  * 卡片墙：指令页的正脸。所有指令按分类（或最近执行）分组铺成网格，
  * 每张卡片自己带着运行状态，点进去才去编排台。
  *
- * 跟左栏（`directive-list.tsx`）是同一份数据、同一个 hook，只是排布不同：
- * 这里横向铺开，所以工具件能排成一行；栏宽窄的地方才需要上下叠。
- *
- * 工具件分成三段：搜索（伸缩，唯一会变宽变窄的）、排序（固定）、动作簇（固定，左侧一条分隔线）。
- * 三段之间靠分隔线分界、统一 32px 高，比五个控件平铺一行各自为政要好认。
- *
- * 卡片墙只跟运行台上下分，不再套左右分栏；起一条运行后运行台自己会摊开。
+ * 浅底 + 浮起的圆角卡片（参考快捷指令的「白卡叠灰底」），PC 侧保持网格密度与工具栏一行排开。
  */
 
 interface Props {
@@ -34,6 +32,8 @@ interface Props {
 function DirectiveWall(props: Props) {
   const list = useDirectiveList()
   const { groups, now, shown, summaries } = list
+  const collapse = useGroupCollapse(groups, list.sortMode)
+  const listKey = `${list.sortMode}:${list.query}`
 
   const placeholder = makePlaceholderActions(list.state, {
     onNew: function () {
@@ -55,10 +55,9 @@ function DirectiveWall(props: Props) {
   })
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2.5">
+    <div className="flex h-full min-h-0 flex-col bg-muted/35">
+      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/60 bg-background/80 px-5 py-3 backdrop-blur-md">
         <DirectiveSearch
-          isCompact
           value={list.query}
           className="min-w-56 max-w-md flex-1"
           onChange={list.updateQuery}
@@ -75,6 +74,7 @@ function DirectiveWall(props: Props) {
             type="button"
             variant="ghost"
             size="icon-sm"
+            className="cursor-pointer text-muted-foreground"
             aria-label="重新读取指令目录"
             title="重新读取指令目录"
             onClick={function () {
@@ -82,6 +82,14 @@ function DirectiveWall(props: Props) {
             }}>
             <Icon icon="mdi:refresh" />
           </Button>
+          <DirectiveImport
+            onImportFolder={function () {
+              void list.importFrom('dir')
+            }}
+            onImportFile={function () {
+              void list.importFrom('file')
+            }}
+          />
           <Separator
             orientation="vertical"
             className="mx-0.5 h-5"
@@ -89,6 +97,7 @@ function DirectiveWall(props: Props) {
           <Button
             type="button"
             size="sm"
+            className="cursor-pointer rounded-full px-3.5 shadow-xs"
             onClick={function () {
               props.onOpen(list.findNewName())
             }}>
@@ -98,51 +107,65 @@ function DirectiveWall(props: Props) {
         </span>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4">
-        {shown === 0 ? (
-          <DirectivePlaceholder
-            state={list.state}
-            detail={list.loadError}
-            actions={placeholder}
-          />
-        ) : (
-          groups.map(function (group) {
-            return (
-              <section
-                key={group.key}
-                className="pb-6">
-                <h3 className="sticky top-0 z-10 -mx-4 flex items-center gap-2 border-b bg-background/95 px-4 py-2 text-xs font-medium tracking-wide text-muted-foreground backdrop-blur">
-                  <Icon
-                    icon={group.icon}
-                    className="size-3.5"
-                  />
-                  {group.label}
-                  <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums">
-                    {group.items.length}
-                  </span>
-                </h3>
-                <div className="grid gap-3 pt-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {group.items.map(function (entry) {
-                    return (
-                      <DirectiveCard
-                        key={entry.name}
-                        variant="wall"
-                        entry={entry}
-                        isActive={false}
-                        runs={summaries[entry.name] ?? EMPTY_RUNS}
-                        stepCount={props.stepCounts[entry.name] ?? 0}
-                        now={now}
-                        onOpen={props.onOpen}
-                        onRun={props.onRun}
-                      />
-                    )
-                  })}
-                </div>
-              </section>
-            )
-          })
-        )}
-      </div>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="px-5 pb-6">
+          {shown === 0 ? (
+            <DirectivePlaceholder
+              state={list.state}
+              detail={list.loadError}
+              actions={placeholder}
+            />
+          ) : (
+            <AnimatePresence
+              mode="popLayout"
+              initial={false}>
+              <motion.div
+                key={listKey}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}>
+                {groups.map(function (group) {
+                  return (
+                    <DirectiveGroupSection
+                      key={group.key}
+                      group={group}
+                      variant="wall"
+                      isOpen={collapse.isOpen(group.key)}
+                      onOpenChange={function (open) {
+                        collapse.updateOpen(group.key, open)
+                      }}>
+                      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        <AnimatePresence
+                          mode="popLayout"
+                          initial={false}>
+                          {group.items.map(function (entry, index) {
+                            return (
+                              <DirectiveCard
+                                key={entry.name}
+                                variant="wall"
+                                entry={entry}
+                                isActive={false}
+                                runs={summaries[entry.name] ?? EMPTY_RUNS}
+                                stepCount={props.stepCounts[entry.name] ?? 0}
+                                now={now}
+                                motionIndex={index}
+                                onOpen={props.onOpen}
+                                onRun={props.onRun}
+                              />
+                            )
+                          })}
+                        </AnimatePresence>
+                      </div>
+                    </DirectiveGroupSection>
+                  )
+                })}
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
+      </ScrollArea>
+      {list.importDialog}
     </div>
   )
 }

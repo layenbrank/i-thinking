@@ -56,7 +56,7 @@ export default function Directive() {
         <ResizablePanel
           id={WALL_ID}
           minSize={WALL_MIN}
-          className="min-h-0">
+          className="min-h-0 overflow-hidden">
           <DirectiveWall
             stepCounts={dock.stepCounts}
             onOpen={handleOpen}

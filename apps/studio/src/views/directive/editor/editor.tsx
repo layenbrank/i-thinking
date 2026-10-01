@@ -11,7 +11,6 @@ import {
 } from '@i-thinking/design/components/alert-dialog'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
-import { Card, CardContent } from '@i-thinking/design/components/card'
 import { Checkbox } from '@i-thinking/design/components/checkbox'
 import {
   Dialog,
@@ -34,10 +33,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@i-thinking/design/components/select'
-import { Separator } from '@i-thinking/design/components/separator'
 import { Spinner } from '@i-thinking/design/components/spinner'
 import { Textarea } from '@i-thinking/design/components/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@i-thinking/design/components/toggle-group'
+import { cn } from 'cn'
+import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -48,6 +48,7 @@ import { useCorexStore, type CorexAction } from '@/stores/corex'
 
 import { createDirective } from '../draft'
 import { BUCKET_LABELS, BUCKETS, parseBucket } from '../list/bucket'
+import { CARD_ENTER, cardDelay, cardTransition } from '../list/motion'
 import { PERMISSION_ICONS, PERMISSION_KEYS, PERMISSION_LABELS } from '../permissions'
 import {
   META_ID,
@@ -60,7 +61,7 @@ import {
   findSplitterState,
   writeSplitterLayout
 } from '../splitter'
-import { CONTROL_CLASS, Field, Glyph, Section } from './controls'
+import { CONTROL_CLASS, Field, Glyph, ITEM_CARD_CLASS, Section } from './controls'
 import InputsEditor from './inputs-editor'
 import { OnErrorSelect } from './on-error'
 import StepNode, { AddStepButton } from './step-node'
@@ -134,13 +135,16 @@ function VariableValue(props: VariableValueProps) {
 
   if (typeof value === 'boolean') {
     return (
-      <Checkbox
-        checked={value}
-        aria-label="变量值"
-        onCheckedChange={function (checked) {
-          props.onChange(checked === true)
-        }}
-      />
+      <label className="inline-flex h-8 w-full items-center gap-1.5 rounded-lg border border-border/50 bg-background/80 px-2.5 text-[11px] text-muted-foreground">
+        <Checkbox
+          checked={value}
+          aria-label="变量值"
+          onCheckedChange={function (checked) {
+            props.onChange(checked === true)
+          }}
+        />
+        {value ? 'true' : 'false'}
+      </label>
     )
   }
 
@@ -199,12 +203,13 @@ function VariablesEditor(props: VariablesEditorProps) {
         return (
           <div
             key={index}
-            className="flex flex-col gap-1.5 rounded-lg border bg-background p-2">
+            className={ITEM_CARD_CLASS}>
             <div className="flex items-center gap-1.5">
               <Input
-                className={CONTROL_CLASS}
+                className={cn(CONTROL_CLASS, 'min-w-0 flex-1 font-mono')}
                 value={key}
                 aria-label="变量名"
+                placeholder="变量名"
                 onChange={function (event) {
                   const next: Record<string, unknown> = {}
                   Object.entries(props.variables).forEach(function (item) {
@@ -218,6 +223,7 @@ function VariablesEditor(props: VariablesEditorProps) {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="删除变量"
+                className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={function () {
                   const next = { ...props.variables }
                   delete next[key]
@@ -239,7 +245,7 @@ function VariablesEditor(props: VariablesEditorProps) {
         type="button"
         variant="dashed"
         size="sm"
-        className="w-fit"
+        className="h-8 w-full cursor-pointer rounded-lg"
         onClick={function () {
           props.onChange({ ...props.variables, [`var${entries.length + 1}`]: '' })
         }}>
@@ -257,27 +263,32 @@ interface PermissionsEditorProps {
 
 function PermissionsEditor(props: PermissionsEditorProps) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-1.5">
       {PERMISSION_KEYS.map(function (key) {
         const id = `perm-${key}`
+        const isOn = Boolean(props.permissions[key])
         return (
-          <div
+          <label
             key={key}
-            className="flex items-center gap-2">
+            htmlFor={id}
+            className={cn(
+              'flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-xs transition-colors',
+              isOn
+                ? 'border-primary/30 bg-primary/5 text-foreground'
+                : 'border-border/50 bg-muted/30 text-muted-foreground hover:bg-accent-hover'
+            )}>
             <Checkbox
               id={id}
-              checked={Boolean(props.permissions[key])}
+              checked={isOn}
               onCheckedChange={function (checked) {
                 props.onChange({ ...props.permissions, [key]: checked === true })
               }}
             />
-            <Label
-              htmlFor={id}
-              className="text-xs font-normal">
+            <span className="inline-flex min-w-0 items-center gap-1.5 truncate font-normal">
               <Glyph icon={PERMISSION_ICONS[key]} />
               {PERMISSION_LABELS[key]}
-            </Label>
-          </div>
+            </span>
+          </label>
         )
       })}
     </div>
@@ -306,7 +317,7 @@ function EdgeSelect(props: EdgeSelectProps) {
         }}>
         <SelectTrigger
           size="sm"
-          className="w-full">
+          className={cn(CONTROL_CLASS, 'w-full')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent position="popper">
@@ -346,28 +357,28 @@ function TriggersEditor(props: TriggersEditorProps) {
     <div className="flex flex-col gap-2">
       {props.triggers.map(function (trigger, index) {
         return (
-          <Card
+          <div
             key={index}
-            className="gap-2 rounded-lg py-3 shadow-none">
-            <CardContent className="flex flex-col gap-2 px-3">
-              <div className="flex items-center justify-between">
-                <Badge
-                  variant="secondary"
-                  className="gap-1">
-                  <Glyph icon={trigger.type === 'cron' ? 'mdi:clock-outline' : 'mdi:eye-outline'} />
-                  {trigger.type}
-                </Badge>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="删除触发器"
-                  onClick={function () {
-                    remove(index)
-                  }}>
-                  <Glyph icon="mdi:close" />
-                </Button>
-              </div>
+            className={ITEM_CARD_CLASS}>
+            <div className="flex items-center justify-between gap-2">
+              <Badge
+                variant="secondary"
+                className="gap-1 rounded-md">
+                <Glyph icon={trigger.type === 'cron' ? 'mdi:clock-outline' : 'mdi:eye-outline'} />
+                {trigger.type}
+              </Badge>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="删除触发器"
+                className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={function () {
+                  remove(index)
+                }}>
+                <Glyph icon="mdi:close" />
+              </Button>
+            </div>
               {trigger.type === 'cron' ? (
                 <div className="flex flex-col gap-2">
                   <Field label="expr（cron 表达式）">
@@ -521,15 +532,15 @@ function TriggersEditor(props: TriggersEditorProps) {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </div>
         )
       })}
-      <div className="flex gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         <Button
           type="button"
           variant="dashed"
           size="sm"
+          className="h-8 cursor-pointer rounded-lg"
           onClick={function () {
             props.onChange([...props.triggers, { type: 'cron', expr: '' }])
           }}>
@@ -540,6 +551,7 @@ function TriggersEditor(props: TriggersEditorProps) {
           type="button"
           variant="dashed"
           size="sm"
+          className="h-8 cursor-pointer rounded-lg"
           onClick={function () {
             props.onChange([...props.triggers, { type: 'watch', paths: [] }])
           }}>
@@ -596,6 +608,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   const [defaultLayout] = useState(findSplitterState)
   /** 快捷键提示里的修饰键：macOS 是 ⌘，其余是 Ctrl */
   const modifier = findModifierLabel()
+  const isReducedMotion = useReducedMotion()
 
   /** 读过的指令不再重读，否则切回去会把没保存的草稿冲掉 */
   const loadedRef = useRef(new Set<string>())
@@ -837,11 +850,12 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   }, [])
 
   const header = (
-    <header className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
+    <header className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 px-3 py-2.5 backdrop-blur-md">
       <Button
         type="button"
         variant="ghost"
         size="icon-sm"
+        className="cursor-pointer"
         title={isListOpen ? '收起指令列表' : '展开指令列表'}
         aria-label={isListOpen ? '收起指令列表' : '展开指令列表'}
         onClick={onToggleList}>
@@ -850,15 +864,19 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           className="size-4"
         />
       </Button>
-      <Glyph
-        icon="mdi:file-document-outline"
-        className="size-4 text-primary"
-      />
-      <span className="truncate text-sm font-semibold">{activeName || '未选择指令'}</span>
+      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Glyph
+          icon="mdi:file-document-outline"
+          className="size-3.5"
+        />
+      </span>
+      <span className="truncate text-sm font-semibold tracking-tight">
+        {activeName || '未选择指令'}
+      </span>
       {isDirty ? (
         <Badge
           variant="outline"
-          className="shrink-0 text-muted-foreground">
+          className="shrink-0 rounded-full border-primary/30 bg-primary/5 text-primary">
           未保存
         </Badge>
       ) : null}
@@ -867,12 +885,12 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           {content.steps.length} 步 · {content.inputs.length} 输入
         </span>
       ) : null}
-      <div className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5">
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground"
+          className="cursor-pointer text-muted-foreground"
           aria-label="查看 YAML"
           title="查看 corex 落库的那份 YAML（只读）"
           disabled={!content || isPending}
@@ -885,7 +903,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground"
+          className="cursor-pointer text-muted-foreground"
           aria-label="用外部编辑器打开"
           title="用外部编辑器打开（corex edit）"
           disabled={!content || isDirty || isPending}
@@ -900,7 +918,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="text-muted-foreground hover:text-destructive"
+              className="cursor-pointer text-muted-foreground hover:text-destructive"
               aria-label="删除指令"
               title="删除指令"
               disabled={!content || isPending || isDeleting}>
@@ -930,6 +948,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           type="button"
           variant="outline"
           size="sm"
+          className="cursor-pointer rounded-full"
           title={`保存（${modifier} + S）`}
           disabled={!content || !isDirty || isSaving || nameError !== null}
           onClick={function () {
@@ -948,6 +967,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
         <Button
           type="button"
           size="sm"
+          className="cursor-pointer rounded-full px-3.5 shadow-xs"
           title={`运行（${modifier} + Enter）`}
           disabled={!content}
           onClick={function () {
@@ -965,13 +985,15 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
 
   if (!content) {
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col bg-background text-foreground">
+      <div className="flex h-full min-h-0 flex-1 flex-col bg-muted/35 text-foreground">
         {header}
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Glyph
-            icon="mdi:file-document-outline"
-            className="size-7 opacity-70"
-          />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-card shadow-xs">
+            <Glyph
+              icon="mdi:file-document-outline"
+              className="size-6 opacity-70"
+            />
+          </span>
           <p>{error ?? (activeName ? '读取中…' : '先在左侧选择一条指令')}</p>
         </div>
       </div>
@@ -979,7 +1001,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-background text-foreground">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-muted/35 text-foreground">
       {header}
 
       <ResizablePanelGroup
@@ -999,9 +1021,10 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           groupResizeBehavior="preserve-pixel-size"
           className="h-full min-h-0 min-w-0">
           <Glide.Y>
-            <aside className="flex flex-col gap-4 p-3.5">
+            <aside className="flex flex-col gap-2.5 p-3">
               <Section
                 icon={<Glyph icon="mdi:information-outline" />}
+                tileClass="bg-primary/12 text-primary"
                 title="基本信息">
                 <Field label="名称">
                   <Input
@@ -1014,14 +1037,14 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                   />
                 </Field>
                 {nameError ? (
-                  <p className="flex items-center gap-1 text-xs text-destructive">
+                  <p className="flex items-center gap-1 text-[11px] text-destructive">
                     <Glyph icon="mdi:alert-circle-outline" />
                     {nameError}
                   </p>
                 ) : null}
                 <Field label="描述">
                   <Textarea
-                    className="field-sizing-fixed min-h-16 text-xs"
+                    className="field-sizing-fixed min-h-16 rounded-lg text-xs shadow-xs"
                     rows={2}
                     value={content.description}
                     onChange={function (event) {
@@ -1047,7 +1070,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                       }}>
                       <SelectTrigger
                         size="sm"
-                        className="w-full">
+                        className={cn(CONTROL_CLASS, 'w-full')}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent position="popper">
@@ -1067,10 +1090,9 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 </div>
               </Section>
 
-              <Separator />
-
               <Section
                 icon={<Glyph icon="mdi:import" />}
+                tileClass="bg-chart-1/15 text-chart-1"
                 title="输入"
                 count={content.inputs.length}>
                 <InputsEditor
@@ -1081,17 +1103,19 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 />
               </Section>
 
-              <Separator />
-
               {/*
                 运行参数与输入声明分开：这里填的只是**这一次**运行传什么，不写回指令；
                 过去两者挤在一个「输入」区里，看着像在改指令，其实只是填表单。
               */}
               <Section
                 icon={<Glyph icon="mdi:play-circle-outline" />}
-                title="运行参数（不写入指令）">
+                tileClass="bg-chart-2/18 text-chart-2"
+                title="运行参数"
+                hint="只影响本次运行，不写入指令">
                 {content.inputs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">这条指令没有声明输入</p>
+                  <p className="rounded-lg border border-dashed border-border/60 px-3 py-2.5 text-center text-[11px] text-muted-foreground">
+                    这条指令没有声明输入
+                  </p>
                 ) : (
                   <div className="flex flex-col gap-2.5">
                     {content.inputs.map(function (input, index) {
@@ -1115,10 +1139,9 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 )}
               </Section>
 
-              <Separator />
-
               <Section
                 icon={<Glyph icon="mdi:code-braces" />}
+                tileClass="bg-chart-4/22 text-foreground"
                 title="变量"
                 count={Object.keys(content.variables ?? {}).length}>
                 <VariablesEditor
@@ -1129,10 +1152,9 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 />
               </Section>
 
-              <Separator />
-
               <Section
                 icon={<Glyph icon="mdi:shield-check-outline" />}
+                tileClass="bg-chart-3/18 text-chart-3"
                 title="权限">
                 <PermissionsEditor
                   permissions={content.permissions ?? {}}
@@ -1142,10 +1164,9 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 />
               </Section>
 
-              <Separator />
-
               <Section
                 icon={<Glyph icon="mdi:lightning-bolt-outline" />}
+                tileClass="bg-primary/12 text-primary"
                 title="触发器"
                 count={(content.triggers ?? []).length}>
                 <TriggersEditor
@@ -1167,11 +1188,15 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           className="h-full min-h-0 min-w-0">
           <Glide.Y>
             <main className="flex flex-col gap-3 p-3.5">
-              <header className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
-                  <Glyph icon="mdi:format-list-numbered" />
+              <header className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-3.5 py-2.5 shadow-xs">
+                <span className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                    <Glyph icon="mdi:format-list-numbered" />
+                  </span>
                   步骤
-                  <span className="font-normal tabular-nums">{content.steps.length} 步</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                    {content.steps.length}
+                  </span>
                 </span>
                 <div className="flex items-center gap-2">
                   <span
@@ -1191,67 +1216,76 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
               </header>
 
               {content.steps.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-xs text-muted-foreground">
-                  <Glyph
-                    icon="mdi:playlist-plus"
-                    className="size-6 opacity-70"
-                  />
-                  <p>从动作库添加步骤，编排自定义组合</p>
+                <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-border/70 bg-card/60 py-10 text-xs text-muted-foreground">
+                  <span className="inline-flex size-10 items-center justify-center rounded-xl bg-muted">
+                    <Glyph
+                      icon="mdi:playlist-plus"
+                      className="size-5 opacity-80"
+                    />
+                  </span>
+                  <p>从下方添加步骤，编排自定义组合</p>
                 </div>
               ) : null}
               <div className="flex flex-col gap-2.5">
                 {content.steps.map(function (step, index) {
+                  const delay = cardDelay(index, !!isReducedMotion)
+                  const enter = isReducedMotion ? CARD_ENTER.reduced : CARD_ENTER
                   return (
-                    <StepNode
+                    <motion.div
                       key={step.id || index}
-                      step={step}
-                      catalog={catalog}
-                      onChange={function (next) {
-                        updateContent(function (prev) {
-                          return {
-                            ...prev,
-                            steps: prev.steps.map(function (item, i) {
-                              return i === index ? next : item
-                            })
-                          }
-                        })
-                      }}
-                      onRemove={function () {
-                        updateContent(function (prev) {
-                          return {
-                            ...prev,
-                            steps: prev.steps.filter(function (_, i) {
-                              return i !== index
-                            })
-                          }
-                        })
-                      }}
-                      onDuplicate={function () {
-                        updateContent(function (prev) {
-                          const steps = [...prev.steps]
-                          steps.splice(index + 1, 0, cloneStep(step))
-                          return { ...prev, steps }
-                        })
-                      }}
-                      onMoveUp={
-                        index > 0
-                          ? function () {
-                              updateContent(function (prev) {
-                                return { ...prev, steps: moveStep(prev.steps, index, index - 1) }
+                      initial={enter.initial}
+                      animate={enter.animate}
+                      transition={cardTransition(delay, !!isReducedMotion)}>
+                      <StepNode
+                        step={step}
+                        catalog={catalog}
+                        onChange={function (next) {
+                          updateContent(function (prev) {
+                            return {
+                              ...prev,
+                              steps: prev.steps.map(function (item, i) {
+                                return i === index ? next : item
                               })
                             }
-                          : undefined
-                      }
-                      onMoveDown={
-                        index < content.steps.length - 1
-                          ? function () {
-                              updateContent(function (prev) {
-                                return { ...prev, steps: moveStep(prev.steps, index, index + 1) }
+                          })
+                        }}
+                        onRemove={function () {
+                          updateContent(function (prev) {
+                            return {
+                              ...prev,
+                              steps: prev.steps.filter(function (_, i) {
+                                return i !== index
                               })
                             }
-                          : undefined
-                      }
-                    />
+                          })
+                        }}
+                        onDuplicate={function () {
+                          updateContent(function (prev) {
+                            const steps = [...prev.steps]
+                            steps.splice(index + 1, 0, cloneStep(step))
+                            return { ...prev, steps }
+                          })
+                        }}
+                        onMoveUp={
+                          index > 0
+                            ? function () {
+                                updateContent(function (prev) {
+                                  return { ...prev, steps: moveStep(prev.steps, index, index - 1) }
+                                })
+                              }
+                            : undefined
+                        }
+                        onMoveDown={
+                          index < content.steps.length - 1
+                            ? function () {
+                                updateContent(function (prev) {
+                                  return { ...prev, steps: moveStep(prev.steps, index, index + 1) }
+                                })
+                              }
+                            : undefined
+                        }
+                      />
+                    </motion.div>
                   )
                 })}
                 <AddStepButton

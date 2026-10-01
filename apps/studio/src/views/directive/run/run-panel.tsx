@@ -109,16 +109,20 @@ function RunPanel(props: Props) {
   )
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-card">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden bg-card">
       <header className="relative flex h-12 shrink-0 items-center gap-2 border-b px-3">
         <Button
           type="button"
           variant="ghost"
           size="icon-xs"
+          className="cursor-pointer"
           aria-label={props.isCollapsed ? '展开运行台' : '收起运行台'}
           title={props.isCollapsed ? '展开运行台' : '收起运行台'}
           onClick={props.onToggle}>
-          <Icon icon={props.isCollapsed ? 'mdi:chevron-up' : 'mdi:chevron-down'} />
+          <Icon
+            icon={props.isCollapsed ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+            className="transition-transform duration-200"
+          />
         </Button>
         <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
           <Icon
@@ -160,6 +164,7 @@ function RunPanel(props: Props) {
             type="button"
             variant="ghost"
             size="xs"
+            className="cursor-pointer"
             disabled={props.runs.length === running.length}
             title={
               props.runs.length === running.length
@@ -181,8 +186,17 @@ function RunPanel(props: Props) {
         ) : null}
       </header>
 
-      {props.isCollapsed ? null : focus ? (
-        <>
+      {/*
+        收起时不卸载内容：面板高度过渡时靠 overflow 裁切，才不会「内容先闪没、再缩高度」。
+        未读仍由上面的 visibleRun 逻辑管 —— 收起时不算「看见了」。
+      */}
+      {focus ? (
+        <div
+          aria-hidden={props.isCollapsed}
+          className={cn(
+            'flex min-h-0 flex-1 flex-col overflow-hidden',
+            props.isCollapsed && 'pointer-events-none'
+          )}>
           <RunChips
             runs={props.runs}
             selectedId={props.selectedId}
@@ -192,23 +206,31 @@ function RunPanel(props: Props) {
             onRemove={props.onRemove}
           />
 
-          {/* 换任务就换组件：跟随状态、筛的级别、滚动位置都该跟着换，别把上一条的状态带过来 */}
           <RunOutput
             key={focus.id}
             run={focus}
             stepTotal={focusSteps}
           />
-        </>
+        </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 text-muted-foreground">
-          <Icon
-            icon="mdi:console-line"
-            className="size-6 opacity-60"
-          />
-          <p className="text-sm">还没有运行记录</p>
-          <p className="text-xs opacity-80">
-            点「运行」开始，编辑器里也可以按 {findModifierLabel()} + Enter
-          </p>
+        <div
+          aria-hidden={props.isCollapsed}
+          className={cn(
+            'relative min-h-0 flex-1 overflow-hidden',
+            // 收起时标题栏只剩 48px：空状态子项若溢进标题栏，
+            // 「还没有运行记录」会贴在底栏中间、看着特别靠下。
+            props.isCollapsed && 'invisible pointer-events-none'
+          )}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-3 text-center text-muted-foreground">
+            <Icon
+              icon="mdi:console-line"
+              className="size-6 opacity-60"
+            />
+            <p className="text-sm">还没有运行记录</p>
+            <p className="text-xs opacity-80">
+              点「运行」开始，编辑器里也可以按 {findModifierLabel()} + Enter
+            </p>
+          </div>
         </div>
       )}
     </section>
