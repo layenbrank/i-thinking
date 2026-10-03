@@ -61,7 +61,16 @@ import {
   findSplitterState,
   writeSplitterLayout
 } from '../splitter'
-import { CONTROL_CLASS, Field, Glyph, ITEM_CARD_CLASS, Section } from './controls'
+import {
+  CONTROL_CLASS,
+  Field,
+  Glyph,
+  HintTooltip,
+  ITEM_CARD_CLASS,
+  ItemCardActionRow,
+  Section,
+  TEXTAREA_CLASS
+} from './controls'
 import InputsEditor from './inputs-editor'
 import { OnErrorSelect } from './on-error'
 import StepNode, { AddStepButton } from './step-node'
@@ -116,13 +125,42 @@ function linesToText(lines: string[] | undefined): string {
   return (lines ?? []).join('\n')
 }
 
-function textToLines(text: string): string[] {
-  return text
-    .split('\n')
+/**
+ * 编辑态拆行：保留空行，否则按 Enter 会被立刻滤掉、看起来「无法换行」。
+ * 空白 / 空行在落库前再清（见 `cleanGlobLines`）。
+ */
+function textToDraftLines(text: string): string[] {
+  return text.split('\n')
+}
+
+/** 落库前：trim 后丢掉空行，避免无效 glob 写进指令 */
+function cleanGlobLines(lines: string[] | undefined): string[] {
+  return (lines ?? [])
     .map(function (line) {
       return line.trim()
     })
     .filter(Boolean)
+}
+
+function sanitizeWatchGlobs(lines: string[] | undefined): string[] | undefined {
+  if (lines === undefined) return undefined
+  const cleaned = cleanGlobLines(lines)
+  return cleaned.length > 0 ? cleaned : undefined
+}
+
+function sanitizeTriggers(
+  triggers: DirectiveTrigger[] | undefined
+): DirectiveTrigger[] | undefined {
+  if (!triggers || triggers.length === 0) return triggers
+  return triggers.map(function (trigger) {
+    if (trigger.type !== 'watch') return trigger
+    return {
+      ...trigger,
+      paths: cleanGlobLines(trigger.paths),
+      includes: sanitizeWatchGlobs(trigger.includes),
+      excludes: sanitizeWatchGlobs(trigger.excludes)
+    }
+  })
 }
 
 interface VariableValueProps {
@@ -135,7 +173,7 @@ function VariableValue(props: VariableValueProps) {
 
   if (typeof value === 'boolean') {
     return (
-      <label className="inline-flex h-8 w-full items-center gap-1.5 rounded-lg border border-border/50 bg-background/80 px-2.5 text-[11px] text-muted-foreground">
+      <label className="inline-flex h-8 w-full items-center gap-1.5 rounded-lg border border-border/70 bg-background px-2.5 text-[11px] text-foreground">
         <Checkbox
           checked={value}
           aria-label="变量值"
@@ -204,12 +242,28 @@ function VariablesEditor(props: VariablesEditorProps) {
           <div
             key={index}
             className={ITEM_CARD_CLASS}>
-            <div className="flex items-center gap-1.5">
+            <ItemCardActionRow>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="删除变量"
+                title="删除变量"
+                className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={function () {
+                  const next = { ...props.variables }
+                  delete next[key]
+                  props.onChange(next)
+                }}>
+                <Glyph icon="mdi:trash-can-outline" />
+              </Button>
+            </ItemCardActionRow>
+            <Field label="变量名">
               <Input
-                className={cn(CONTROL_CLASS, 'min-w-0 flex-1 font-mono')}
+                className={cn(CONTROL_CLASS, 'font-mono')}
                 value={key}
                 aria-label="变量名"
-                placeholder="变量名"
+                placeholder="如 base"
                 onChange={function (event) {
                   const next: Record<string, unknown> = {}
                   Object.entries(props.variables).forEach(function (item) {
@@ -218,26 +272,15 @@ function VariablesEditor(props: VariablesEditorProps) {
                   props.onChange(next)
                 }}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="删除变量"
-                className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={function () {
-                  const next = { ...props.variables }
-                  delete next[key]
-                  props.onChange(next)
-                }}>
-                <Glyph icon="mdi:close" />
-              </Button>
-            </div>
-            <VariableValue
-              value={entry[1]}
-              onChange={function (next) {
-                props.onChange({ ...props.variables, [key]: next })
-              }}
-            />
+            </Field>
+            <Field label="值">
+              <VariableValue
+                value={entry[1]}
+                onChange={function (next) {
+                  props.onChange({ ...props.variables, [key]: next })
+                }}
+              />
+            </Field>
           </div>
         )
       })}
@@ -263,34 +306,36 @@ interface PermissionsEditorProps {
 
 function PermissionsEditor(props: PermissionsEditorProps) {
   return (
-    <div className="grid grid-cols-2 gap-1.5">
-      {PERMISSION_KEYS.map(function (key) {
-        const id = `perm-${key}`
-        const isOn = Boolean(props.permissions[key])
-        return (
-          <label
-            key={key}
-            htmlFor={id}
-            className={cn(
-              'flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-xs transition-colors',
-              isOn
-                ? 'border-primary/30 bg-primary/5 text-foreground'
-                : 'border-border/50 bg-muted/30 text-muted-foreground hover:bg-accent-hover'
-            )}>
-            <Checkbox
-              id={id}
-              checked={isOn}
-              onCheckedChange={function (checked) {
-                props.onChange({ ...props.permissions, [key]: checked === true })
-              }}
-            />
-            <span className="inline-flex min-w-0 items-center gap-1.5 truncate font-normal">
-              <Glyph icon={PERMISSION_ICONS[key]} />
-              {PERMISSION_LABELS[key]}
-            </span>
-          </label>
-        )
-      })}
+    <div className="@container">
+      <div className="grid grid-cols-1 gap-1.5 @min-[16rem]:grid-cols-2">
+        {PERMISSION_KEYS.map(function (key) {
+          const id = `perm-${key}`
+          const isOn = Boolean(props.permissions[key])
+          return (
+            <label
+              key={key}
+              htmlFor={id}
+              className={cn(
+                'flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-xs transition-colors',
+                isOn
+                  ? 'border-primary/40 bg-primary/5 text-foreground'
+                  : 'border-border/70 bg-background text-foreground hover:bg-accent'
+              )}>
+              <Checkbox
+                id={id}
+                checked={isOn}
+                onCheckedChange={function (checked) {
+                  props.onChange({ ...props.permissions, [key]: checked === true })
+                }}
+              />
+              <span className="inline-flex min-w-0 items-center gap-1.5 truncate font-normal">
+                <Glyph icon={PERMISSION_ICONS[key]} />
+                {PERMISSION_LABELS[key]}
+              </span>
+            </label>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -302,6 +347,7 @@ interface TriggersEditorProps {
 
 interface EdgeSelectProps {
   label: string
+  hint?: string
   value: EdgeOption
   onChange: (next: EdgeOption) => void
 }
@@ -309,7 +355,9 @@ interface EdgeSelectProps {
 /** 防抖/节流的触发时机（corex `Edge`） */
 function EdgeSelect(props: EdgeSelectProps) {
   return (
-    <Field label={props.label}>
+    <Field
+      label={props.label}
+      hint={props.hint}>
       <Select
         value={props.value}
         onValueChange={function (value) {
@@ -337,6 +385,13 @@ function EdgeSelect(props: EdgeSelectProps) {
 }
 
 function TriggersEditor(props: TriggersEditorProps) {
+  const hasCron = props.triggers.some(function (trigger) {
+    return trigger.type === 'cron'
+  })
+  const hasWatch = props.triggers.some(function (trigger) {
+    return trigger.type === 'watch'
+  })
+
   function patch(index: number, next: DirectiveTrigger) {
     props.onChange(
       props.triggers.map(function (trigger, i) {
@@ -353,118 +408,148 @@ function TriggersEditor(props: TriggersEditorProps) {
     )
   }
 
+  /** cron / watch 可并存，同类型只允许一条 */
+  function addTrigger(kind: 'cron' | 'watch') {
+    if (kind === 'cron') {
+      if (hasCron) return
+      props.onChange([...props.triggers, { type: 'cron', expr: '' }])
+      return
+    }
+    if (hasWatch) return
+    props.onChange([...props.triggers, { type: 'watch', paths: [] }])
+  }
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="@container flex flex-col gap-2">
       {props.triggers.map(function (trigger, index) {
         return (
           <div
             key={index}
             className={ITEM_CARD_CLASS}>
-            <div className="flex items-center justify-between gap-2">
-              <Badge
-                variant="secondary"
-                className="gap-1 rounded-md">
-                <Glyph icon={trigger.type === 'cron' ? 'mdi:clock-outline' : 'mdi:eye-outline'} />
-                {trigger.type}
-              </Badge>
+            <ItemCardActionRow
+              leading={
+                <Badge
+                  variant="secondary"
+                  className="gap-1 rounded-md">
+                  <Glyph icon={trigger.type === 'cron' ? 'mdi:clock-outline' : 'mdi:eye-outline'} />
+                  {trigger.type}
+                </Badge>
+              }>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
                 aria-label="删除触发器"
-                className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+                title="删除触发器"
+                className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={function () {
                   remove(index)
                 }}>
-                <Glyph icon="mdi:close" />
+                <Glyph icon="mdi:trash-can-outline" />
               </Button>
-            </div>
-              {trigger.type === 'cron' ? (
-                <div className="flex flex-col gap-2">
-                  <Field label="expr（cron 表达式）">
-                    <Input
-                      className={CONTROL_CLASS}
-                      value={trigger.expr}
-                      placeholder="0 9 * * 1-5"
-                      onChange={function (event) {
-                        patch(index, { ...trigger, expr: event.target.value })
-                      }}
-                    />
-                  </Field>
-                  <Field label="timezone">
-                    <Input
-                      className={CONTROL_CLASS}
-                      value={trigger.timezone ?? ''}
-                      placeholder="local | utc | ±HH:MM"
-                      onChange={function (event) {
-                        patch(index, { ...trigger, timezone: event.target.value })
-                      }}
-                    />
-                  </Field>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <Field label="paths（每行一个）">
-                    <Textarea
-                      className="field-sizing-fixed min-h-16 text-xs"
-                      rows={2}
-                      value={linesToText(trigger.paths)}
-                      onChange={function (event) {
-                        patch(index, { ...trigger, paths: textToLines(event.target.value) })
-                      }}
-                    />
-                  </Field>
-                  <Field label="events（监听哪些文件事件）">
-                    <ToggleGroup
-                      type="multiple"
-                      size="sm"
-                      variant="outline"
-                      spacing={4}
-                      value={trigger.events ?? []}
-                      onValueChange={function (value) {
-                        patch(index, {
-                          ...trigger,
-                          events: WATCH_EVENTS.filter(function (name) {
-                            return value.includes(name)
-                          })
+            </ItemCardActionRow>
+            {trigger.type === 'cron' ? (
+              <div className="flex flex-col gap-2">
+                <Field
+                  label="expr"
+                  hint="cron 表达式，如 0 9 * * 1-5">
+                  <Input
+                    className={cn(CONTROL_CLASS, 'font-mono')}
+                    value={trigger.expr}
+                    placeholder="0 9 * * 1-5"
+                    onChange={function (event) {
+                      patch(index, { ...trigger, expr: event.target.value })
+                    }}
+                  />
+                </Field>
+                <Field
+                  label="timezone"
+                  hint="local、utc 或 ±HH:MM">
+                  <Input
+                    className={CONTROL_CLASS}
+                    value={trigger.timezone ?? ''}
+                    placeholder="local"
+                    onChange={function (event) {
+                      patch(index, { ...trigger, timezone: event.target.value })
+                    }}
+                  />
+                </Field>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Field
+                  label="paths"
+                  hint="每行一个路径；可用 {{变量}}">
+                  <Textarea
+                    className={cn(TEXTAREA_CLASS, 'font-mono')}
+                    value={linesToText(trigger.paths)}
+                    onChange={function (event) {
+                      patch(index, { ...trigger, paths: textToDraftLines(event.target.value) })
+                    }}
+                  />
+                </Field>
+                <Field
+                  label="events"
+                  hint="监听哪些文件事件">
+                  <ToggleGroup
+                    type="multiple"
+                    size="sm"
+                    variant="outline"
+                    spacing={0}
+                    value={trigger.events ?? []}
+                    onValueChange={function (value) {
+                      patch(index, {
+                        ...trigger,
+                        events: WATCH_EVENTS.filter(function (name) {
+                          return value.includes(name)
                         })
-                      }}
-                      className="flex-wrap justify-start">
-                      {WATCH_EVENTS.map(function (name) {
-                        return (
-                          <ToggleGroupItem
-                            key={name}
-                            value={name}
-                            className="h-7 rounded-full px-2.5 text-xs">
-                            {name}
-                          </ToggleGroupItem>
-                        )
-                      })}
-                    </ToggleGroup>
-                  </Field>
-                  <Field label="includes（每行一个）">
-                    <Textarea
-                      className="field-sizing-fixed min-h-16 text-xs"
-                      rows={2}
-                      value={linesToText(trigger.includes)}
-                      onChange={function (event) {
-                        patch(index, { ...trigger, includes: textToLines(event.target.value) })
-                      }}
-                    />
-                  </Field>
-                  <Field label="excludes（每行一个）">
-                    <Textarea
-                      className="field-sizing-fixed min-h-16 text-xs"
-                      rows={2}
-                      value={linesToText(trigger.excludes)}
-                      onChange={function (event) {
-                        patch(index, { ...trigger, excludes: textToLines(event.target.value) })
-                      }}
-                    />
-                  </Field>
-                  <div className="grid grid-cols-2 gap-2">
+                      })
+                    }}
+                    className="grid w-full grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] grid-flow-row-dense gap-1.5">
+                    {WATCH_EVENTS.map(function (name) {
+                      return (
+                        <ToggleGroupItem
+                          key={name}
+                          value={name}
+                          className={cn(
+                            'h-7 justify-center rounded-md px-2.5 text-xs',
+                            // 各自完整圆角与边框，覆盖 spacing=0 的紧凑连排样式
+                            'data-[spacing=0]:rounded-md data-[spacing=0]:first:rounded-md data-[spacing=0]:last:rounded-md',
+                            'data-[spacing=0]:data-[variant=outline]:border-l data-[state=on]:shadow-none'
+                          )}>
+                          {name}
+                        </ToggleGroupItem>
+                      )
+                    })}
+                  </ToggleGroup>
+                </Field>
+                <Field
+                  label="includes"
+                  hint="每行一个 glob；空 = 全部纳入">
+                  <Textarea
+                    className={cn(TEXTAREA_CLASS, 'font-mono')}
+                    value={linesToText(trigger.includes)}
+                    onChange={function (event) {
+                      patch(index, { ...trigger, includes: textToDraftLines(event.target.value) })
+                    }}
+                  />
+                </Field>
+                <Field
+                  label="excludes"
+                  hint="每行一个 glob；优先于 includes">
+                  <Textarea
+                    className={cn(TEXTAREA_CLASS, 'font-mono')}
+                    value={linesToText(trigger.excludes)}
+                    onChange={function (event) {
+                      patch(index, { ...trigger, excludes: textToDraftLines(event.target.value) })
+                    }}
+                  />
+                </Field>
+                <div className="@container">
+                  <div className="grid grid-cols-1 gap-2 @min-[20rem]:grid-cols-2">
                     <EdgeSelect
-                      label="debounce（默认 trailing）"
+                      label="debounce"
+                      hint="默认 trailing；不写则交给 corex"
                       value={trigger.debounce ?? 'default'}
                       onChange={function (next) {
                         patch(index, { ...trigger, debounce: toEdge(next) })
@@ -473,45 +558,52 @@ function TriggersEditor(props: TriggersEditorProps) {
                     <Field label="debounce_ms">
                       <Input
                         type="number"
+                        step={100}
+                        min={0}
                         className={CONTROL_CLASS}
                         value={trigger.debounce_ms ?? ''}
                         onChange={function (event) {
                           const raw = event.target.value
-                          patch(index, {
-                            ...trigger,
-                            ...(raw === '' ? {} : { debounce_ms: Number(raw) })
-                          })
+                          const next = { ...trigger }
+                          if (raw === '') delete next.debounce_ms
+                          else next.debounce_ms = Number(raw)
+                          patch(index, next)
                         }}
                       />
                     </Field>
                     <EdgeSelect
-                      label="throttle（默认 both）"
+                      label="throttle"
+                      hint="默认 both；不写则交给 corex"
                       value={trigger.throttle ?? 'default'}
                       onChange={function (next) {
                         patch(index, { ...trigger, throttle: toEdge(next) })
                       }}
                     />
-                    <Field label="throttle_ms（必须大于 0）">
+                    <Field
+                      label="throttle_ms"
+                      hint="必须大于 0；步进 100ms">
                       <Input
                         type="number"
+                        step={100}
+                        min={100}
                         className={CONTROL_CLASS}
                         value={trigger.throttle_ms ?? ''}
                         onChange={function (event) {
                           const raw = event.target.value
-                          patch(index, {
-                            ...trigger,
-                            ...(raw === '' ? {} : { throttle_ms: Number(raw) })
-                          })
+                          const next = { ...trigger }
+                          if (raw === '') delete next.throttle_ms
+                          else next.throttle_ms = Number(raw)
+                          patch(index, next)
                         }}
                       />
                     </Field>
-                    <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 @min-[20rem]:col-span-2">
                       {WATCH_FLAGS.map(function (flag) {
                         const id = `trigger-${flag.name}-${index}`
                         return (
                           <div
                             key={flag.name}
-                            className="flex items-center gap-2">
+                            className="flex items-center gap-1.5">
                             <Checkbox
                               id={id}
                               checked={Boolean(trigger[flag.name])}
@@ -521,42 +613,50 @@ function TriggersEditor(props: TriggersEditorProps) {
                             />
                             <Label
                               htmlFor={id}
-                              title={flag.hint}
                               className="font-mono text-xs font-normal">
                               {flag.name}
                             </Label>
+                            <HintTooltip
+                              hint={flag.hint}
+                              label={`${flag.name} 说明`}
+                            />
                           </div>
                         )
                       })}
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
           </div>
         )
       })}
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-1 gap-1.5 @min-[16rem]:grid-cols-2">
         <Button
           type="button"
           variant="dashed"
           size="sm"
           className="h-8 cursor-pointer rounded-lg"
+          disabled={hasCron}
+          title={hasCron ? '已有 cron，不可重复添加' : '添加 cron 定时触发'}
           onClick={function () {
-            props.onChange([...props.triggers, { type: 'cron', expr: '' }])
+            addTrigger('cron')
           }}>
           <Glyph icon="mdi:clock-outline" />
-          添加 cron
+          {hasCron ? '已有 cron' : '添加 cron'}
         </Button>
         <Button
           type="button"
           variant="dashed"
           size="sm"
           className="h-8 cursor-pointer rounded-lg"
+          disabled={hasWatch}
+          title={hasWatch ? '已有 watch，不可重复添加' : '添加 watch 观察触发'}
           onClick={function () {
-            props.onChange([...props.triggers, { type: 'watch', paths: [] }])
+            addTrigger('watch')
           }}>
           <Glyph icon="mdi:eye-outline" />
-          添加 watch
+          {hasWatch ? '已有 watch' : '添加 watch'}
         </Button>
       </div>
     </div>
@@ -700,7 +800,13 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
     const originalName = saving && content.name !== saving ? saving : undefined
     setIsSaving(true)
     try {
-      const document = await useCorexStore.getState().saveDirective(content, originalName)
+      const document = await useCorexStore.getState().saveDirective(
+        {
+          ...content,
+          triggers: sanitizeTriggers(content.triggers)
+        },
+        originalName
+      )
       setSaved(function (prev) {
         const next = { ...prev, [document.name]: JSON.stringify(document.definition) }
         if (document.name !== saving) delete next[saving]
@@ -771,11 +877,9 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       })
       loadedRef.current.delete(target)
       await useCorexStore.getState().refreshDirectives()
-      const next = useCorexStore
-        .getState()
-        .directives.find(function (entry) {
-          return entry.name !== target
-        })
+      const next = useCorexStore.getState().directives.find(function (entry) {
+        return entry.name !== target
+      })
       toast.success(`已删除指令 ${target}`)
       onOpen(next?.name ?? '')
     } catch (err) {
@@ -1021,7 +1125,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           groupResizeBehavior="preserve-pixel-size"
           className="h-full min-h-0 min-w-0">
           <Glide.Y>
-            <aside className="flex flex-col gap-2.5 p-3">
+            <aside className="@container/meta flex flex-col gap-2.5 p-3">
               <Section
                 icon={<Glyph icon="mdi:information-outline" />}
                 tileClass="bg-primary/12 text-primary"
@@ -1044,49 +1148,50 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 ) : null}
                 <Field label="描述">
                   <Textarea
-                    className="field-sizing-fixed min-h-16 rounded-lg text-xs shadow-xs"
-                    rows={2}
+                    className={TEXTAREA_CLASS}
                     value={content.description}
                     onChange={function (event) {
                       patchContent({ description: event.target.value })
                     }}
                   />
                 </Field>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="版本">
-                    <Input
-                      className={CONTROL_CLASS}
-                      value={content.version}
-                      onChange={function (event) {
-                        patchContent({ version: event.target.value })
-                      }}
-                    />
-                  </Field>
-                  <Field label="分类">
-                    <Select
-                      value={content.bucket || UNCATEGORIZED}
-                      onValueChange={function (value) {
-                        patchContent({ bucket: parseBucket(value) })
-                      }}>
-                      <SelectTrigger
-                        size="sm"
-                        className={cn(CONTROL_CLASS, 'w-full')}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent position="popper">
-                        <SelectItem value={UNCATEGORIZED}>未分类</SelectItem>
-                        {BUCKETS.map(function (bucket) {
-                          return (
-                            <SelectItem
-                              key={bucket}
-                              value={bucket}>
-                              {BUCKET_LABELS[bucket]}
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                <div className="@container">
+                  <div className="grid grid-cols-1 gap-2 @min-[16rem]:grid-cols-2">
+                    <Field label="版本">
+                      <Input
+                        className={CONTROL_CLASS}
+                        value={content.version}
+                        onChange={function (event) {
+                          patchContent({ version: event.target.value })
+                        }}
+                      />
+                    </Field>
+                    <Field label="分类">
+                      <Select
+                        value={content.bucket || UNCATEGORIZED}
+                        onValueChange={function (value) {
+                          patchContent({ bucket: parseBucket(value) })
+                        }}>
+                        <SelectTrigger
+                          size="sm"
+                          className={cn(CONTROL_CLASS, 'w-full')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          <SelectItem value={UNCATEGORIZED}>未分类</SelectItem>
+                          {BUCKETS.map(function (bucket) {
+                            return (
+                              <SelectItem
+                                key={bucket}
+                                value={bucket}>
+                                {BUCKET_LABELS[bucket]}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
                 </div>
               </Section>
 
@@ -1123,11 +1228,12 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                         <Field
                           key={index}
                           label={input.name || '(未命名)'}
-                          required={Boolean(input.required)}>
+                          required={Boolean(input.required)}
+                          hint={input.description || undefined}>
                           <Input
                             className={CONTROL_CLASS}
                             value={values[input.name] ?? ''}
-                            placeholder={input.description ?? ''}
+                            placeholder="本次运行的值"
                             onChange={function (event) {
                               setInput(input.name, event.target.value)
                             }}
@@ -1194,7 +1300,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                     <Glyph icon="mdi:format-list-numbered" />
                   </span>
                   步骤
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium tabular-nums text-secondary-foreground">
                     {content.steps.length}
                   </span>
                 </span>

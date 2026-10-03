@@ -9,13 +9,15 @@ import { useId } from 'react'
 
 import type { CorexAction } from '@/stores/corex'
 
-import { CONTROL_CLASS } from '../editor/controls'
+import { CONTROL_CLASS, HintTooltip, TEXTAREA_CLASS } from '../editor/controls'
 import { checkValue, findFieldHint, findFieldKind, formatField, parseInput } from './field'
 import type { FieldKind } from './field'
 
 /**
  * 一个动作参数的录入控件：名字 / 类型 / 必填 / 说明 + 对应控件，填错了当场标出来。
  * 动作库试跑与编辑器步骤表单共用它，两边「什么类型长什么样、什么算填对」保持一份。
+ *
+ * 长说明收进 ⓘ tooltip（关闭即销毁），窄步骤栏里少占一截纵向空间。
  */
 
 type ActionParam = CorexAction['params'][number]
@@ -47,9 +49,8 @@ function ParamControl(props: ControlProps) {
   if (kind === 'json') {
     return (
       <Textarea
-        rows={3}
         aria-label={param.name}
-        className="field-sizing-fixed min-h-16 font-mono text-xs"
+        className={cn(TEXTAREA_CLASS, 'font-mono')}
         placeholder={hint}
         value={text}
         onChange={function (event) {
@@ -96,21 +97,24 @@ function ParamField(props: Props) {
 
         <Label
           htmlFor={id}
-          className="min-w-0 truncate font-mono text-xs font-normal text-muted-foreground">
+          className="min-w-0 truncate font-mono text-xs font-medium text-foreground">
           {param.name}
           {param.required ? <span className="text-destructive"> *</span> : null}
         </Label>
 
         <Badge
           variant="outline"
-          className="px-1.5 py-0 text-[10px] font-normal text-muted-foreground">
+          className="border-border/70 px-1.5 py-0 text-[10px] font-normal text-foreground/65">
           {param.ty}
         </Badge>
-      </div>
 
-      {param.description ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">{param.description}</p>
-      ) : null}
+        {param.description ? (
+          <HintTooltip
+            hint={param.description}
+            label={`${param.name} 说明`}
+          />
+        ) : null}
+      </div>
 
       {isCheckbox ? null : (
         <ParamControl

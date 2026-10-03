@@ -1,20 +1,23 @@
 import { Button } from '@i-thinking/design/components/button'
 import { Checkbox } from '@i-thinking/design/components/checkbox'
 import { Input } from '@i-thinking/design/components/input'
+import { Textarea } from '@i-thinking/design/components/textarea'
 import { cn } from 'cn'
 
-import { CONTROL_CLASS, Glyph, ITEM_CARD_CLASS } from './controls'
+import {
+  CONTROL_CLASS,
+  Field,
+  Glyph,
+  ITEM_CARD_CLASS,
+  ItemCardActionRow,
+  TEXTAREA_CLASS
+} from './controls'
 import type { DirectiveInput } from './types'
 
 /**
  * 输入**声明**编辑器：写进指令里的 `inputs`（名字 / 说明 / 必填 / 默认值）。
  *
- * 与「运行参数」不是一回事：这里改的是指令本身、会落库；那边填的只是这一次运行传什么。
- * 过去两者挤在同一个「输入」区里，看着像在改指令，其实只是填表单 —— 正是「新增指令声明不了输入」
- * 这个毛病的来源。
- *
- * 声明里没有类型字段：corex 的输入本来就是个字符串值，类型由默认值推出来；
- * 编辑器再维护一份类型只会和 corex 打架。
+ * 布局：操作行 → 名称 → 说明 → 默认值（与变量 / 触发器条目卡同一节奏）。
  */
 
 interface InputsEditorProps {
@@ -54,21 +57,29 @@ function InputsEditor(props: InputsEditorProps) {
         </p>
       ) : null}
       {inputs.map(function (input, index) {
-        // 名字可以边改边空，按序号做 key 才不会把光标和内容搬错行
+        const isRequired = Boolean(input.required)
+
         return (
           <div
             key={index}
             className={ITEM_CARD_CLASS}>
-            <div className="flex items-center gap-1.5">
-              <Input
-                className={cn(CONTROL_CLASS, 'min-w-0 flex-1')}
-                value={input.name}
-                placeholder="名字，如 target"
-                aria-label="输入名字"
-                onChange={function (event) {
-                  patch(index, { name: event.target.value })
-                }}
-              />
+            <ItemCardActionRow>
+              <label
+                title={isRequired ? '必填：运行时必须填写' : '选为必填：运行时必须填写'}
+                className={cn(
+                  'inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border transition-colors',
+                  isRequired
+                    ? 'border-primary/60 bg-primary/10'
+                    : 'border-border/70 bg-background hover:border-border'
+                )}>
+                <Checkbox
+                  checked={isRequired}
+                  aria-label="必填"
+                  onCheckedChange={function (checked) {
+                    patch(index, { required: checked === true })
+                  }}
+                />
+              </label>
               <Button
                 type="button"
                 variant="ghost"
@@ -81,37 +92,44 @@ function InputsEditor(props: InputsEditorProps) {
                 }}>
                 <Glyph icon="mdi:trash-can-outline" />
               </Button>
-            </div>
-            <Input
-              className={CONTROL_CLASS}
-              value={input.description ?? ''}
-              placeholder="说明（显示在运行表单里）"
-              aria-label="输入说明"
-              onChange={function (event) {
-                patch(index, { description: event.target.value })
-              }}
-            />
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
-              <label className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border/50 bg-background/80 px-2 text-[11px] text-muted-foreground">
-                <Checkbox
-                  checked={Boolean(input.required)}
-                  aria-label="必填"
-                  onCheckedChange={function (checked) {
-                    patch(index, { required: checked === true })
-                  }}
-                />
-                必填
-              </label>
+            </ItemCardActionRow>
+            <Field label="名称">
+              <Input
+                className={CONTROL_CLASS}
+                value={input.name}
+                placeholder="如 deploy"
+                aria-label="输入名字"
+                onChange={function (event) {
+                  patch(index, { name: event.target.value })
+                }}
+              />
+            </Field>
+            <Field
+              label="说明"
+              hint="会显示在运行参数表单里，也可在下方「运行参数」区通过 ⓘ 查看">
+              <Textarea
+                className={TEXTAREA_CLASS}
+                value={input.description ?? ''}
+                placeholder="部署目标目录（留空则不部署）"
+                aria-label="输入说明"
+                onChange={function (event) {
+                  patch(index, { description: event.target.value })
+                }}
+              />
+            </Field>
+            <Field
+              label="默认值"
+              hint="留空表示不声明默认值">
               <Input
                 className={CONTROL_CLASS}
                 value={input.default === undefined || input.default === null ? '' : String(input.default)}
-                placeholder="默认值（留空 = 无）"
+                placeholder="留空 = 无"
                 aria-label="默认值"
                 onChange={function (event) {
                   patch(index, { default: parseDefault(event.target.value) })
                 }}
               />
-            </div>
+            </Field>
           </div>
         )
       })}

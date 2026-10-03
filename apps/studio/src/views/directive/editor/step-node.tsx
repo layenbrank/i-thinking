@@ -37,7 +37,7 @@ import {
   type CompareKind,
   type ConditionKind
 } from './condition'
-import { CONTROL_CLASS, Field, Glyph, STEP_CARD_CLASS } from './controls'
+import { CONTROL_CLASS, Field, Glyph, HintTooltip, STEP_CARD_CLASS } from './controls'
 import { OnErrorSelect } from './on-error'
 import {
   CONTROL_KINDS,
@@ -638,7 +638,7 @@ function StepHeader(props: StepHeaderProps) {
         </Select>
       </div>
       <Input
-        className="ml-auto h-7 w-28 border-transparent bg-transparent text-right font-mono text-xs text-muted-foreground shadow-none hover:border-input focus-visible:bg-background"
+        className="ml-auto h-7 w-28 border-transparent bg-transparent text-right font-mono text-xs text-foreground/70 shadow-none hover:border-input hover:bg-background focus-visible:bg-background focus-visible:text-foreground"
         value={props.id}
         aria-label="步骤 id"
         onChange={function (event) {
@@ -778,7 +778,7 @@ function ActionStepCard(props: ActionStepCardProps) {
         onMoveDown={props.onMoveDown}
       />
       <CardContent className="flex flex-col gap-2.5 px-3">
-        <code className="font-mono text-xs text-muted-foreground">{step.action}</code>
+        <code className="font-mono text-xs text-foreground/70">{step.action}</code>
         <ParamFields
           action={action}
           params={step.params}
@@ -794,7 +794,7 @@ function ActionStepCard(props: ActionStepCardProps) {
               type="button"
               variant="ghost"
               size="xs"
-              className="w-fit px-1 text-muted-foreground">
+              className="w-fit px-1 text-foreground/70 hover:text-foreground">
               <Glyph
                 icon="mdi:chevron-right"
                 className={cn('transition-transform duration-200', advanced && 'rotate-90')}
@@ -896,7 +896,7 @@ function IfStepCard(props: IfStepCardProps) {
       />
       <CardContent className="flex flex-col gap-3 px-3">
         <div className="flex items-start gap-2">
-          <span className="inline-flex items-center gap-1 pt-2 font-mono text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1 pt-2 font-mono text-xs font-semibold text-foreground/70">
             <Glyph icon="mdi:help-rhombus-outline" />
             if
           </span>
@@ -908,7 +908,7 @@ function IfStepCard(props: IfStepCardProps) {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-foreground/70">
             <Glyph icon="mdi:arrow-right-bottom" />
             then
           </span>
@@ -921,7 +921,7 @@ function IfStepCard(props: IfStepCardProps) {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-foreground/70">
             <Glyph icon="mdi:arrow-right-top" />
             else
           </span>
@@ -968,72 +968,84 @@ function RepeatStepCard(props: RepeatStepCardProps) {
         onMoveDown={props.onMoveDown}
       />
       <CardContent className="flex flex-col gap-3 px-3">
-        <p className="text-xs text-muted-foreground">
-          each 与 count 二选一，另一项将被忽略；`as` 绑当前元素（count 模式绑序号），`index`
-          绑序号。并发（&gt; 1）时每个元素各拿一份上下文副本、元素之间互不可见；串行则共享同一份上下文。
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="each（数组表达式）">
-            <Input
-              className={CONTROL_CLASS}
-              value={step.repeat.each ?? ''}
-              placeholder="{{items}}"
-              disabled={hasCount}
-              onChange={function (event) {
-                props.onChange({ ...step, repeat: { ...step.repeat, each: event.target.value } })
-              }}
-            />
-          </Field>
-          <Field label="count（固定次数）">
-            <Input
-              type="number"
-              className={CONTROL_CLASS}
-              value={step.repeat.count ?? ''}
-              placeholder="0"
-              disabled={hasEach}
-              onChange={function (event) {
-                const raw = event.target.value
-                props.onChange({
-                  ...step,
-                  repeat: { ...step.repeat, ...(raw === '' ? {} : { count: Number(raw) }) }
-                })
-              }}
-            />
-          </Field>
-          <Field label="as">
-            <Input
-              className={CONTROL_CLASS}
-              value={step.repeat.as ?? 'item'}
-              onChange={function (event) {
-                props.onChange({ ...step, repeat: { ...step.repeat, as: event.target.value } })
-              }}
-            />
-          </Field>
-          <Field label="index">
-            <Input
-              className={CONTROL_CLASS}
-              value={step.repeat.index ?? 'index'}
-              onChange={function (event) {
-                props.onChange({ ...step, repeat: { ...step.repeat, index: event.target.value } })
-              }}
-            />
-          </Field>
-        </div>
-        <Field label="max_concurrency（同时跑几个元素 / 几轮）">
-          <Input
-            type="number"
-            className={CONTROL_CLASS}
-            value={step.max_concurrency ?? ''}
-            placeholder="1（串行）"
-            onChange={function (event) {
-              const raw = event.target.value
-              props.onChange({
-                ...step,
-                ...(raw === '' ? {} : { max_concurrency: Number(raw) })
-              })
-            }}
+        <div className="flex items-center gap-1.5 text-xs text-foreground/65">
+          <span>each 与 count 二选一</span>
+          <HintTooltip
+            label="循环说明"
+            hint="另一项将被忽略；as 绑当前元素（count 模式绑序号），index 绑序号。并发（> 1）时每个元素各拿一份上下文副本、元素之间互不可见；串行则共享同一份上下文。"
           />
-        </Field>
+        </div>
+        <div className="@container">
+          <div className="grid grid-cols-1 gap-2 @min-[20rem]:grid-cols-2">
+            <Field
+              label="each"
+              hint="数组表达式，如 {{items}}">
+              <Input
+                className={CONTROL_CLASS}
+                value={step.repeat.each ?? ''}
+                placeholder="{{items}}"
+                disabled={hasCount}
+                onChange={function (event) {
+                  props.onChange({ ...step, repeat: { ...step.repeat, each: event.target.value } })
+                }}
+              />
+            </Field>
+            <Field
+              label="count"
+              hint="固定次数；与 each 二选一">
+              <Input
+                type="number"
+                className={CONTROL_CLASS}
+                value={step.repeat.count ?? ''}
+                placeholder="0"
+                disabled={hasEach}
+                onChange={function (event) {
+                  const raw = event.target.value
+                  props.onChange({
+                    ...step,
+                    repeat: { ...step.repeat, ...(raw === '' ? {} : { count: Number(raw) }) }
+                  })
+                }}
+              />
+            </Field>
+            <Field label="as">
+              <Input
+                className={CONTROL_CLASS}
+                value={step.repeat.as ?? 'item'}
+                onChange={function (event) {
+                  props.onChange({ ...step, repeat: { ...step.repeat, as: event.target.value } })
+                }}
+              />
+            </Field>
+            <Field label="index">
+              <Input
+                className={CONTROL_CLASS}
+                value={step.repeat.index ?? 'index'}
+                onChange={function (event) {
+                  props.onChange({ ...step, repeat: { ...step.repeat, index: event.target.value } })
+                }}
+              />
+            </Field>
+            <Field
+              label="max_concurrency"
+              hint="同时跑几个元素 / 几轮；1 = 串行"
+              className="@min-[20rem]:col-span-2">
+              <Input
+                type="number"
+                className={CONTROL_CLASS}
+                value={step.max_concurrency ?? ''}
+                placeholder="1（串行）"
+                onChange={function (event) {
+                  const raw = event.target.value
+                  props.onChange({
+                    ...step,
+                    ...(raw === '' ? {} : { max_concurrency: Number(raw) })
+                  })
+                }}
+              />
+            </Field>
+          </div>
+        </div>
         <ChildSteps
           steps={step.steps}
           catalog={catalog}
@@ -1074,7 +1086,9 @@ function ParallelStepCard(props: ParallelStepCardProps) {
         onMoveDown={props.onMoveDown}
       />
       <CardContent className="flex flex-col gap-3 px-3">
-        <Field label="max_concurrency（最大并行数）">
+        <Field
+          label="max_concurrency"
+          hint="最大并行数；默认 8">
           <Input
             type="number"
             className={CONTROL_CLASS}
