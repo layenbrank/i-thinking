@@ -22,18 +22,18 @@
   },
   "dependencies": {
     "@iconify/react": "catalog:",
-    "@iconify/json": "^2.2.402",
+    "@iconify/json": "catalog:",
     "@tanstack/react-query": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router-dom": "catalog:",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "catalog:"
   },
   "devDependencies": {
     "@i-thinking/design": "workspace:*",
     "@i-thinking/shared": "workspace:*",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitejs/plugin-react-swc": "catalog:"
   }
 }
