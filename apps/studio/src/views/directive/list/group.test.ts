@@ -13,7 +13,7 @@ function entry(
   bucket: DirectiveEntry['bucket'] = 'system',
   folder: string | null = null
 ): DirectiveEntry {
-  return { name, folder, source: null, updated_at_ms: 0, bucket, summary: null }
+  return { name, folder, source: null, visible: true, updated_at_ms: 0, bucket, summary: null }
 }
 
 function summary(lastAt: Date | null): DirectiveRuns {

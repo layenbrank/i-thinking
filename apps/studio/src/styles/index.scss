@@ -89,6 +89,17 @@ body,
   scrollbar-width: none;
 }
 
+/*
+ * Overlay 窗口：Electron transparent + #00000000 必须穿透到桌面。
+ * design globals 给 body 上了 bg-background，不覆写则整窗不透明、浮层毫无意义。
+ */
+html[data-shell='overlay'],
+html[data-shell='overlay'] body,
+html[data-shell='overlay'] #root {
+  background: transparent !important;
+  min-width: 0;
+}
+
 *[data-region='true'] {
   -webkit-app-region: drag;
 }

@@ -12,7 +12,7 @@ import type {
 import { BucketSchema, ImportStatusSchema } from '../../../shared/ipc/specs/sidecar'
 
 /**
- * 指令的库内形状（corex daemon 的 `list_directives` / `read_directive` / `save_directive`
+ * 指令的库内形状（corex daemon 的 `directives` / `read_directive` / `save_directive`
  * / `import_directives`）。
  *
  * 宿主不再自己拆 YAML：模型（`definition`）由 corex 交过来，就是它刚反序列化的那一份。
@@ -49,7 +49,7 @@ function toOptionalText(raw: unknown): string | null {
 }
 
 /**
- * 「上次跑成什么样」：corex 账本里的那条记录（`list_directives` 条目的 `last_run`）。
+ * 「上次跑成什么样」：corex 账本里的那条记录（`directives` 条目的 `last_run`）。
  * 时间戳缺一个就当没有 —— 卡片少显示一段时间，好过整条指令消失。
  */
 function parseDirectiveRun(raw: unknown): DirectiveRun | undefined {
@@ -89,12 +89,12 @@ function parseSummary(raw: unknown): DirectiveSummary | null {
   }
 }
 
-function parseDirectiveEntries(data: unknown): DirectiveEntry[] {
+function parseDirectives(data: unknown): DirectiveEntry[] {
   if (!Array.isArray(data)) {
     return []
   }
 
-  const entries: DirectiveEntry[] = []
+  const directives: DirectiveEntry[] = []
   for (const item of data) {
     if (!item || typeof item !== 'object') {
       continue
@@ -103,17 +103,18 @@ function parseDirectiveEntries(data: unknown): DirectiveEntry[] {
     if (typeof row.name !== 'string' || !row.name) {
       continue
     }
-    entries.push({
+    directives.push({
       name: row.name,
       folder: toOptionalText(row.folder),
       source: toOptionalText(row.source),
+      visible: row.visible !== false,
       updated_at_ms: toCount(row.updated_at_ms),
       bucket: parseBucket(row.bucket),
       summary: parseSummary(row.summary),
       last_run: parseDirectiveRun(row.last_run)
     })
   }
-  return entries
+  return directives
 }
 
 function parseDirectiveDocument(data: unknown): DirectiveDocument {
@@ -177,7 +178,7 @@ function parseImportResult(data: unknown): ImportResult {
 export {
   normalizeDefinition,
   parseDirectiveDocument,
-  parseDirectiveEntries,
+  parseDirectives,
   parseImportResult
 }
 export type { DirectiveDocument, DirectiveEntry, DirectiveSummary }

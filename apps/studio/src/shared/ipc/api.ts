@@ -56,8 +56,24 @@ export interface Api {
     convert: IpcFn<typeof CHANNELS.DOC.CONVERT>
   }
 
-  screenshot: {
-    capture: IpcFn<typeof CHANNELS.SCREENSHOT.CAPTURE>
+  capture: {
+    screenshot: IpcFn<typeof CHANNELS.CAPTURE.SCREENSHOT>
+    open: IpcFn<typeof CHANNELS.CAPTURE.OPEN>
+    close: IpcFn<typeof CHANNELS.CAPTURE.CLOSE>
+    recorder: IpcFn<typeof CHANNELS.CAPTURE.RECORDER>
+  }
+
+  asset: {
+    toRead: IpcFn<typeof CHANNELS.ASSET.READ>
+    toWrite: IpcFn<typeof CHANNELS.ASSET.WRITE>
+    toUpdate: IpcFn<typeof CHANNELS.ASSET.UPDATE>
+    toRemove: IpcFn<typeof CHANNELS.ASSET.REMOVE>
+    toPin: IpcFn<typeof CHANNELS.ASSET.PIN>
+    toExport: IpcFn<typeof CHANNELS.ASSET.EXPORT>
+  }
+
+  through: {
+    updateRects: IpcFn<typeof CHANNELS.THROUGH.UPDATE_RECTS>
   }
 
   devtools: {
@@ -76,6 +92,7 @@ export interface Api {
   overlay: {
     toRead: IpcFn<typeof CHANNELS.OVERLAY.READ>
     toUpdate: IpcFn<typeof CHANNELS.OVERLAY.UPDATE>
+    onEvent: Subscribe<PushOut<typeof CHANNELS.OVERLAY.EVENT>>
   }
 
   mirror: {

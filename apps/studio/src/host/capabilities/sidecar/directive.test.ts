@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import {
   normalizeDefinition,
   parseDirectiveDocument,
-  parseDirectiveEntries,
+  parseDirectives,
   parseImportResult
 } from './directive'
 
-describe('parseDirectiveEntries', function () {
+describe('parseDirectives', function () {
   it('reads name / folder / source / updated_at_ms / bucket / summary', function () {
-    const actual = parseDirectiveEntries([
+    const actual = parseDirectives([
       {
         name: 'build-intern',
         folder: '发布',
@@ -32,6 +32,7 @@ describe('parseDirectiveEntries', function () {
         name: 'build-intern',
         folder: '发布',
         source: 'D:\\x\\build-intern.yaml',
+        visible: true,
         updated_at_ms: 1_700_000_000_000,
         bucket: 'data',
         summary: { description: '打包', step_count: 3, input_count: 2, trigger_count: 1 }
@@ -40,6 +41,7 @@ describe('parseDirectiveEntries', function () {
         name: 'draft',
         folder: null,
         source: null,
+        visible: true,
         updated_at_ms: 0,
         bucket: null,
         summary: null
@@ -49,17 +51,18 @@ describe('parseDirectiveEntries', function () {
 
   // 一条坏指令元信息可能只给了一半，缺的当 0 / 当「没有」而不是整条丢掉
   it('fills in the missing summary counts and empty optional text', function () {
-    expect(parseDirectiveEntries([{ name: 'half', summary: { step_count: 2 } }])).toEqual([
+    expect(parseDirectives([{ name: 'half', summary: { step_count: 2 } }])).toEqual([
       {
         name: 'half',
         folder: null,
         source: null,
+        visible: true,
         updated_at_ms: 0,
         bucket: null,
         summary: { description: '', step_count: 2, input_count: 0, trigger_count: 0 }
       }
     ])
-    const summaries = parseDirectiveEntries([{ name: 'bad', summary: 'nope' }]).map(function (entry) {
+    const summaries = parseDirectives([{ name: 'bad', summary: 'nope' }]).map(function (entry) {
       return entry.summary
     })
     expect(summaries).toEqual([null])
@@ -67,20 +70,27 @@ describe('parseDirectiveEntries', function () {
 
   // 空串在界面上会显示成一个空分组名，比不显示更让人困惑
   it('treats empty optional text as absent', function () {
-    const actual = parseDirectiveEntries([{ name: 'x', folder: '', source: '' }])
+    const actual = parseDirectives([{ name: 'x', folder: '', source: '' }])
     expect(actual[0].folder).toBeNull()
     expect(actual[0].source).toBeNull()
   })
 
   it('keeps a directive corex could not classify, but drops rows without a name', function () {
-    const actual = parseDirectiveEntries([{ folder: 'x' }, null, 'nope', { name: 'ok' }])
+    const actual = parseDirectives([{ folder: 'x' }, null, 'nope', { name: 'ok' }])
     expect(actual).toEqual([
-      { name: 'ok', folder: null, source: null, updated_at_ms: 0, bucket: null, summary: null }
+      { name: 'ok', folder: null, source: null, visible: true, updated_at_ms: 0, bucket: null, summary: null }
     ])
   })
 
+  it('reads visible=false for hidden system directives', function () {
+    const actual = parseDirectives([
+      { name: 'capture-screenshot', visible: false, updated_at_ms: 1 }
+    ])
+    expect(actual[0].visible).toBe(false)
+  })
+
   it('returns nothing for a shape it does not know', function () {
-    expect(parseDirectiveEntries({ directives: ['a'] })).toEqual([])
+    expect(parseDirectives({ directives: ['a'] })).toEqual([])
   })
 })
 

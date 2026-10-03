@@ -4,15 +4,17 @@ import type { InvokeChannel, PushChannel } from '../channels'
 import { CHANNELS } from '../channels'
 import type { PushChannelSpec } from '../spec'
 import { assistantPushSpec, assistantSpecs } from './assistant'
+import { assetSpecs } from './asset'
+import { captureSpecs } from './capture'
 import { chatSpecs } from './chat'
 import { devtoolsSpecs } from './devtools'
 import { dialogSpecs } from './dialog'
 import { docSpecs } from './doc'
 import { mirrorSpecs } from './mirror'
-import { overlaySpecs } from './overlay'
-import { screenshotSpecs } from './screenshot'
+import { overlayPushSpec, overlaySpecs } from './overlay'
 import { sidecarPushSpec, sidecarSpecs } from './sidecar'
 import { storeSpecs } from './store'
+import { throughSpecs } from './through'
 import { updaterPushSpec, updaterSpecs } from './updater'
 import { userSpecs } from './user'
 import { windowSpecs } from './window'
@@ -27,7 +29,9 @@ export const INVOKE_SPECS = {
   ...overlaySpecs,
   ...userSpecs,
   ...sidecarSpecs,
-  ...screenshotSpecs,
+  ...captureSpecs,
+  ...assetSpecs,
+  ...throughSpecs,
   ...chatSpecs,
   ...assistantSpecs,
   ...updaterSpecs,
@@ -40,7 +44,8 @@ export const INVOKE_SPECS = {
 export const PUSH_SPECS = {
   ...updaterPushSpec,
   ...assistantPushSpec,
-  ...sidecarPushSpec
+  ...sidecarPushSpec,
+  ...overlayPushSpec
 } as const satisfies Record<PushChannel, PushChannelSpec>
 
 export type In<K extends InvokeChannel> = z.infer<(typeof INVOKE_SPECS)[K]['in']>

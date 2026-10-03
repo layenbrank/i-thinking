@@ -12,25 +12,31 @@ type AssertExtends<T, U extends T> = U
 type _ApiKeysMatch = AssertExtends<keyof Api, Domain>
 type _ApiKeysComplete = AssertExtends<Domain, keyof Api>
 
-/** 抽一个域做形状样本：screenshot 只有一个频道 */
-type _ScreenshotOnlyCapture = AssertExtends<keyof Api['screenshot'], 'capture'>
+type _CaptureHasScreenshot = AssertExtends<keyof Api['capture'], 'screenshot'>
+type _CaptureHasOpen = AssertExtends<keyof Api['capture'], 'open'>
+type _ThroughHasUpdate = AssertExtends<keyof Api['through'], 'updateRects'>
 
 /** 推送通道在 Api 上是订阅形态，不是 invoke 形态 */
 type _UpdaterHasOnEvent = AssertExtends<keyof Api['updater'], 'onEvent'>
+type _OverlayHasOnEvent = AssertExtends<keyof Api['overlay'], 'onEvent'>
 
 void 0 as unknown as _ApiKeysMatch
 void 0 as unknown as _ApiKeysComplete
-void 0 as unknown as _ScreenshotOnlyCapture
+void 0 as unknown as _CaptureHasScreenshot
+void 0 as unknown as _CaptureHasOpen
+void 0 as unknown as _ThroughHasUpdate
 void 0 as unknown as _UpdaterHasOnEvent
+void 0 as unknown as _OverlayHasOnEvent
 
 describe('channel derivation', function () {
-  it('flattens to exactly 78 channels', function () {
-    expect(flattenChannels()).toHaveLength(78)
+  it('flattens to exactly 89 channels', function () {
+    // 83 + asset(6) = 89
+    expect(flattenChannels()).toHaveLength(89)
   })
 
-  it('splits invoke (75) from push (3) with no overlap', function () {
-    expect(PUSH_CHANNELS).toHaveLength(3)
-    expect(INVOKE_CHANNELS).toHaveLength(75)
+  it('splits invoke (85) from push (4) with no overlap', function () {
+    expect(PUSH_CHANNELS).toHaveLength(4)
+    expect(INVOKE_CHANNELS).toHaveLength(85)
     for (const push of PUSH_CHANNELS) {
       expect(INVOKE_CHANNELS).not.toContain(push)
     }
@@ -42,7 +48,15 @@ describe('channel derivation', function () {
 
   it('freezes the wire format of representative channels', function () {
     expect(CHANNELS.STORE.READ).toBe('store:toRead')
-    expect(CHANNELS.SCREENSHOT.CAPTURE).toBe('screenshot:capture')
+    expect(CHANNELS.CAPTURE.SCREENSHOT).toBe('capture:screenshot')
+    expect(CHANNELS.CAPTURE.OPEN).toBe('capture:open')
+    expect(CHANNELS.CAPTURE.CLOSE).toBe('capture:close')
+    expect(CHANNELS.CAPTURE.RECORDER).toBe('capture:recorder')
+    expect(CHANNELS.ASSET.READ).toBe('asset:toRead')
+    expect(CHANNELS.ASSET.PIN).toBe('asset:toPin')
+    expect(CHANNELS.ASSET.EXPORT).toBe('asset:toExport')
+    expect(CHANNELS.THROUGH.UPDATE_RECTS).toBe('through:updateRects')
+    expect(CHANNELS.OVERLAY.EVENT).toBe('overlay:event')
     expect(CHANNELS.CHAT.PROVIDER.READ).toBe('chat:provider.toRead')
     expect(CHANNELS.CHAT.USAGE.READ).toBe('chat:usage.toRead')
     expect(CHANNELS.WINDOW.OPEN).toBe('window:toOpen')
@@ -60,14 +74,17 @@ describe('channel derivation', function () {
     expect(CHANNELS.UPDATER.EVENT).toBe('updater:event')
   })
 
-  it('screenshot channel only has capture', function () {
-    expect(Object.keys(CHANNELS.SCREENSHOT)).toEqual(['CAPTURE'])
+  it('capture channel has screenshot open close recorder', function () {
+    expect(Object.keys(CHANNELS.CAPTURE).sort()).toEqual([
+      'CLOSE',
+      'OPEN',
+      'RECORDER',
+      'SCREENSHOT'
+    ])
   })
 })
 
 describe('spec parity', function () {
-  // 编译期已由 specs/index.ts 的 _SpecsMissing/_SpecsExtra 保证；
-  // 这里补一条运行时镜像，防止断言被误删后无人察觉
   it('invoke specs cover exactly the invoke channels', function () {
     expect(Object.keys(INVOKE_SPECS).sort()).toEqual([...INVOKE_CHANNELS].sort())
   })

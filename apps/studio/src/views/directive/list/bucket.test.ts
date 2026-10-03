@@ -5,7 +5,7 @@ import type { DirectiveEntry } from '@/shared/ipc/specs/sidecar'
 import { findBucketMark, groupByBucket } from './bucket'
 
 function entry(name: string, bucket: DirectiveEntry['bucket']): DirectiveEntry {
-  return { name, folder: null, source: null, updated_at_ms: 0, bucket, summary: null }
+  return { name, folder: null, source: null, visible: true, updated_at_ms: 0, bucket, summary: null }
 }
 
 describe('groupByBucket', function () {

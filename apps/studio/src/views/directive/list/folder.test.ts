@@ -10,7 +10,7 @@ import { UNGROUPED_KEY, groupByFolder } from './folder'
  */
 
 function entry(name: string, folder: string | null): DirectiveEntry {
-  return { name, folder, source: null, updated_at_ms: 0, bucket: null, summary: null }
+  return { name, folder, source: null, visible: true, updated_at_ms: 0, bucket: null, summary: null }
 }
 
 function namesOf(groups: ReturnType<typeof groupByFolder>, index: number): string[] {

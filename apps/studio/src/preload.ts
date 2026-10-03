@@ -73,6 +73,10 @@ function toSidecarProgress(raw: unknown): PushOut<typeof CHANNELS.SIDECAR.PROGRE
   return raw as PushOut<typeof CHANNELS.SIDECAR.PROGRESS>
 }
 
+function toOverlayEvent(raw: unknown): PushOut<typeof CHANNELS.OVERLAY.EVENT> {
+  return raw as PushOut<typeof CHANNELS.OVERLAY.EVENT>
+}
+
 const api = {
   store: {
     toRead: toInvoke(CHANNELS.STORE.READ),
@@ -108,8 +112,22 @@ const api = {
   doc: {
     convert: toInvoke(CHANNELS.DOC.CONVERT)
   },
-  screenshot: {
-    capture: toInvoke(CHANNELS.SCREENSHOT.CAPTURE)
+  capture: {
+    screenshot: toInvoke(CHANNELS.CAPTURE.SCREENSHOT),
+    open: toInvoke(CHANNELS.CAPTURE.OPEN),
+    close: toInvoke(CHANNELS.CAPTURE.CLOSE),
+    recorder: toInvoke(CHANNELS.CAPTURE.RECORDER)
+  },
+  asset: {
+    toRead: toInvoke(CHANNELS.ASSET.READ),
+    toWrite: toInvoke(CHANNELS.ASSET.WRITE),
+    toUpdate: toInvoke(CHANNELS.ASSET.UPDATE),
+    toRemove: toInvoke(CHANNELS.ASSET.REMOVE),
+    toPin: toInvoke(CHANNELS.ASSET.PIN),
+    toExport: toInvoke(CHANNELS.ASSET.EXPORT)
+  },
+  through: {
+    updateRects: toInvoke(CHANNELS.THROUGH.UPDATE_RECTS)
   },
   devtools: {
     toUpdate: toInvoke(CHANNELS.DEVTOOLS.UPDATE)
@@ -123,7 +141,8 @@ const api = {
   },
   overlay: {
     toRead: toInvoke(CHANNELS.OVERLAY.READ),
-    toUpdate: toInvoke(CHANNELS.OVERLAY.UPDATE)
+    toUpdate: toInvoke(CHANNELS.OVERLAY.UPDATE),
+    onEvent: toSubscribe(CHANNELS.OVERLAY.EVENT, toOverlayEvent)
   },
   mirror: {
     toRead: toInvoke(CHANNELS.MIRROR.READ),

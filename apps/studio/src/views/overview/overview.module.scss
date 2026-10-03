@@ -1,5 +1,9 @@
 @use './space' as *;
 
+// 舞台上下留白与底栏：主窗口观感
+$pad-block: 12px;
+$foot-height: 48px;
+
 .overview {
   position: relative;
   display: flex;
@@ -21,4 +25,25 @@
   align-items: center;
   justify-content: center;
   background: transparent;
+}
+
+.stage {
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.padded {
+  padding-block: $pad-block;
+}
+
+.foot {
+  height: $foot-height;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }

@@ -8,12 +8,13 @@ import type { DirectiveGroup } from './types'
 function entry(name: string): DirectiveEntry {
   return {
     name,
-    path: `${name}.yaml`,
-    bucket: 'misc',
-    folder: '',
-    summary: null,
-    last_run: null
-  } as DirectiveEntry
+    folder: null,
+    source: null,
+    visible: true,
+    updated_at_ms: 0,
+    bucket: null,
+    summary: null
+  }
 }
 
 function group(key: string, count: number): DirectiveGroup {

@@ -181,7 +181,7 @@ function indexRunSummaries(
   return summaries
 }
 
-/** 指令名 → 账本里最近的一次运行；`list_directives` 的 `last_run` 摊平一层 */
+/** 指令名 → 账本里最近的一次运行；`directives` 的 `last_run` 摊平一层 */
 function indexLastRuns(directives: readonly DirectiveEntry[]): Record<string, DirectiveRun> {
   const lastRuns: Record<string, DirectiveRun> = {}
   directives.forEach(function (entry) {
@@ -190,7 +190,7 @@ function indexLastRuns(directives: readonly DirectiveEntry[]): Record<string, Di
   return lastRuns
 }
 
-/** 指令名 → 声明的步骤数；由 corex `list_directives` 的 summary 提供，解析不了的算 0 */
+/** 指令名 → 声明的步骤数；由 corex `directives` 的 summary 提供，解析不了的算 0 */
 function indexStepCounts(directives: readonly DirectiveEntry[]): Record<string, number> {
   const counts: Record<string, number> = {}
   directives.forEach(function (entry) {

@@ -13,7 +13,7 @@ const StatusSchema = z.object({
   /** corex 实际在用的数据目录（指令 / 历史都在这），供界面显示与排错 */
   dataDir: z.string(),
   /** 指令库（SQLite）文件：v13 起指令的唯一真相，界面直接把它显示出来 */
-  directivesDb: z.string(),
+  database: z.string(),
   /** true = 用的是 Studio 自带的那份 corex（用户机器上没装） */
   isBundled: z.boolean()
 })
@@ -118,13 +118,15 @@ const DirectiveRunSchema = RunOutcomeSchema.extend({
   failed_count: z.number().int()
 })
 
-/** 指令库（SQLite）里的一条（corex `list_directives` 的一项） */
+/** 指令库（SQLite）里的一条（corex `directives` 的一项） */
 const DirectiveEntrySchema = z.object({
   name: z.string(),
   /** 分组；`null` = 未分组。v13 起分组就是这一列，没有目录层级了 */
   folder: z.string().nullable(),
   /** 这条指令当初从哪个 YAML 导进来；不是导入来的、或来源已无从得知时为 `null` */
   source: z.string().nullable(),
+  /** 是否出现在用户指令墙；预配置系统指令为 false */
+  visible: z.boolean().default(true),
   /** 最后一次落库的时刻（epoch ms），卡片按它排「刚改过的」 */
   updated_at_ms: z.number(),
   /** 分类；解析不了的指令没有分类 */
@@ -133,7 +135,6 @@ const DirectiveEntrySchema = z.object({
   /** 最近一次运行；从没跑过、或 corex 关掉了运行历史时缺省 */
   last_run: DirectiveRunSchema.optional()
 })
-
 const DirectiveInputSchema = z.object({
   name: z.string(),
   description: z.string().optional(),

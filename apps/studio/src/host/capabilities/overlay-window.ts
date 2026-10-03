@@ -1,30 +1,35 @@
 import { BrowserWindow, screen } from 'electron'
 
-import { IpcError } from '../../shared/ipc/error'
+import { CHANNELS } from '../../shared/ipc/channels'
+import type { PushOut } from '../../shared/ipc/specs'
 import type { Context } from '../framework/context'
 import { attachLifecycle, buildWebPreferences, findBundlePaths, toRedirect } from './window-factory'
 
-/**
- * overlay 窗口的端口。
- *
- * 建、显、隐全归本端口：`window.ts` 只表达「该有 overlay 了」这个调度，
- * overlay 频道只表达「显示/隐藏」的意图。此前窗口建在 `window.ts`、几何却在两处各算一遍，
- * 改一处就漏一处。
- */
-interface OverlayWindowPort {
-  /** 建出 overlay 窗口；已建则不动（幂等，activate 重建路径要能安全重入） */
-  toCreate(): void
-  toRead(): { visible: boolean }
-  toUpdate(visible: boolean): void
+type OverlayMode = 'idle' | 'capture'
+type OverlayEvent = PushOut<typeof CHANNELS.OVERLAY.EVENT>
+
+interface OverlayUpdate {
+  visible?: boolean
+  mode?: OverlayMode
 }
 
-/** 浮层铺满主显示器工作区：建窗与唤起共用同一份几何 */
+interface OverlayWindowPort {
+  toCreate(): void
+  toRead(): { visible: boolean; mode: OverlayMode }
+  toUpdate(input: OverlayUpdate): void
+  toConceal(): void
+  toReveal(): void
+  toPushEvent(event: OverlayEvent): void
+  findWindow(): BrowserWindow | null
+}
+
 function findWorkArea() {
   return screen.getPrimaryDisplay().workArea
 }
 
 function buildOverlayWindowPort(ctx: Context): OverlayWindowPort {
   let overlayWindow: BrowserWindow | null = null
+  let mode: OverlayMode = 'idle'
 
   function buildWindow(): BrowserWindow {
     const area = findWorkArea()
@@ -43,8 +48,8 @@ function buildOverlayWindowPort(ctx: Context): OverlayWindowPort {
       maximizable: false,
       minimizable: false,
       fullscreenable: false,
-      skipTaskbar: true,
-      alwaysOnTop: false,
+      skipTaskbar: process.env.NODE_ENV === 'development' ? false : true,
+      alwaysOnTop: process.env.NODE_ENV === 'development' ? false : true,
       focusable: false,
       backgroundColor: '#00000000',
       title: 'overlay',
@@ -64,6 +69,12 @@ function buildOverlayWindowPort(ctx: Context): OverlayWindowPort {
     return win
   }
 
+  function push(event: OverlayEvent): void {
+    const win = overlayWindow
+    if (!win || win.isDestroyed()) return
+    win.webContents.send(CHANNELS.OVERLAY.EVENT, event)
+  }
+
   return {
     toCreate() {
       const existing = overlayWindow
@@ -71,32 +82,71 @@ function buildOverlayWindowPort(ctx: Context): OverlayWindowPort {
       overlayWindow = buildWindow()
     },
 
+    findWindow() {
+      const win = overlayWindow
+      if (!win || win.isDestroyed()) return null
+      return win
+    },
+
     toRead() {
       const win = overlayWindow
       return {
-        visible: win !== null && !win.isDestroyed() && win.isVisible()
+        visible: win !== null && !win.isDestroyed() && win.isVisible(),
+        mode
       }
     },
 
-    toUpdate(visible) {
+    toUpdate(input) {
+      // 关过 / 尚未建窗时自动 ensure，避免主窗 OverlayAction 抛 OVERLAY_UNAVAILABLE
+      if (!overlayWindow || overlayWindow.isDestroyed()) {
+        overlayWindow = buildWindow()
+      }
       const win = overlayWindow
-      if (!win || win.isDestroyed()) {
-        throw new IpcError('OVERLAY_UNAVAILABLE', 'overlay window unavailable')
+
+      if (input.mode !== undefined && input.mode !== mode) {
+        mode = input.mode
+        push({ type: 'mode', mode })
       }
 
-      if (visible) {
+      if (input.visible === true) {
         win.setBounds(findWorkArea())
-        win.setFocusable(true)
+        win.setAlwaysOnTop(true, 'screen-saver')
         win.setSkipTaskbar(true)
-        win.show()
+        if (mode === 'capture') {
+          win.setIgnoreMouseEvents(false)
+          win.setFocusable(true)
+          win.show()
+          win.focus()
+        } else {
+          // idle：默认整窗穿透，等 through 按 data-region=false 的 hit-rects 局部收回
+          win.setIgnoreMouseEvents(true, { forward: true })
+          win.setFocusable(true)
+          win.show()
+        }
         return
       }
 
-      win.hide()
-      win.setFocusable(false)
+      if (input.visible === false) {
+        win.hide()
+        win.setFocusable(false)
+        mode = 'idle'
+        push({ type: 'mode', mode: 'idle' })
+      }
+    },
+
+    toConceal() {
+      push({ type: 'conceal' })
+    },
+
+    toReveal() {
+      push({ type: 'reveal' })
+    },
+
+    toPushEvent(event) {
+      push(event)
     }
   }
 }
 
 export { buildOverlayWindowPort }
-export type { OverlayWindowPort }
+export type { OverlayWindowPort, OverlayMode, OverlayUpdate }

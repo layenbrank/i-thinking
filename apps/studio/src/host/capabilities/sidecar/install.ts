@@ -30,8 +30,8 @@ const COREX_CLI_ENV = 'COREX_CLI'
 const COREX_DATA_DIR_ENV = 'COREX_DATA_DIR'
 const COREX_TOKEN_ENV = 'COREX_TOKEN'
 
-/** 指令库文件名：`paths --json` 没报 `directives_db` 时按数据目录下的这个默认名推 */
-const DIRECTIVES_DB_NAME = 'directives.db'
+/** 指令库文件名：`paths --json` 没报 `database` 时按数据目录下的这个默认名推（对齐 i-thinking.db） */
+const DATABASE_FILE = 'corex.db'
 
 /** 探测 `corex paths` 的超时：启动路径上不该被一条命令拖住。 */
 const PATHS_TIMEOUT_MS = 5_000
@@ -43,8 +43,8 @@ const BUNDLED_ENDPOINT = String.raw`\\.\pipe\corex-studio`
 interface CorexPaths {
   version: string
   data_dir: string
-  /** v13 起指令的唯一真相：一个 SQLite 文件 */
-  directives_db: string
+  /** v13 起指令的唯一真相：一个 SQLite 文件（`corex.db`） */
+  database: string
   endpoint: string
   /** daemon 的 token 文件；`null` 表示 token 来自 `COREX_TOKEN` 或配置，那两处属于调用方 */
   token_file: string | null
@@ -57,7 +57,7 @@ interface CorexInstall {
   /** 数据目录：指令库 / token / 历史都在这 */
   dataDir: string
   /** 指令库文件（v13）；旧版 corex 不报时按数据目录下的默认名推 */
-  directivesDb: string
+  database: string
   endpoint: string
   /** daemon 的 token 文件；`null` 时只能靠 `COREX_TOKEN` */
   tokenFile: string | null
@@ -173,7 +173,7 @@ async function probeDir(dir: string): Promise<CorexInstall | null> {
     cli,
     daemon,
     dataDir: paths.data_dir,
-    directivesDb: paths.directives_db,
+    database: paths.database,
     endpoint: paths.endpoint,
     tokenFile: paths.token_file,
     version: paths.version,
@@ -267,10 +267,10 @@ function parsePaths(text: string): CorexPaths | null {
   return {
     version: typeof doc.version === 'string' ? doc.version : '',
     data_dir: dataDir,
-    directives_db:
-      typeof doc.directives_db === 'string' && doc.directives_db
-        ? doc.directives_db
-        : path.join(dataDir, DIRECTIVES_DB_NAME),
+    database:
+      typeof doc.database === 'string' && doc.database
+        ? doc.database
+        : path.join(dataDir, DATABASE_FILE),
     endpoint,
     token_file: typeof doc.token_file === 'string' && doc.token_file ? doc.token_file : null
   }
@@ -300,7 +300,7 @@ function findBundledInstall(): CorexInstall {
     cli: findBundledPath(COREX_CLI),
     daemon: findBundledPath(COREX_DAEMON),
     dataDir,
-    directivesDb: path.join(dataDir, DIRECTIVES_DB_NAME),
+    database: path.join(dataDir, DATABASE_FILE),
     endpoint: process.platform === 'win32' ? BUNDLED_ENDPOINT : path.join(dataDir, 'corex.sock'),
     tokenFile: path.join(dataDir, 'token'),
     version: '',
@@ -337,7 +337,7 @@ export {
   COREX_DATA_DIR_ENV,
   COREX_DAEMON,
   COREX_TOKEN_ENV,
-  DIRECTIVES_DB_NAME,
+  DATABASE_FILE,
   PANDOC_BINARY,
   PATHS_TIMEOUT_MS,
   findBinaryName,

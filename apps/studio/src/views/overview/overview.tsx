@@ -1,10 +1,10 @@
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
+import Controller from '@/features/controller/controller.tsx'
 import ReSignIn from '@/features/signin/signin.tsx'
 import OverviewUtility from '@/views/overview/components/utility'
 import { EngineSearch } from '@/views/overview/engine/search'
-import Stage from '@/views/stage/stage.tsx'
 
 import styles from '@/views/overview/overview.module.scss'
 
@@ -21,7 +21,12 @@ export default function Overview() {
       <div className={styles.prefix}>
         <EngineSearch />
       </div>
-      <Stage isPadded />
+      <main className={clsx(styles.stage, styles.padded)}>
+        <Controller.Mirror>
+          <Controller.MagneticTile />
+        </Controller.Mirror>
+      </main>
+      <footer className={styles.foot} />
       <ReSignIn
         visible={visible}
         onClose={function () {

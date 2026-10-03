@@ -1,10 +1,50 @@
-.overlay {
-  position: relative;
-  display: flex;
-  flex-direction: column;
+.shell {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
-  background: initial;
-  scrollbar-width: none;
-  overflow: visible;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* 兜底：hash 未及时打上 data-shell 时，只要壳已挂载就穿透 */
+:global(html:has([data-overlay-shell])),
+:global(html:has([data-overlay-shell]) body),
+:global(html:has([data-overlay-shell]) #root) {
+  background: transparent !important;
+  min-width: 0;
+}
+
+.concealed {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
+/** idle 调试条：壳是 pointer-events:none，互动控件必须自行打开 */
+.chrome {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/** 浮层舞台：截屏 / 浮层磁贴共用；空舞台不标 data-region，由 through 整窗穿透 */
+.stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.texture {
+  position: absolute;
+  pointer-events: auto;
+  user-select: none;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }

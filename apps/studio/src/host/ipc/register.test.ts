@@ -112,13 +112,14 @@ describe('registerAll', function () {
     disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
 
     expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
-    expect(ipc.size()).toBe(75)
+    expect(ipc.size()).toBe(85)
     for (const channel of INVOKE_CHANNELS) {
       expect(ipc.has(channel)).toBe(true)
     }
     // 推送通道不得被注册为 invoke
     expect(ipc.has(CHANNELS.ASSISTANT.PORT)).toBe(false)
     expect(ipc.has(CHANNELS.UPDATER.EVENT)).toBe(false)
+    expect(ipc.has(CHANNELS.OVERLAY.EVENT)).toBe(false)
   })
 
   it('maps a business IpcError to its own code', async function () {

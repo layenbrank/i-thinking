@@ -39,8 +39,24 @@ export const CHANNELS = {
   DOC: {
     CONVERT: 'doc:convert'
   },
-  SCREENSHOT: {
-    CAPTURE: 'screenshot:capture'
+  CAPTURE: {
+    SCREENSHOT: 'capture:screenshot',
+    OPEN: 'capture:open',
+    CLOSE: 'capture:close',
+    RECORDER: 'capture:recorder'
+  },
+  ASSET: {
+    READ: 'asset:toRead',
+    WRITE: 'asset:toWrite',
+    UPDATE: 'asset:toUpdate',
+    REMOVE: 'asset:toRemove',
+    /** 截屏贴图：data URL → textures/ + asset 行 */
+    PIN: 'asset:toPin',
+    /** 用户另存为：只写盘，不登记 asset */
+    EXPORT: 'asset:toExport'
+  },
+  THROUGH: {
+    UPDATE_RECTS: 'through:updateRects'
   },
   DEVTOOLS: {
     UPDATE: 'devtools:toUpdate'
@@ -54,7 +70,9 @@ export const CHANNELS = {
   },
   OVERLAY: {
     READ: 'overlay:toRead',
-    UPDATE: 'overlay:toUpdate'
+    UPDATE: 'overlay:toUpdate',
+    /** 主进程 → overlay 渲染：conceal / reveal / mode */
+    EVENT: 'overlay:event'
   },
   MIRROR: {
     READ: 'mirror:toRead',
@@ -156,7 +174,8 @@ export type ChannelOfDomain<D extends Domain> = NestedValue<
 export const PUSH_CHANNELS = [
   CHANNELS.ASSISTANT.PORT,
   CHANNELS.UPDATER.EVENT,
-  CHANNELS.SIDECAR.PROGRESS
+  CHANNELS.SIDECAR.PROGRESS,
+  CHANNELS.OVERLAY.EVENT
 ] as const
 
 export type PushChannel = (typeof PUSH_CHANNELS)[number]

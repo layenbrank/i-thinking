@@ -11,7 +11,7 @@ import type { Context } from '../../framework/context'
 import type { Logger } from '../../framework/logger'
 import type { Plugin } from '../../framework/module'
 import type { DirectiveDocument, DirectiveEntry } from './directive'
-import { parseDirectiveDocument, parseDirectiveEntries, parseImportResult } from './directive'
+import { parseDirectiveDocument, parseDirectives, parseImportResult } from './directive'
 import {
   COREX_DATA_DIR_ENV,
   findCorexInstall,
@@ -104,7 +104,7 @@ class CorexHost {
   private isBundledInstall = false
   private version = ''
   private dataDir = ''
-  private directivesDb = ''
+  private database = ''
   private actions: string[] = []
   private catalog: CorexAction[] = []
   private authToken = ''
@@ -133,8 +133,8 @@ class CorexHost {
   }
 
   /** 指令库文件；界面把它显示出来，用户才知道自己改的是哪一份 */
-  findDirectivesDb(): string {
-    return this.directivesDb
+  findDatabase(): string {
+    return this.database
   }
 
   isBundled(): boolean {
@@ -182,7 +182,7 @@ class CorexHost {
       : { ...found, tokenFile: path.join(found.dataDir, 'token') }
     this.endpoint = this.install.endpoint
     this.dataDir = this.install.dataDir
-    this.directivesDb = this.install.directivesDb
+    this.database = this.install.database
     this.isBundledInstall = this.install.isBundled
     this.version = this.install.version
     this.authToken = resolveAuthToken(this.install)
@@ -239,11 +239,11 @@ class CorexHost {
   }
 
   /**
-   * 指令库里的指令（corex `list_directives`）。v13 起指令全在库里，
+   * 指令库里的指令（corex `directives`）。v13 起指令全在库里，
    * 不再有「哪个目录」这一说 —— 分组是条目自己的 `folder` 列。
    */
-  async listDirectives(): Promise<DirectiveEntry[]> {
-    return parseDirectiveEntries(await this.call('list_directives'))
+  async fetchDirectives(): Promise<DirectiveEntry[]> {
+    return parseDirectives(await this.call('directives'))
   }
 
   async readDirective(name: string): Promise<DirectiveDocument> {
@@ -670,7 +670,7 @@ function findStatus(corex: CorexHost): FindStatusR {
     hasCorex: corex.hasInstall(),
     hasPandoc: hasPandoc(),
     dataDir: corex.findDataDir(),
-    directivesDb: corex.findDirectivesDb(),
+    database: corex.findDatabase(),
     isBundled: corex.isBundled()
   }
 }

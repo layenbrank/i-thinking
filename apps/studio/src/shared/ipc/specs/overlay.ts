@@ -2,19 +2,45 @@ import { z } from 'zod'
 
 import { CHANNELS } from '../channels'
 import type { ChannelOfDomain } from '../channels'
-import type { ChannelSpec } from '../spec'
+import type { ChannelSpec, PushChannelSpec } from '../spec'
+import { BytesSchema } from './capture'
+
+const OverlayModeSchema = z.enum(['idle', 'capture'])
 
 const UpdateSchema = z.object({
-  visible: z.boolean()
+  visible: z.boolean().optional(),
+  mode: OverlayModeSchema.optional()
 })
 
 const ReadSchema = z.object({
-  visible: z.boolean()
+  visible: z.boolean(),
+  mode: OverlayModeSchema
 })
+
+const EventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('conceal') }),
+  z.object({ type: z.literal('reveal') }),
+  z.object({ type: z.literal('mode'), mode: OverlayModeSchema }),
+  z.object({
+    type: z.literal('session'),
+    path: z.string(),
+    width: z.number(),
+    height: z.number(),
+    /** PNG 原始字节；渲染侧立刻转 Blob URL 后应丢弃 */
+    bytes: BytesSchema
+  })
+])
 
 export const overlaySpecs = {
   [CHANNELS.OVERLAY.READ]: { in: z.void(), out: ReadSchema },
   [CHANNELS.OVERLAY.UPDATE]: { in: UpdateSchema, out: z.void() }
-} as const satisfies Record<ChannelOfDomain<'overlay'>, ChannelSpec>
+} as const satisfies Record<
+  Exclude<ChannelOfDomain<'overlay'>, typeof CHANNELS.OVERLAY.EVENT>,
+  ChannelSpec
+>
 
-export { ReadSchema, UpdateSchema }
+export const overlayPushSpec = {
+  [CHANNELS.OVERLAY.EVENT]: { out: EventSchema }
+} as const satisfies Record<typeof CHANNELS.OVERLAY.EVENT, PushChannelSpec>
+
+export { ReadSchema, UpdateSchema, EventSchema, OverlayModeSchema }

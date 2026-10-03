@@ -184,8 +184,8 @@ describe('indexRunSummaries with the corex ledger', function () {
 describe('indexLastRuns', function () {
   it('flattens the ledger out of the catalog and skips directives that never ran', function () {
     const actual = indexLastRuns([
-      { name: 'build-intern', folder: null, source: null, updated_at_ms: 0, bucket: null, summary: null, last_run: ledger() },
-      { name: 'fresh', folder: null, source: null, updated_at_ms: 0, bucket: null, summary: null }
+      { name: 'build-intern', folder: null, source: null, visible: true, updated_at_ms: 0, bucket: null, summary: null, last_run: ledger() },
+      { name: 'fresh', folder: null, source: null, visible: true, updated_at_ms: 0, bucket: null, summary: null }
     ])
 
     expect(Object.keys(actual)).toEqual(['build-intern'])
@@ -207,11 +207,12 @@ describe('indexStepCounts', function () {
         name: 'build-intern',
         folder: null,
         source: null,
+        visible: true,
         updated_at_ms: 0,
         bucket: 'system',
         summary: { description: '', step_count: 3, input_count: 0, trigger_count: 0 }
       },
-      { name: 'broken', folder: null, source: null, updated_at_ms: 0, bucket: null, summary: null }
+      { name: 'broken', folder: null, source: null, visible: true, updated_at_ms: 0, bucket: null, summary: null }
     ])
 
     expect(actual).toEqual({ 'build-intern': 3, broken: 0 })

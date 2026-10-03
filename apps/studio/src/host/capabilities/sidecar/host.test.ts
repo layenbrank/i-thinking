@@ -18,7 +18,7 @@ vi.mock('./install', function () {
       return {
         daemon: 'corex-daemon',
         dataDir: '/tmp/corex-test',
-        directivesDb: '/tmp/corex-test/directives.db',
+        database: '/tmp/corex-test/corex.db',
         endpoint: ENDPOINT,
         version: '11.0.0',
         isBundled: false,
@@ -45,7 +45,7 @@ const log = {
 } as unknown as Logger
 
 let server: net.Server | null = null
-let disconnectOnList = false
+let disconnectOnDirectives = false
 /** 假 daemon 收到的原始请求帧：用来钉住「我们发出去的字段名」 */
 const frames: Record<string, unknown>[] = []
 
@@ -55,7 +55,7 @@ function serve(socket: net.Socket): void {
   reader.on('line', function (raw) {
     const request = JSON.parse(raw) as { id: number; type: string }
     frames.push(request as Record<string, unknown>)
-    if (disconnectOnList && request.type === 'list_directives') {
+    if (disconnectOnDirectives && request.type === 'directives') {
       socket.destroy()
       return
     }
@@ -85,7 +85,7 @@ afterEach(async function () {
     })
   }
   server = null
-  disconnectOnList = false
+  disconnectOnDirectives = false
   frames.length = 0
 })
 
@@ -99,14 +99,14 @@ describe('CorexHost.start', function () {
     expect(host.findVersion()).toBe('11.0.0')
     expect(host.findActions()).toEqual(['file.copy'])
     // 指令库路径要跟着 discovery 走，界面显示的就是真在用的那一份
-    expect(findStatus(host).directivesDb).toBe('/tmp/corex-test/directives.db')
+    expect(findStatus(host).database).toBe('/tmp/corex-test/corex.db')
   })
 
   it('shares the startup promise with requests arriving during startup', async function () {
     await listen()
     const host = new CorexHost(log)
 
-    await Promise.all([host.start(), host.listDirectives()])
+    await Promise.all([host.start(), host.fetchDirectives()])
 
     expect(host.isRunning()).toBe(true)
   })
@@ -115,9 +115,9 @@ describe('CorexHost.start', function () {
     await listen()
     const host = new CorexHost(log)
     await host.start()
-    disconnectOnList = true
+    disconnectOnDirectives = true
 
-    await expect(host.listDirectives()).rejects.toThrow()
+    await expect(host.fetchDirectives()).rejects.toThrow()
     expect(host.isRunning()).toBe(false)
   })
 })
@@ -149,9 +149,11 @@ describe('outbound frames', function () {
       is_overwrite: true,
       is_dry_run: true
     })
+    await host.fetchDirectives()
     await host.runDirective('a', { x: 1 })
     await host.invokeAction('file.copy', { from: 'a', to: 'b' })
 
+    expect(keysOf('directives')).toEqual(['auth_token', 'id', 'type'])
     expect(keysOf('read_directive')).toEqual(['auth_token', 'id', 'name', 'type'])
     expect(keysOf('save_directive')).toEqual([
       'auth_token',

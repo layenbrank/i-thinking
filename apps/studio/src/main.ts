@@ -1,14 +1,14 @@
-import { app } from 'electron'
+import { app, type BrowserWindow } from 'electron'
 import started from 'electron-squirrel-startup'
 import path from 'node:path'
 
-import type { BrowserWindow } from 'electron'
-
 import { disposeEngine } from './host/capabilities/assistant'
+import { buildPlugin as buildCapturePlugin } from './host/capabilities/capture'
 import { buildPlugin as buildDatabasePlugin } from './host/capabilities/database'
 import { buildOverlayWindowPort } from './host/capabilities/overlay-window'
 import { buildPlugin as buildSecurityPlugin } from './host/capabilities/security'
 import { buildPlugin as buildSidecarPlugin, CorexHost } from './host/capabilities/sidecar'
+import { buildThroughHost } from './host/capabilities/through'
 import { buildPlugin as buildTrayPlugin } from './host/capabilities/tray'
 import { buildPlugin as buildWindowPlugin } from './host/capabilities/window'
 import { buildWindowPorts } from './host/capabilities/window-registry'
@@ -76,6 +76,11 @@ export async function bootstrap(): Promise<void> {
   // 窗口端口在组合根一次建好，再分发给三个消费者：IPC 分派、托盘、二次启动聚焦。
   // 端口构造无副作用（真正建窗在插件 register 里），所以能先于插件循环创建。
   const overlayPort = buildOverlayWindowPort(ctx)
+  const through = buildThroughHost(function () {
+    return overlayPort.findWindow()
+  })
+  const capturePlugin = buildCapturePlugin(overlayPort, through)
+  const captureService = { current: null as ReturnType<typeof buildCapturePlugin>['service'] }
   const windows = buildWindowPorts(ctx)
   const windowPlugin = buildWindowPlugin(overlayPort)
 
@@ -87,7 +92,9 @@ export async function bootstrap(): Promise<void> {
     ctx,
     overlay: overlayPort,
     windows,
-    mainWindow: windowPlugin.mainWindow
+    mainWindow: windowPlugin.mainWindow,
+    through,
+    captureService
   })
 
   // 插件只负责生命周期（安全会话 / 关库 / 建窗 / 起 sidecar）；
@@ -97,6 +104,7 @@ export async function bootstrap(): Promise<void> {
     buildDatabasePlugin(),
     windowPlugin,
     buildSidecarPlugin(),
+    capturePlugin,
     // 托盘放在最后：它要用主窗口端口把窗口叫回来
     buildTrayPlugin({ mainWindow: windowPlugin.mainWindow, agentWindow: windows.agent })
   ]
@@ -104,6 +112,9 @@ export async function bootstrap(): Promise<void> {
   try {
     for (const plugin of plugins) {
       await plugin.register(ctx)
+      if (plugin === capturePlugin) {
+        captureService.current = capturePlugin.service
+      }
       log.info(`plugin registered: ${plugin.name}`)
     }
   } catch (error) {
@@ -132,6 +143,12 @@ export async function bootstrap(): Promise<void> {
         ipc.dispose()
       } catch (error) {
         log.error('ipc dispose failed', error)
+      }
+
+      try {
+        through.dispose()
+      } catch (error) {
+        log.error('through dispose failed', error)
       }
 
       // 内嵌 opencode server 不属于任何插件（它活在整个应用生命周期），单独收尾：

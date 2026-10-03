@@ -52,7 +52,7 @@ function EngineStatus() {
   return (
     <span
       className="ml-3 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
-      title={`指令库：${status.directivesDb || '未知'}\ncorex：${status.version || '版本未知'}（${origin}）\n数据目录：${status.dataDir}`}>
+      title={`指令库：${status.database || '未知'}\ncorex：${status.version || '版本未知'}（${origin}）\n数据目录：${status.dataDir}`}>
       <Icon
         icon="mdi:database-outline"
         className="shrink-0"

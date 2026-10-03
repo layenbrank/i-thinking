@@ -37,13 +37,10 @@ const CLIENT_IDENTIFIER = 'com.i-thinking.corex'
 const DATABASE_FILE = 'i-thinking.db'
 
 /**
- * 库文件路径：与 client（Tauri 版，另一架构的同实现）**保持同一位置与格式**，
- * 这样两版互切时数据可复用；但用户只装其一，建表由各自完成（本文件负责 studio）。
- * client 侧取 Tauri 的 `app_local_data_dir()/i-thinking.db`（见 src-tauri/src/app/bootstrap.rs），
- * 这里按平台复刻该目录 —— 不能用 Electron 的 userData，
- * Windows 下二者根目录不同（LocalAppData vs Roaming）。
+ * 与 client 共用的本地数据根目录（`LocalAppData/com.i-thinking.corex` 等）。
+ * 库文件、textures、screenshots 都挂在这下面，两客户端互切可复用。
  */
-function findSharedDatabasePath(): string {
+function findSharedDataDir(): string {
   const home = homedir()
   const root =
     process.platform === 'win32'
@@ -52,7 +49,18 @@ function findSharedDatabasePath(): string {
         ? join(home, 'Library', 'Application Support')
         : process.env.XDG_DATA_HOME || join(home, '.local', 'share')
 
-  return join(root, CLIENT_IDENTIFIER, DATABASE_FILE)
+  return join(root, CLIENT_IDENTIFIER)
+}
+
+/**
+ * 库文件路径：与 client（Tauri 版，另一架构的同实现）**保持同一位置与格式**，
+ * 这样两版互切时数据可复用；但用户只装其一，建表由各自完成（本文件负责 studio）。
+ * client 侧取 Tauri 的 `app_local_data_dir()/i-thinking.db`（见 src-tauri/src/app/bootstrap.rs），
+ * 这里按平台复刻该目录 —— 不能用 Electron 的 userData，
+ * Windows 下二者根目录不同（LocalAppData vs Roaming）。
+ */
+function findSharedDatabasePath(): string {
+  return join(findSharedDataDir(), DATABASE_FILE)
 }
 
 /**
@@ -170,6 +178,6 @@ function buildPlugin(): Plugin {
 }
 
 export type { WriteP, UpdateP, RemoveP, ReadR, WriteR, UpdateR, RemoveR }
-export { Repository, buildPlugin, findClient }
+export { Repository, buildPlugin, findClient, findSharedDataDir }
 // 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
 export { WriteSchema, UpdateSchema, RemoveSchema } from '../../shared/ipc/specs/user'

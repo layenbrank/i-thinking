@@ -29,7 +29,7 @@ export function buildSidecarHandlers(ctx: Context): DomainHandlers<'sidecar'> {
       return ctx.corex.findCatalog() as Out<typeof CHANNELS.SIDECAR.ACTIONS>
     },
     [CHANNELS.SIDECAR.DIRECTIVES]: function () {
-      return ctx.corex.listDirectives()
+      return ctx.corex.fetchDirectives()
     },
     [CHANNELS.SIDECAR.DIRECTIVE]: async function (input) {
       return (await ctx.corex.readDirective(input.name)) as Out<typeof CHANNELS.SIDECAR.DIRECTIVE>

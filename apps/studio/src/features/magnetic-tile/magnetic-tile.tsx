@@ -80,6 +80,10 @@ const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
   },
   async directive() {
     await itc.window.toOpen({ key: 'directive' })
+  },
+  /** 截屏磁贴：双击走 capture:open（浮层截屏），不 present 配置 Overlay */
+  async capture() {
+    await window.itc.capture.open()
   }
 }
 

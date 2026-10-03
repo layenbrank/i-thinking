@@ -22,8 +22,14 @@ const routes: RouteObject[] = [
     path: '/directive',
     element: React.createElement(Outlet),
     children: [
-      { index: true, element: React.createElement(Directive) },
-      { path: ':name', element: React.createElement(DirectiveWorkspace) }
+      {
+        index: true,
+        element: React.createElement(Directive)
+      },
+      {
+        path: ':name',
+        element: React.createElement(DirectiveWorkspace)
+      }
     ]
   }
 ]
