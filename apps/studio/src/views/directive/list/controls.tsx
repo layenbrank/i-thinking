@@ -120,7 +120,10 @@ interface SortProps {
   onChange: (mode: SortMode) => void
 }
 
-/** 两档排序是互斥的单选，做成等宽的分段控件：窄栏里也不会被挤散 */
+/**
+ * 排序分段：对齐 antd `Space.Compact` —— 边框只在子项上，相邻共用竖线，
+ * 圆角只落在首尾。外层再套一层 border/padding 会叠成双框。
+ */
 function DirectiveSort(props: SortProps) {
   return (
     <ToggleGroup
@@ -129,10 +132,7 @@ function DirectiveSort(props: SortProps) {
       variant="outline"
       spacing={0}
       value={props.value}
-      className={cn(
-        'rounded-xl border border-border/70 bg-background/60 p-0.5 shadow-xs',
-        props.className
-      )}
+      className={cn('shadow-xs', props.className)}
       onValueChange={function (value) {
         if (value) props.onChange(value as SortMode)
       }}>
@@ -142,7 +142,7 @@ function DirectiveSort(props: SortProps) {
             key={mode}
             value={mode}
             aria-label={`按${SORT_LABELS[mode]}排序`}
-            className="grow basis-0 cursor-pointer gap-1.5 !rounded-lg px-2.5 text-xs whitespace-nowrap first:!rounded-l-lg last:!rounded-r-lg data-[state=on]:bg-primary/10 data-[state=on]:text-primary data-[state=on]:shadow-none">
+            className="grow basis-0 cursor-pointer gap-1.5 px-2.5 text-xs whitespace-nowrap data-[state=on]:bg-primary/10 data-[state=on]:text-primary">
             <Icon icon={SORT_ICONS[mode]} />
             {SORT_LABELS[mode]}
           </ToggleGroupItem>

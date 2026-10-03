@@ -1,5 +1,4 @@
 import { Badge } from '@i-thinking/design/components/badge'
-import { Button } from '@i-thinking/design/components/button'
 import { Card, CardContent } from '@i-thinking/design/components/card'
 import {
   Dialog,
@@ -10,25 +9,26 @@ import {
 } from '@i-thinking/design/components/dialog'
 import { Input } from '@i-thinking/design/components/input'
 import { ToggleGroup, ToggleGroupItem } from '@i-thinking/design/components/toggle-group'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { Icon } from '@iconify/react/offline'
-import { useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 
 import { useCorexStore, type CorexAction } from '@/stores/corex'
 
 import { BUCKET_ICONS, BUCKET_LABELS, BUCKETS, findBucketMark, type Bucket } from './list/bucket'
 import { DirectivePlaceholder, type PlaceholderState } from './list/placeholder'
 import { findPermissionIcon, findPermissionLabel } from './permissions'
+import { CardSkeleton } from './render/card-skeleton'
+import { StreamedGrid } from './render/streamed-grid'
 import TrialPanel from './trial/trial-panel'
 
 /**
  * 动作库：可复用动作的只读目录（corex `list_actions`），按分类筛。
  *
- * 它跟「编辑某条指令」不是一件事，所以不再占页签，而是标题栏上的弹窗 —— 停在哪条指令上
- * 都不影响翻目录。
- *
- * 卡片可以把动作交给「试跑」（`./trial`）：拼指令之前先跑一次，确认参数与输出。试跑是弹窗
- * 里的一个视图，返回即回到目录。
+ * 开合性能：
+ * 1. 弹框壳先出现，首帧只铺骨架
+ * 2. 分片流式挂真实卡片（idle 时段补齐）
+ * 3. 单卡 `content-visibility`；参数用 `title`，试跑用原生 button（避免百个 motion Button）
+ * 4. 关闭时先卸内容再关根
  */
 
 type ActionParam = CorexAction['params'][number]
@@ -38,56 +38,91 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-interface ParamSummaryProps {
-  params: readonly ActionParam[]
+interface ActionCardProps {
+  action: CorexAction
+  onTrial: (action: CorexAction) => void
 }
 
-/**
- * 参数只以一行摘要出现，细节挂在 tooltip 里：动作多的时候，把每个参数都摊开会把
- * 卡片撑得高矮不齐，反倒看不清「这个动作要什么」。
- */
-function ParamSummary(props: ParamSummaryProps) {
-  if (props.params.length === 0) {
-    return (
-      <Badge
-        variant="outline"
-        className="border-dashed text-[11px] font-normal text-muted-foreground">
-        无参数
-      </Badge>
-    )
-  }
+const LIBRARY_CHUNK = 16
+const LIBRARY_GRID =
+  'grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2.5 pb-1'
+/** 首帧骨架格数：盖住首屏即可 */
+const SHELL_SKELETONS = 8
+
+function formatParamTitle(params: readonly ActionParam[]): string {
+  if (params.length === 0) return '无参数'
+  return params
+    .map(function (param) {
+      const required = param.required ? '（必填）' : ''
+      const description = param.description ? ` — ${param.description}` : ''
+      return `${param.name}: ${param.ty}${required}${description}`
+    })
+    .join('\n')
+}
+
+const ActionCard = memo(function (props: ActionCardProps) {
+  const { action } = props
+  const mark = findBucketMark(action.bucket)
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant="outline"
-          className="cursor-help text-[11px]">
-          <Icon icon="mdi:form-textbox" />
-          {props.params.length} 个参数
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-64">
-        <ul className="flex flex-col gap-1 py-0.5">
-          {props.params.map(function (param) {
-            return (
-              <li
-                key={param.name}
-                className="flex flex-wrap items-baseline gap-x-1.5">
-                <span className="font-mono text-[11px] font-semibold">{param.name}</span>
-                <span className="font-mono text-[11px] opacity-70">{param.ty}</span>
-                {param.required ? <span className="text-[10px] opacity-70">必填</span> : null}
-                {param.description ? (
-                  <span className="text-[11px] opacity-80">{param.description}</span>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
-      </TooltipContent>
-    </Tooltip>
+    <Card className="h-full gap-0 py-0 shadow-none">
+      <CardContent className="flex h-full flex-col gap-2 p-3">
+        <div className="flex items-start gap-2.5">
+          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <Icon
+              icon={mark.icon}
+              className="size-4"
+            />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold">{action.name}</h3>
+            <Badge
+              variant="outline"
+              className="mt-1 font-mono">
+              {action.id}
+            </Badge>
+          </div>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">{action.description}</p>
+        <div className="mt-auto flex items-end justify-between gap-2 pt-0.5">
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge
+              variant="outline"
+              title={formatParamTitle(action.params)}
+              className="text-[11px] font-normal">
+              <Icon icon="mdi:form-textbox" />
+              {action.params.length === 0 ? '无参数' : `${action.params.length} 个参数`}
+            </Badge>
+            {action.permissions.map(function (permission) {
+              return (
+                <Badge
+                  key={permission}
+                  variant="secondary"
+                  className="text-[11px] font-normal"
+                  title={`该动作会用到：${findPermissionLabel(permission)}`}>
+                  <Icon icon={findPermissionIcon(permission)} />
+                  {findPermissionLabel(permission)}
+                </Badge>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent-hover hover:text-accent-foreground"
+            onClick={function () {
+              props.onTrial(action)
+            }}>
+            <Icon
+              icon="mdi:play-circle-outline"
+              className="size-3.5"
+            />
+            试跑
+          </button>
+        </div>
+      </CardContent>
+    </Card>
   )
-}
+})
 
 function ActionLibraryDialog(props: Props) {
   const catalog = useCorexStore(function (state) {
@@ -104,6 +139,13 @@ function ActionLibraryDialog(props: Props) {
   const [query, setQuery] = useState('')
   /** 正在试跑的动作；`null` 表示还停在目录上 */
   const [trial, setTrial] = useState<CorexAction | null>(null)
+  /** 壳已画出：此后才开始流式挂卡，避免和 Dialog 进场同帧 */
+  const [isShellReady, updateShellReady] = useState(false)
+
+  // 关闭时在 render 中复位，避免 effect 内同步 setState 触发级联渲染
+  if (!props.open && isShellReady) {
+    updateShellReady(false)
+  }
 
   const keyword = query.trim().toLowerCase()
 
@@ -124,6 +166,20 @@ function ActionLibraryDialog(props: Props) {
     [catalog, bucket, keyword]
   )
 
+  useEffect(
+    function () {
+      if (!props.open) return
+
+      const frame = requestAnimationFrame(function () {
+        updateShellReady(true)
+      })
+      return function () {
+        cancelAnimationFrame(frame)
+      }
+    },
+    [props.open]
+  )
+
   const state: PlaceholderState = loadError
     ? 'error'
     : !isLoaded
@@ -132,10 +188,23 @@ function ActionLibraryDialog(props: Props) {
         ? 'no-match'
         : 'empty'
 
-  /** 关掉弹窗就退出试跑：下次打开该回到目录 */
+  const streamItems = isShellReady ? actions : []
+  const streamKey = `${props.open}:${bucket}:${keyword}`
+
   function handleOpenChange(open: boolean): void {
-    if (!open) setTrial(null)
-    props.onOpenChange(open)
+    if (open) {
+      props.onOpenChange(true)
+      return
+    }
+    updateShellReady(false)
+    setTrial(null)
+    requestAnimationFrame(function () {
+      props.onOpenChange(false)
+    })
+  }
+
+  function handleTrial(action: CorexAction) {
+    setTrial(action)
   }
 
   return (
@@ -144,7 +213,6 @@ function ActionLibraryDialog(props: Props) {
       onOpenChange={handleOpenChange}>
       <DialogContent className="flex h-[min(640px,80vh)] flex-col gap-3 sm:max-w-3xl">
         {trial ? (
-          // 换动作就重建：草稿、上一次的输出与滚动位置都不带过去
           <TrialPanel
             key={trial.id}
             action={trial}
@@ -215,7 +283,18 @@ function ActionLibraryDialog(props: Props) {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              {actions.length === 0 ? (
+              {!isShellReady ? (
+                <div className={LIBRARY_GRID}>
+                  {Array.from({ length: SHELL_SKELETONS }, function (_, index) {
+                    return (
+                      <CardSkeleton
+                        key={`shell-bone-${index}`}
+                        variant="library"
+                      />
+                    )
+                  })}
+                </div>
+              ) : actions.length === 0 ? (
                 <DirectivePlaceholder
                   state={state}
                   label={
@@ -255,65 +334,25 @@ function ActionLibraryDialog(props: Props) {
                   }
                 />
               ) : (
-                <div className="grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2.5 pb-1">
-                  {actions.map(function (action) {
+                <StreamedGrid
+                  items={streamItems}
+                  resetKey={streamKey}
+                  chunkSize={LIBRARY_CHUNK}
+                  gridClassName={LIBRARY_GRID}
+                  skeletonVariant="library"
+                  skeletonCap={LIBRARY_CHUNK}
+                  findKey={function (action) {
+                    return action.id
+                  }}
+                  renderItem={function (action) {
                     return (
-                      <Card
-                        key={action.id}
-                        className="h-full gap-0 py-0 shadow-none">
-                        <CardContent className="flex h-full flex-col gap-2 p-3">
-                          <div className="flex items-start gap-2.5">
-                            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                              <Icon
-                                icon={findBucketMark(action.bucket).icon}
-                                className="size-4"
-                              />
-                            </span>
-                            <div className="min-w-0">
-                              <h3 className="truncate text-sm font-semibold">{action.name}</h3>
-                              <Badge
-                                variant="outline"
-                                className="mt-1 font-mono">
-                                {action.id}
-                              </Badge>
-                            </div>
-                          </div>
-                          <p className="text-xs leading-relaxed text-muted-foreground">
-                            {action.description}
-                          </p>
-                          <div className="mt-auto flex items-end justify-between gap-2 pt-0.5">
-                            <div className="flex flex-wrap items-center gap-1">
-                              <ParamSummary params={action.params} />
-                              {action.permissions.map(function (permission) {
-                                return (
-                                  <Badge
-                                    key={permission}
-                                    variant="secondary"
-                                    className="text-[11px] font-normal"
-                                    title={`该动作会用到：${findPermissionLabel(permission)}`}>
-                                    <Icon icon={findPermissionIcon(permission)} />
-                                    {findPermissionLabel(permission)}
-                                  </Badge>
-                                )
-                              })}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="xs"
-                              className="shrink-0 text-muted-foreground"
-                              onClick={function () {
-                                setTrial(action)
-                              }}>
-                              <Icon icon="mdi:play-circle-outline" />
-                              试跑
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <ActionCard
+                        action={action}
+                        onTrial={handleTrial}
+                      />
                     )
-                  })}
-                </div>
+                  }}
+                />
               )}
             </div>
           </>

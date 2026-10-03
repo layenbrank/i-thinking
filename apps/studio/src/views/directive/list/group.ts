@@ -21,7 +21,7 @@ const DEFAULT_SORT: SortMode = 'BUCKET'
 const SORT_LABELS: Record<SortMode, string> = {
   BUCKET: '分类',
   FOLDER: '分组',
-  RECENT: '最近执行'
+  RECENT: '最近'
 }
 
 const SORT_ICONS: Record<SortMode, string> = {

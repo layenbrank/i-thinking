@@ -1,10 +1,13 @@
 import { Button } from '@i-thinking/design/components/button'
 import { Icon } from '@iconify/react/offline'
-import { AnimatePresence, motion } from 'motion/react'
 
 import type { CorexRun } from '@/stores/corex'
 import { useCorexStore } from '@/stores/corex'
 
+import { estimateGroupHeight } from '../render/card-size'
+import { CardSkeleton } from '../render/card-skeleton'
+import { StreamedGrid } from '../render/streamed-grid'
+import { ViewportGate } from '../render/viewport-gate'
 import { EMPTY_RUNS } from '../run/run-status'
 import { DirectiveImport, DirectiveMarkAllRead, DirectiveSearch, DirectiveSort } from './controls'
 import DirectiveCard from './directive-card'
@@ -22,7 +25,12 @@ import { useGroupCollapse } from './use-group-collapse'
  * 一次算完，这里只管展示。
  *
  * 搜索框与排序各占一行：栏宽下限只有 240px，挤一行时输入框会被压到没法看。
+ * 列表同样走可见区门闩 + 分片流式，策略与卡片墙一致。
  */
+
+const VIEWPORT_GATE_MIN = 12
+const RAIL_CHUNK = 16
+const RAIL_GRID = 'flex flex-col gap-1.5'
 
 interface Props {
   activeName: string
@@ -38,7 +46,7 @@ function DirectiveList(props: Props) {
   const { catalog, directives, groups, isSearching, now, shown, summaries } = list
   const isSortedByRecency = list.sortMode === 'RECENT'
   const collapse = useGroupCollapse(groups, list.sortMode)
-  const listKey = `${list.sortMode}:${list.query}`
+  const streamEpoch = `${list.sortMode}:${list.query}`
 
   return (
     <div className="flex h-full min-h-0 flex-col border-r bg-background">
@@ -130,47 +138,66 @@ function DirectiveList(props: Props) {
             })}
           />
         ) : (
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={listKey}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -2 }}
-              transition={{ duration: 0.16, ease: 'easeOut' }}>
-              {groups.map(function (group) {
-                return (
-                  <DirectiveGroupSection
-                    key={group.key}
-                    group={group}
-                    variant="rail"
-                    isOpen={collapse.isOpen(group.key)}
-                    onOpenChange={function (open) {
-                      collapse.updateOpen(group.key, open)
-                    }}>
-                    <div className="flex flex-col gap-1.5">
-                      <AnimatePresence mode="popLayout" initial={false}>
-                        {group.items.map(function (entry, index) {
-                          return (
-                            <DirectiveCard
-                              key={entry.name}
-                              entry={entry}
-                              isActive={entry.name === props.activeName}
-                              runs={summaries[entry.name] ?? EMPTY_RUNS}
-                              stepCount={props.stepCounts[entry.name] ?? 0}
-                              now={now}
-                              motionIndex={index}
-                              onOpen={props.onOpen}
-                              onRun={props.onRun}
-                            />
-                          )
-                        })}
-                      </AnimatePresence>
-                    </div>
-                  </DirectiveGroupSection>
-                )
-              })}
-            </motion.div>
-          </AnimatePresence>
+          <div className="flex flex-col gap-4">
+            {groups.map(function (group) {
+              const isOpen = collapse.isOpen(group.key)
+              const estimateHeight = estimateGroupHeight('rail', group.items.length, 1)
+              return (
+                <DirectiveGroupSection
+                  key={group.key}
+                  group={group}
+                  variant="rail"
+                  isOpen={isOpen}
+                  onOpenChange={function (open) {
+                    collapse.updateOpen(group.key, open)
+                  }}>
+                  <ViewportGate
+                    enabled={group.items.length >= VIEWPORT_GATE_MIN}
+                    estimateHeight={estimateHeight}
+                    placeholder={
+                      <div className={RAIL_GRID}>
+                        {Array.from(
+                          { length: Math.min(RAIL_CHUNK, group.items.length) },
+                          function (_, index) {
+                            return (
+                              <CardSkeleton
+                                key={`${group.key}-bone-${index}`}
+                                variant="rail"
+                              />
+                            )
+                          }
+                        )}
+                      </div>
+                    }>
+                    <StreamedGrid
+                      items={group.items}
+                      resetKey={`${streamEpoch}:${group.key}`}
+                      chunkSize={RAIL_CHUNK}
+                      gridClassName={RAIL_GRID}
+                      skeletonVariant="rail"
+                      findKey={function (entry) {
+                        return entry.name
+                      }}
+                      renderItem={function (entry) {
+                        return (
+                          <DirectiveCard
+                            entry={entry}
+                            isActive={entry.name === props.activeName}
+                            runs={summaries[entry.name] ?? EMPTY_RUNS}
+                            stepCount={props.stepCounts[entry.name] ?? 0}
+                            now={now}
+                            onOpen={props.onOpen}
+                            onRun={props.onRun}
+                            onDelete={list.requestDelete}
+                          />
+                        )
+                      }}
+                    />
+                  </ViewportGate>
+                </DirectiveGroupSection>
+              )
+            })}
+          </div>
         )}
       </div>
 
@@ -191,6 +218,7 @@ function DirectiveList(props: Props) {
         </span>
       </footer>
       {list.importDialog}
+      {list.deleteDialog}
     </div>
   )
 }

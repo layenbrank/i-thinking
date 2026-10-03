@@ -2,10 +2,14 @@ import { Button } from '@i-thinking/design/components/button'
 import { ScrollArea } from '@i-thinking/design/components/scroll-area'
 import { Separator } from '@i-thinking/design/components/separator'
 import { Icon } from '@iconify/react/offline'
-import { AnimatePresence, motion } from 'motion/react'
+import { memo } from 'react'
 
 import { useCorexStore } from '@/stores/corex'
 
+import { estimateGroupHeight } from '../render/card-size'
+import { CardSkeleton } from '../render/card-skeleton'
+import { StreamedGrid } from '../render/streamed-grid'
+import { ViewportGate } from '../render/viewport-gate'
 import { EMPTY_RUNS } from '../run/run-status'
 import { DirectiveImport, DirectiveMarkAllRead, DirectiveSearch, DirectiveSort } from './controls'
 import DirectiveCard from './directive-card'
@@ -14,13 +18,23 @@ import { DirectivePlaceholder } from './placeholder'
 import { makePlaceholderActions } from './placeholder-actions'
 import { useDirectiveList } from './use-directive-list'
 import { useGroupCollapse } from './use-group-collapse'
+import { useWallCols } from './use-wall-cols'
 
 /**
  * 卡片墙：指令页的正脸。所有指令按分类（或最近执行）分组铺成网格，
  * 每张卡片自己带着运行状态，点进去才去编排台。
  *
- * 浅底 + 浮起的圆角卡片（参考快捷指令的「白卡叠灰底」），PC 侧保持网格密度与工具栏一行排开。
+ * 性能策略（元素多时）：
+ * 1. 切排序就地调和，不做整墙 `key` 重挂
+ * 2. 分组开合瞬时切换（不做高度动画）
+ * 3. 组内可见区门闩 + 分片流式
+ * 4. 单卡 `content-visibility: auto`（见 StreamedGrid）
  */
+
+/** 超过这么多才启用可见区门闩；小组直接流式即可 */
+const VIEWPORT_GATE_MIN = 8
+const WALL_CHUNK = 12
+const WALL_GRID = 'grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
 
 interface Props {
   /** 与运行台共用同一份步骤数，别各自算一遍 */
@@ -33,7 +47,8 @@ function DirectiveWall(props: Props) {
   const list = useDirectiveList()
   const { groups, now, shown, summaries } = list
   const collapse = useGroupCollapse(groups, list.sortMode)
-  const listKey = `${list.sortMode}:${list.query}`
+  const wallCols = useWallCols()
+  const streamEpoch = `${list.sortMode}:${list.query}`
 
   const placeholder = makePlaceholderActions(list.state, {
     onNew: function () {
@@ -108,7 +123,7 @@ function DirectiveWall(props: Props) {
       </header>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className="px-5 pb-6">
+        <div className="flex flex-col gap-7 px-5 pb-6">
           {shown === 0 ? (
             <DirectivePlaceholder
               state={list.state}
@@ -116,58 +131,78 @@ function DirectiveWall(props: Props) {
               actions={placeholder}
             />
           ) : (
-            <AnimatePresence
-              mode="popLayout"
-              initial={false}>
-              <motion.div
-                key={listKey}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}>
-                {groups.map(function (group) {
-                  return (
-                    <DirectiveGroupSection
-                      key={group.key}
-                      group={group}
-                      variant="wall"
-                      isOpen={collapse.isOpen(group.key)}
-                      onOpenChange={function (open) {
-                        collapse.updateOpen(group.key, open)
-                      }}>
-                      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                        <AnimatePresence
-                          mode="popLayout"
-                          initial={false}>
-                          {group.items.map(function (entry, index) {
+            groups.map(function (group) {
+              const isOpen = collapse.isOpen(group.key)
+              const estimateHeight = estimateGroupHeight(
+                'wall',
+                group.items.length,
+                wallCols
+              )
+
+              return (
+                <DirectiveGroupSection
+                  key={group.key}
+                  group={group}
+                  variant="wall"
+                  isOpen={isOpen}
+                  onOpenChange={function (open) {
+                    collapse.updateOpen(group.key, open)
+                  }}>
+                  <ViewportGate
+                    enabled={group.items.length >= VIEWPORT_GATE_MIN}
+                    estimateHeight={estimateHeight}
+                    placeholder={
+                      <div className={WALL_GRID}>
+                        {Array.from(
+                          { length: Math.min(WALL_CHUNK, group.items.length) },
+                          function (_, index) {
                             return (
-                              <DirectiveCard
-                                key={entry.name}
+                              <CardSkeleton
+                                key={`${group.key}-bone-${index}`}
                                 variant="wall"
-                                entry={entry}
-                                isActive={false}
-                                runs={summaries[entry.name] ?? EMPTY_RUNS}
-                                stepCount={props.stepCounts[entry.name] ?? 0}
-                                now={now}
-                                motionIndex={index}
-                                onOpen={props.onOpen}
-                                onRun={props.onRun}
                               />
                             )
-                          })}
-                        </AnimatePresence>
+                          }
+                        )}
                       </div>
-                    </DirectiveGroupSection>
-                  )
-                })}
-              </motion.div>
-            </AnimatePresence>
+                    }>
+                    <StreamedGrid
+                      items={group.items}
+                      resetKey={`${streamEpoch}:${group.key}`}
+                      chunkSize={WALL_CHUNK}
+                      gridClassName={WALL_GRID}
+                      skeletonVariant="wall"
+                      findKey={function (entry) {
+                        return entry.name
+                      }}
+                      renderItem={function (entry) {
+                        return (
+                          <DirectiveCard
+                            variant="wall"
+                            entry={entry}
+                            isActive={false}
+                            runs={summaries[entry.name] ?? EMPTY_RUNS}
+                            stepCount={props.stepCounts[entry.name] ?? 0}
+                            now={now}
+                            onOpen={props.onOpen}
+                            onRun={props.onRun}
+                            onDelete={list.requestDelete}
+                          />
+                        )
+                      }}
+                    />
+                  </ViewportGate>
+                </DirectiveGroupSection>
+              )
+            })
           )}
         </div>
       </ScrollArea>
       {list.importDialog}
+      {list.deleteDialog}
     </div>
   )
 }
 
-export default DirectiveWall
+/** 运行台开合只改 dock 状态；墙面 props 不变时跳过调和 */
+export default memo(DirectiveWall)

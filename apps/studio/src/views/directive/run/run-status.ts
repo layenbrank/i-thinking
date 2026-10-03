@@ -21,12 +21,14 @@ interface MarkStyle {
   icon: string
   /** 字形颜色 */
   tone: string
-  /** 左缘色条：卡片用它标状态（几十张卡片时颜色比徽标更快认出来），日志块用它把多行输出圈成一段 */
+  /** 日志块左边框：把多行输出圈成一段 */
   rail: string
 }
 
 interface StatusStyle extends MarkStyle {
   label: string
+  /** 卡片状态圆点填色（不用左缘长条，避免圆角裁切） */
+  dot: string
 }
 
 /** 表驱动：状态 / 日志级别各自对应一套图标与颜色，省掉散落各处的 if */
@@ -35,19 +37,22 @@ const RUN_STATUS_STYLES: Record<RunStatus, StatusStyle> = {
     label: '运行中',
     icon: 'mdi:progress-clock',
     tone: 'text-primary',
-    rail: 'bg-primary/60 animate-pulse'
+    rail: 'bg-primary/60',
+    dot: 'bg-primary'
   },
   ok: {
     label: '成功',
     icon: 'mdi:check-circle-outline',
     tone: 'text-chart-2',
-    rail: 'bg-chart-2/70'
+    rail: 'bg-chart-2/70',
+    dot: 'bg-chart-2'
   },
   failed: {
     label: '失败',
     icon: 'mdi:alert-circle-outline',
     tone: 'text-destructive',
-    rail: 'bg-destructive/70'
+    rail: 'bg-destructive/70',
+    dot: 'bg-destructive'
   }
 }
 

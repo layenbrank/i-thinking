@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { ImportResult } from '@/shared/ipc/specs/sidecar'
@@ -7,6 +7,7 @@ import { useCorexStore } from '@/stores/corex'
 import { findFreeName } from '../draft'
 import { indexLastRuns, indexRunSummaries } from '../run/run-status'
 import { useNow } from '../use-now'
+import { DirectiveDeleteDialog } from './delete-confirm-dialog'
 import { type SortMode, findSortMode, groupDirectives, writeSortMode } from './group'
 import {
   ImportOverwriteDialog,
@@ -70,6 +71,8 @@ function useDirectiveList() {
   const [query, updateQuery] = useState('')
   const [sortMode, updateSortMode] = useState(findSortMode)
   const [overwritePrompt, updateOverwritePrompt] = useState<OverwritePrompt | null>(null)
+  const [pendingDelete, updatePendingDelete] = useState<string | null>(null)
+  const [isDeleting, updateDeleting] = useState(false)
 
   /** corex 账本里的「上次运行」，本会话跑过的那些以实时记录为准（见 `indexRunSummaries`） */
   const lastRuns = useMemo(
@@ -246,11 +249,51 @@ function useDirectiveList() {
     />
   )
 
+  const requestDelete = useCallback(function (name: string) {
+    updatePendingDelete(name)
+  }, [])
+
+  function clearPendingDelete() {
+    if (isDeleting) return
+    updatePendingDelete(null)
+  }
+
+  async function confirmDelete() {
+    const target = pendingDelete
+    if (!target || isDeleting) return
+    updateDeleting(true)
+    try {
+      await useCorexStore.getState().deleteDirective(target)
+      await useCorexStore.getState().refreshDirectives()
+      toast.success(`已删除指令 ${target}`)
+      updatePendingDelete(null)
+    } catch (error) {
+      console.error('[directive] 删除指令失败', error)
+      toast.error('删除失败', {
+        description: error instanceof Error ? error.message : String(error)
+      })
+    } finally {
+      updateDeleting(false)
+    }
+  }
+
+  const deleteDialog = (
+    <DirectiveDeleteDialog
+      name={pendingDelete}
+      isDeleting={isDeleting}
+      onCancel={clearPendingDelete}
+      onConfirm={function () {
+        void confirmDelete()
+      }}
+    />
+  )
+
   return {
     catalog,
     directives,
     groups,
     importDialog,
+    deleteDialog,
     isLoaded,
     isLoading,
     loadError,
@@ -265,6 +308,7 @@ function useDirectiveList() {
     findNewName,
     handleSort,
     importFrom,
+    requestDelete,
     retry,
     updateQuery
   }
