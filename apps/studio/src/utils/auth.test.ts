@@ -5,6 +5,7 @@ import {
   clearAuthTokenIfCurrent,
   findAuthToken,
   findAuthRole,
+  findRememberedUsername,
   isAdmin,
   isAuthTokenExpired,
   isSessionInvalid,
@@ -12,7 +13,8 @@ import {
   parseAuthExpiry,
   parseAuthRole,
   subscribeAuthToken,
-  writeAuthToken
+  writeAuthToken,
+  writeRememberedUsername
 } from '@/utils/auth.ts'
 import { HttpException } from '@/utils/http.errors.ts'
 
@@ -171,6 +173,34 @@ describe('token storage', function () {
     unsubscribe()
     writeAuthToken('b', true)
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('remembered username', function () {
+  it('stores and reads the username for the next sign-in form', function () {
+    writeRememberedUsername('alice')
+    expect(findRememberedUsername()).toBe('alice')
+    expect(storage.get('auth-remember-username')).toBe('alice')
+  })
+
+  it('survives token logout so the form can still prefill', function () {
+    writeRememberedUsername('bob')
+    writeAuthToken('tok', true)
+    clearAuthToken()
+    expect(findAuthToken()).toBeNull()
+    expect(findRememberedUsername()).toBe('bob')
+  })
+
+  it('clears when told to forget', function () {
+    writeRememberedUsername('carol')
+    writeRememberedUsername(null)
+    expect(findRememberedUsername()).toBeNull()
+    expect(storage.has('auth-remember-username')).toBe(false)
+  })
+
+  it('ignores blank values', function () {
+    writeRememberedUsername('  ')
+    expect(findRememberedUsername()).toBeNull()
   })
 })
 

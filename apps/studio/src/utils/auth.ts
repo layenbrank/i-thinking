@@ -1,6 +1,8 @@
 import { HttpError } from './http.errors'
 
 const AUTH_TOKEN_KEY = 'auth-token'
+/** 「记住我」勾选登录时留下的用户名；退出登录后回填表单，不存密码 */
+const AUTH_REMEMBER_USERNAME_KEY = 'auth-remember-username'
 
 /** 与 service 的 `role()` 对齐：只有精确 ADMIN 才算管理员 */
 const ADMIN_ROLE = 'ADMIN'
@@ -144,7 +146,29 @@ function writeAuthToken(token: string, isRemembered: boolean): void {
   notifyAuthToken()
 }
 
-/** 退出登录、或令牌被判失效时用：两处存储都清掉，界面立刻回到未登录 */
+/** 读出上次「记住我」留下的用户名；没有 / 不可用时返回 null */
+function findRememberedUsername(): string | null {
+  if (typeof localStorage === 'undefined') return null
+  const username = localStorage.getItem(AUTH_REMEMBER_USERNAME_KEY)
+  return username && username.trim() ? username : null
+}
+
+/**
+ * 写入或清掉记住的用户名。
+ *
+ * 勾选「记住我」登录成功后写入；未勾选 / 主动忘掉时传 `null` 清掉。
+ * 退出登录**不清**这一项 —— 否则「记住我」在登出后再打开登录框就等于没记住。
+ */
+function writeRememberedUsername(username: string | null): void {
+  if (typeof localStorage === 'undefined') return
+  if (!username || !username.trim()) {
+    localStorage.removeItem(AUTH_REMEMBER_USERNAME_KEY)
+    return
+  }
+  localStorage.setItem(AUTH_REMEMBER_USERNAME_KEY, username.trim())
+}
+
+/** 退出登录、或令牌被判失效时用：两处存储都清掉，界面立刻回到未登录。不碰「记住的用户名」。 */
 function clearAuthToken(): void {
   for (const store of findAuthStores()) store.removeItem(AUTH_TOKEN_KEY)
   notifyAuthToken()
@@ -194,6 +218,7 @@ export {
   clearAuthTokenIfCurrent,
   findAuthRole,
   findAuthToken,
+  findRememberedUsername,
   isAdmin,
   isAuthenticated,
   isAuthTokenExpired,
@@ -202,6 +227,7 @@ export {
   parseAuthExpiry,
   parseAuthRole,
   subscribeAuthToken,
-  writeAuthToken
+  writeAuthToken,
+  writeRememberedUsername
 }
 export type { AuthClaims }

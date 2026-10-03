@@ -33,7 +33,7 @@ import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
 import { useSlideProof } from '@/features/signin/slide.tsx'
 import { HttpError } from '@/utils/http.errors.ts'
-import { writeAuthToken } from '@/utils/auth.ts'
+import { findRememberedUsername, writeAuthToken, writeRememberedUsername } from '@/utils/auth.ts'
 
 type SigninFormProps = {
   motionKey: number
@@ -82,16 +82,23 @@ const SIGNIN: Record<
 function SigninForm(props: SigninFormProps) {
   const { motionKey, signinMode, onModeChange, onForgot, onSignup, onSuccess } = props
   const { askSlide, dialog } = useSlideProof()
+  const rememberedUsername = findRememberedUsername()
 
   // 每个身份对应一套 schema；收窄一次泛型以满足 RHF 的联合类型
   const form = useForm<SigninValues>({
     resolver: zodResolver(SIGNIN_SCHEMA[signinMode]) as Resolver<SigninValues>,
-    defaultValues: { remember: true }
+    defaultValues: {
+      remember: true,
+      username: rememberedUsername ?? ''
+    }
   })
 
   useEffect(
     function () {
-      form.reset({ remember: true })
+      form.reset({
+        remember: true,
+        username: signinMode === MODE.USERNAME ? (findRememberedUsername() ?? '') : undefined
+      })
     },
     [form, signinMode]
   )
@@ -101,6 +108,10 @@ function SigninForm(props: SigninFormProps) {
       const session = await SIGNIN[signinMode](values, askSlide)
       if (!session) return
       writeAuthToken(session.token, session.isRemembered)
+      // 只有用户名密码登录才有「记住我」：勾选则留下用户名，未勾选则清掉
+      if (signinMode === MODE.USERNAME) {
+        writeRememberedUsername(session.isRemembered ? (values.username ?? null) : null)
+      }
       toast.success('登录成功')
       onSuccess()
     } catch (error) {
@@ -227,7 +238,9 @@ function SigninForm(props: SigninFormProps) {
                       <FormControl>
                         <Checkbox
                           checked={field.value === true}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={function (checked) {
+                            field.onChange(checked === true)
+                          }}
                         />
                       </FormControl>
                       <FormLabel className="font-normal">记住我</FormLabel>
