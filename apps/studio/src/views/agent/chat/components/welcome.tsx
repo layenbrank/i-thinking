@@ -94,16 +94,17 @@ function ThreadGreeting() {
 
       {activeWorkspace ? (
         <div className="flex w-full max-w-[880px] flex-col items-stretch gap-2.5 text-start">
-          <p className="text-muted-foreground text-[13px] font-medium tracking-[0.02em]">
+          <p className="text-muted-foreground text-md font-medium tracking-[0.02em]">
             可以试试
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {/* 按中栏容器宽度折列，避免侧栏占宽后 sm 视口断点仍强行三列裁切 */}
+          <div className="grid grid-cols-1 gap-3 @min-[36rem]:grid-cols-3">
             {SUGGESTIONS.map(function (item) {
               return (
                 <button
                   key={item.title}
                   type="button"
-                  className="border-border bg-background hover:border-primary/40 hover:bg-primary/5 flex flex-col items-start gap-2.5 rounded-lg border p-3.5 text-start transition-[border-color,background-color,transform] duration-150 hover:-translate-y-px"
+                  className="border-border bg-background hover:border-primary/40 hover:bg-primary/5 flex flex-col items-start gap-2.5 rounded-lg border p-3.5 text-start transition-[border-color,background-color] duration-150"
                   onClick={function () {
                     handleSuggestion(item.prompt)
                   }}>

@@ -222,7 +222,7 @@ function ComposerTriggers() {
                       <Icon icon="lucide:file" className="text-muted-foreground size-3.5 shrink-0" />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.description ? (
-                        <span className="text-muted-foreground max-w-[40%] truncate text-[11px]">
+                        <span className="text-muted-foreground max-w-[40%] truncate text-2xs">
                           {item.description}
                         </span>
                       ) : null}
@@ -260,7 +260,7 @@ function ComposerTriggers() {
                       <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                         <span className="w-full truncate">{item.label}</span>
                         {item.description ? (
-                          <span className="text-muted-foreground w-full truncate text-[11px]">
+                          <span className="text-muted-foreground w-full truncate text-2xs">
                             {item.description}
                           </span>
                         ) : null}

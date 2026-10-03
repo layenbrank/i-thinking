@@ -44,9 +44,9 @@ export default function AgentHead(props: HeadProps) {
         <span
           aria-hidden
           data-running={isRunning ? 'true' : 'false'}
-          className="bg-muted-foreground data-[running=true]:bg-emerald-500 size-1.5 shrink-0 rounded-full"
+          className="bg-muted-foreground data-[running=true]:bg-success size-1.5 shrink-0 rounded-full"
         />
-        <span className="truncate text-[13px] font-medium">{title || '新任务'}</span>
+        <span className="text-md truncate font-medium">{title || '新任务'}</span>
         {isRunning ? (
           <span className="text-muted-foreground shrink-0 text-xs">生成中…</span>
         ) : null}

@@ -98,7 +98,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
       ) : null}
 
       {!isSearching && relative ? (
-        <p className="text-muted-foreground truncate px-2.5 pt-1.5 text-[11px]">{relative}</p>
+        <p className="text-muted-foreground truncate px-2.5 pt-1.5 text-2xs">{relative}</p>
       ) : null}
 
       <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5', props.listClassName)}>
@@ -135,7 +135,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
                       )}
                       <span className="min-w-0 flex-1 truncate text-start">{entry.name}</span>
                       {parentLabel ? (
-                        <span className="text-muted-foreground max-w-[40%] shrink truncate text-end text-[11px]">
+                        <span className="text-muted-foreground max-w-[40%] shrink truncate text-end text-2xs">
                           {parentLabel}
                         </span>
                       ) : null}

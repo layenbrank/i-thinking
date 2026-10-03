@@ -212,7 +212,7 @@ export default function AgentAside(props: AsideProps) {
               <span
                 aria-hidden
                 data-running={isRunning ? 'true' : 'false'}
-                className="bg-muted-foreground data-[running=true]:bg-primary size-1.5 rounded-full"
+                className="bg-muted-foreground data-[running=true]:bg-success size-1.5 rounded-full"
               />
               {isLoading ? '加载中…' : phase.label}
             </span>
