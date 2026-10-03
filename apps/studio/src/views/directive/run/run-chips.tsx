@@ -2,7 +2,6 @@ import { Button } from '@i-thinking/design/components/button'
 import { Progress } from '@i-thinking/design/components/progress'
 import { Icon } from '@iconify/react/offline'
 import { cn } from 'cn'
-import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { CorexRun } from '@/stores/corex'
@@ -19,6 +18,8 @@ import { RUN_STATUS_STYLES, formatElapsed, isRunning } from './run-status'
  *
  * 选中某条任务后把它滚进可视区，用 `offsetLeft` 自己算：`scrollIntoView` 会连带滚动祖先
  * 容器（编辑器、指令列表），点一下整个页面就跑偏了。
+ *
+ * 不用 motion / layout：台面开合会整树挂卸载，layout 动画会在分栏回流时二次测量整条任务条。
  */
 
 /** 滚进可视区时两端各留的空隙 */
@@ -59,15 +60,10 @@ function RunChip(props: ChipProps) {
   const running = isRunning(run)
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.92 }}
-      transition={{ duration: 0.16, ease: 'easeOut' }}
+    <div
       data-run-id={run.id}
       className={cn(
-        'group/chip relative flex shrink-0 items-center gap-1 overflow-hidden rounded-md border border-border py-1 pr-1 pl-2 text-xs transition-colors',
+        'group/chip relative flex shrink-0 items-center gap-1 overflow-hidden rounded-md border border-border py-1 pr-1 pl-2 text-xs',
         props.isSelected
           ? 'border-primary bg-accent text-accent-foreground ring-1 ring-primary/20'
           : 'hover:bg-accent-hover'
@@ -92,7 +88,7 @@ function RunChip(props: ChipProps) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        className="opacity-0 transition-opacity group-hover/chip:opacity-100 focus-visible:opacity-100"
+        className="opacity-0 group-hover/chip:opacity-100 focus-visible:opacity-100"
         aria-label={`移除 ${run.name} 的运行记录`}
         disabled={running}
         onClick={function () {
@@ -108,7 +104,7 @@ function RunChip(props: ChipProps) {
           aria-label={`${run.name} 运行进度`}
         />
       ) : null}
-    </motion.div>
+    </div>
   )
 }
 
@@ -176,21 +172,19 @@ function RunChips(props: Props) {
         <div
           ref={contentRef}
           className="flex w-max items-center gap-1.5">
-          <AnimatePresence initial={false}>
-            {ordered.map(function (run) {
-              return (
-                <RunChip
-                  key={run.id}
-                  run={run}
-                  isSelected={run.id === props.selectedId}
-                  stepTotal={props.stepCounts[run.name] ?? 0}
-                  now={props.now}
-                  onSelect={props.onSelect}
-                  onRemove={props.onRemove}
-                />
-              )
-            })}
-          </AnimatePresence>
+          {ordered.map(function (run) {
+            return (
+              <RunChip
+                key={run.id}
+                run={run}
+                isSelected={run.id === props.selectedId}
+                stepTotal={props.stepCounts[run.name] ?? 0}
+                now={props.now}
+                onSelect={props.onSelect}
+                onRemove={props.onRemove}
+              />
+            )
+          })}
         </div>
       </div>
 

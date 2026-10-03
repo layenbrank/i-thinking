@@ -2,7 +2,7 @@ import { ResizablePanel } from '@i-thinking/design/components/resizable'
 
 import ActionLibraryDialog from '@/views/directive/action-library'
 
-import { RUN_COLLAPSED, RUN_ID, RUN_MAX, RUN_MIN, RUN_SIZE } from '../splitter'
+import { RUN_COLLAPSED, RUN_ID, RUN_MAX, RUN_MIN } from '../splitter'
 import RunPanel from './run-panel'
 import type { RunDock } from './use-run-dock'
 
@@ -13,6 +13,7 @@ import type { RunDock } from './use-run-dock'
  * 尺寸档位、放下时的 48px、拖分栏后的状态对齐，写两遍就一定会各自漂移。
  *
  * 动作库弹框跟这块走：它由运行台那侧的按钮打开，本体是 portal，摆在面板里不影响分栏布局。
+ * 默认 / 展开高度用 `RUN_MAX`（可用最大），不落在偏矮的 `RUN_SIZE`。
  */
 
 interface Props {
@@ -26,7 +27,7 @@ function RunDockPanel(props: Props) {
     <ResizablePanel
       id={RUN_ID}
       panelRef={dock.runRef}
-      defaultSize={RUN_SIZE}
+      defaultSize={RUN_MAX}
       minSize={RUN_MIN}
       maxSize={RUN_MAX}
       collapsible

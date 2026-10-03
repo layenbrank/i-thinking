@@ -102,7 +102,8 @@ export default function DirectiveWorkspace() {
         orientation="horizontal"
         className="min-h-0 flex-1"
         defaultLayout={initial.layouts[PAGE_GROUP_ID]}
-        onLayoutChanged={function (layout) {
+        onLayoutChanged={function (layout, meta) {
+          if (!meta.isUserInteraction) return
           writeSplitterLayout(PAGE_GROUP_ID, layout)
         }}>
         <ResizablePanel
@@ -136,7 +137,8 @@ export default function DirectiveWorkspace() {
             orientation="vertical"
             className="min-h-0"
             defaultLayout={initial.layouts[STACK_GROUP_ID]}
-            onLayoutChanged={function (layout) {
+            onLayoutChanged={function (layout, meta) {
+              if (!meta.isUserInteraction) return
               writeSplitterLayout(STACK_GROUP_ID, layout)
             }}>
             <ResizablePanel

@@ -26,18 +26,18 @@ const RUN_ID = 'directive-run'
 const META_ID = 'directive-meta'
 const STEPS_ID = 'directive-steps'
 
-const LIST_SIZE = 300
-const LIST_MIN = 240
-const LIST_MAX = 420
+const LIST_SIZE = 320
+const LIST_MIN = 260
+const LIST_MAX = 440
 
 /** 工作区的最小宽度：再窄编辑器就摆不下元信息 + 步骤两栏 */
-const WORKSPACE_MIN = 420
+const WORKSPACE_MIN = 560
 
 /** 卡片墙的最小高度：留够两三行卡片，拖到底也不至于被运行台吃光 */
 const WALL_MIN = 560
 
 /** 编辑器与运行台的最小高度 */
-const EDITOR_MIN = 240
+const EDITOR_MIN = 280
 
 const RUN_SIZE = 240
 const RUN_MIN = 160
@@ -46,11 +46,11 @@ const RUN_MAX = 460
 /** 运行台收起后只剩标题栏，高度必须与标题栏（`h-12` = 48px）一致才对得上 */
 const RUN_COLLAPSED = 48
 
-const META_SIZE = 264
-const META_MIN = 240
-const META_MAX = 420
+const META_SIZE = 300
+const META_MIN = 280
+const META_MAX = 480
 
-const STEPS_MIN = 300
+const STEPS_MIN = 360
 
 const LIST_OPEN = true
 const RUN_OPEN = true

@@ -20,7 +20,8 @@ import { RUN_STATUS_STYLES, formatElapsed, isRunning } from './run-status'
  * `RunChips`，这里只管台面：标题栏（有几条在跑、几条失败）与输出区。
  *
  * 收起后只剩 48px 的标题栏，所以把「当前关注的任务」搬到标题栏里，并给它一条贴底进度线：
- * 收起的本意是腾地方，不是让人看不见任务还在跑。
+ * 收起的本意是腾地方，不是让人看不见任务还在跑。台体（Chips/Output）收起时卸载，
+ * 避免分栏缩小时跟着整墙回流。
  *
  * 这里只读运行元数据（一步一变），输出流归 `RunOutput` 自己订阅，标题栏不跟着每秒几百帧
  * 的输出重渲染。
@@ -121,7 +122,6 @@ function RunPanel(props: Props) {
           onClick={props.onToggle}>
           <Icon
             icon={props.isCollapsed ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-            className="transition-transform duration-200"
           />
         </Button>
         <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
@@ -187,16 +187,11 @@ function RunPanel(props: Props) {
       </header>
 
       {/*
-        收起时不卸载内容：面板高度过渡时靠 overflow 裁切，才不会「内容先闪没、再缩高度」。
-        未读仍由上面的 visibleRun 逻辑管 —— 收起时不算「看见了」。
+        收起时卸载台体：没有开合动画后不必保留裁切内容，
+        否则分栏一缩，Chips/Output 仍跟着整墙回流。
       */}
-      {focus ? (
-        <div
-          aria-hidden={props.isCollapsed}
-          className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-hidden',
-            props.isCollapsed && 'pointer-events-none'
-          )}>
+      {props.isCollapsed ? null : focus ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <RunChips
             runs={props.runs}
             selectedId={props.selectedId}
@@ -213,14 +208,7 @@ function RunPanel(props: Props) {
           />
         </div>
       ) : (
-        <div
-          aria-hidden={props.isCollapsed}
-          className={cn(
-            'relative min-h-0 flex-1 overflow-hidden',
-            // 收起时标题栏只剩 48px：空状态子项若溢进标题栏，
-            // 「还没有运行记录」会贴在底栏中间、看着特别靠下。
-            props.isCollapsed && 'invisible pointer-events-none'
-          )}>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-3 text-center text-muted-foreground">
             <Icon
               icon="mdi:console-line"
