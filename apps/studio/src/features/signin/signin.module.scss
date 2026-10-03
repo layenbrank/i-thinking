@@ -1,7 +1,3 @@
-$brand-text: oklch(0.985 0 0);
-$brand-muted: rgba(255, 255, 255, 0.58);
-$radius-modal: 16px;
-
 .body {
   display: flex;
   flex-direction: row;
@@ -10,7 +6,7 @@ $radius-modal: 16px;
   align-items: stretch;
   gap: 0;
   overflow: hidden;
-  border-radius: $radius-modal;
+  border-radius: var(--signin-radius);
   background-color: var(--card);
 
   @media (max-width: 768px) {
@@ -30,20 +26,15 @@ $radius-modal: 16px;
   row-gap: 28px;
   padding: 36px 32px 28px;
   overflow: hidden;
-  color: $brand-text;
-  background-color: oklch(0.18 0.008 264);
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
-
-  :global(.dark) & {
-    background-color: oklch(0.145 0 0);
-    box-shadow: inset -1px 0 0 oklch(1 0 0 / 10%);
-  }
+  color: var(--signin-brand-foreground);
+  background-color: var(--signin-brand);
+  box-shadow: inset -1px 0 0 var(--signin-brand-border);
 
   @media (max-width: 768px) {
     flex: none;
     row-gap: 16px;
     padding: 28px 24px;
-    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 -1px 0 var(--signin-brand-border);
   }
 }
 
@@ -57,7 +48,7 @@ $radius-modal: 16px;
 
   h3 {
     margin: 0;
-    color: $brand-text;
+    color: var(--signin-brand-foreground);
     font-weight: 600;
     font-size: 20px;
     letter-spacing: -0.02em;
@@ -67,7 +58,7 @@ $radius-modal: 16px;
   p {
     margin: 0;
     max-width: 220px;
-    color: $brand-muted;
+    color: var(--signin-brand-muted);
     font-size: 13px;
     line-height: 1.6;
   }
@@ -80,9 +71,9 @@ $radius-modal: 16px;
   display: flex;
   flex-direction: column;
   row-gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--signin-brand-border);
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--signin-brand-subtle);
   line-height: 1.45;
 
   @media (max-width: 768px) {
@@ -95,7 +86,7 @@ $radius-modal: 16px;
   z-index: 1;
   margin: 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.32);
+  color: var(--signin-brand-faint);
   letter-spacing: 0.02em;
 
   @media (max-width: 768px) {

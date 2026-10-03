@@ -57,6 +57,18 @@
   --terminal-accent: oklch(0.765 0.177 163.223);
   --terminal-danger: oklch(0.712 0.194 13.428);
   /*
+   * 登录弹窗左侧品牌栏 —— 恒深色「孤岛」，与右侧表单的 --card 对仗。
+   * 文案色用实色 oklch，不用低不透明度白（0.32/0.5 对深底对比不足 4.5:1）。
+   * .dark 只微调底色，对齐应用壳层，前景阶保持不变。
+   */
+  --signin-brand: oklch(0.18 0.008 264);
+  --signin-brand-foreground: oklch(0.985 0 0);
+  --signin-brand-muted: oklch(0.82 0.01 264);
+  --signin-brand-subtle: oklch(0.74 0.01 264);
+  --signin-brand-faint: oklch(0.65 0.008 264);
+  --signin-brand-border: oklch(1 0 0 / 14%);
+  --signin-radius: 1rem;
+  /*
    * 交互态色阶（企业级做法：状态颜色在 token 层定义一次，组件只引用）。
    * hover 略提亮 / active 下沉，与 antd 的 hover/active 语义一致；
    * 经 @theme inline 暴露后可直接写 `bg-primary-hover` / `bg-primary-active`。
@@ -128,6 +140,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: #4080ff;
+  --signin-brand: oklch(0.145 0 0);
+  --signin-brand-border: oklch(1 0 0 / 10%);
 }
 
 @theme inline {
@@ -156,6 +170,13 @@
   --color-terminal-muted: var(--terminal-muted);
   --color-terminal-accent: var(--terminal-accent);
   --color-terminal-danger: var(--terminal-danger);
+  --color-signin-brand: var(--signin-brand);
+  --color-signin-brand-foreground: var(--signin-brand-foreground);
+  --color-signin-brand-muted: var(--signin-brand-muted);
+  --color-signin-brand-subtle: var(--signin-brand-subtle);
+  --color-signin-brand-faint: var(--signin-brand-faint);
+  --color-signin-brand-border: var(--signin-brand-border);
+  --radius-signin: var(--signin-radius);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
