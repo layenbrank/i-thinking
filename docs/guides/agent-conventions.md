@@ -43,7 +43,7 @@
 
 - 同一概念用词一致，不同概念不复用同一个名字。
 - 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse` / `parsed`。
-- 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；集合用复数，避免 `list` 后缀。
+- 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；集合用复数，避免包含 `list`。
 
 ## 结构与样式
 
