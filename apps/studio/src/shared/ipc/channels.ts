@@ -34,7 +34,13 @@ export const CHANNELS = {
     EDIT: 'sidecar:editDirective',
     INVOKE: 'sidecar:invoke',
     RUN: 'sidecar:run',
-    PROGRESS: 'sidecar:progress'
+    /** cron / watch 作业快照 */
+    JOBS: 'sidecar:jobs',
+    START_JOB: 'sidecar:startJob',
+    STOP_JOB: 'sidecar:stopJob',
+    PROGRESS: 'sidecar:progress',
+    /** cron / watch 触发运行的起止与步骤帧（同频道保序） */
+    JOB_EVENT: 'sidecar:jobEvent'
   },
   DOC: {
     CONVERT: 'doc:convert'
@@ -175,6 +181,7 @@ export const PUSH_CHANNELS = [
   CHANNELS.ASSISTANT.PORT,
   CHANNELS.UPDATER.EVENT,
   CHANNELS.SIDECAR.PROGRESS,
+  CHANNELS.SIDECAR.JOB_EVENT,
   CHANNELS.OVERLAY.EVENT
 ] as const
 

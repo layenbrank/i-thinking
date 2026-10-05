@@ -35,7 +35,15 @@ describe('parseDirectives', function () {
         visible: true,
         updated_at_ms: 1_700_000_000_000,
         bucket: 'data',
-        summary: { description: '打包', step_count: 3, input_count: 2, trigger_count: 1 }
+        summary: {
+          description: '打包',
+          step_count: 3,
+          input_count: 2,
+          trigger_count: 1,
+          has_cron: false,
+          has_watch: false
+        },
+        last_run: undefined
       },
       {
         name: 'draft',
@@ -44,7 +52,8 @@ describe('parseDirectives', function () {
         visible: true,
         updated_at_ms: 0,
         bucket: null,
-        summary: null
+        summary: null,
+        last_run: undefined
       }
     ])
   })
@@ -59,7 +68,14 @@ describe('parseDirectives', function () {
         visible: true,
         updated_at_ms: 0,
         bucket: null,
-        summary: { description: '', step_count: 2, input_count: 0, trigger_count: 0 }
+        summary: {
+          description: '',
+          step_count: 2,
+          input_count: 0,
+          trigger_count: 0,
+          has_cron: false,
+          has_watch: false
+        }
       }
     ])
     const summaries = parseDirectives([{ name: 'bad', summary: 'nope' }]).map(function (entry) {

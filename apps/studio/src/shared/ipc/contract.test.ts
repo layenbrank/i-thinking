@@ -4,7 +4,7 @@ import type { Api } from './api'
 import type { Domain } from './channels'
 import { CHANNELS, INVOKE_CHANNELS, PUSH_CHANNELS, flattenChannels } from './channels'
 import { INVOKE_SPECS, PUSH_SPECS } from './specs'
-import { DirectiveContentSchema } from './specs/sidecar'
+import { DirectiveContentSchema, JobEventSchema } from './specs/sidecar'
 
 type AssertExtends<T, U extends T> = U
 
@@ -29,14 +29,14 @@ void 0 as unknown as _UpdaterHasOnEvent
 void 0 as unknown as _OverlayHasOnEvent
 
 describe('channel derivation', function () {
-  it('flattens to exactly 89 channels', function () {
-    // 83 + asset(6) = 89
-    expect(flattenChannels()).toHaveLength(89)
+  it('flattens to exactly 93 channels', function () {
+    // 92 + sidecar jobEvent
+    expect(flattenChannels()).toHaveLength(93)
   })
 
-  it('splits invoke (85) from push (4) with no overlap', function () {
-    expect(PUSH_CHANNELS).toHaveLength(4)
-    expect(INVOKE_CHANNELS).toHaveLength(85)
+  it('splits invoke (88) from push (5) with no overlap', function () {
+    expect(PUSH_CHANNELS).toHaveLength(5)
+    expect(INVOKE_CHANNELS).toHaveLength(88)
     for (const push of PUSH_CHANNELS) {
       expect(INVOKE_CHANNELS).not.toContain(push)
     }
@@ -64,12 +64,16 @@ describe('channel derivation', function () {
     expect(CHANNELS.MIRROR.READ).toBe('mirror:toRead')
     expect(CHANNELS.MIRROR.TILE.READ).toBe('mirror:tile.toRead')
     expect(CHANNELS.SIDECAR.RUN).toBe('sidecar:run')
+    expect(CHANNELS.SIDECAR.JOBS).toBe('sidecar:jobs')
+    expect(CHANNELS.SIDECAR.START_JOB).toBe('sidecar:startJob')
+    expect(CHANNELS.SIDECAR.STOP_JOB).toBe('sidecar:stopJob')
     expect(CHANNELS.SIDECAR.DIRECTIVE).toBe('sidecar:directive')
     expect(CHANNELS.SIDECAR.SAVE).toBe('sidecar:saveDirective')
     expect(CHANNELS.SIDECAR.DELETE).toBe('sidecar:deleteDirective')
     expect(CHANNELS.SIDECAR.IMPORT).toBe('sidecar:importDirectives')
     expect(CHANNELS.SIDECAR.EDIT).toBe('sidecar:editDirective')
     expect(CHANNELS.SIDECAR.PROGRESS).toBe('sidecar:progress')
+    expect(CHANNELS.SIDECAR.JOB_EVENT).toBe('sidecar:jobEvent')
     expect(CHANNELS.ASSISTANT.PORT).toBe('assistant:port')
     expect(CHANNELS.UPDATER.EVENT).toBe('updater:event')
   })
@@ -91,6 +95,45 @@ describe('spec parity', function () {
 
   it('push specs cover exactly the push channels', function () {
     expect(Object.keys(PUSH_SPECS).sort()).toEqual([...PUSH_CHANNELS].sort())
+  })
+})
+
+describe('job event contract', function () {
+  it('accepts start / progress / end on the same channel', function () {
+    expect(
+      JobEventSchema.parse({
+        phase: 'start',
+        runId: 'job-cron-1',
+        kind: 'cron',
+        name: 'demo'
+      }).phase
+    ).toBe('start')
+
+    const progress = JobEventSchema.parse({
+      phase: 'progress',
+      runId: 'job-cron-1',
+      kind: 'cron',
+      name: 'demo',
+      progress: { kind: 'step_start', step: 's1', action: 'shell.run', seq: 1 }
+    })
+    expect(progress).toMatchObject({
+      phase: 'progress',
+      progress: { kind: 'step_start', step: 's1' }
+    })
+
+    expect(
+      JobEventSchema.parse({
+        phase: 'end',
+        runId: 'job-cron-1',
+        kind: 'cron',
+        name: 'demo',
+        ok: false,
+        error: '守护已强制终止'
+      })
+    ).toMatchObject({
+      phase: 'end',
+      error: '守护已强制终止'
+    })
   })
 })
 

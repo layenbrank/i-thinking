@@ -73,6 +73,10 @@ function toSidecarProgress(raw: unknown): PushOut<typeof CHANNELS.SIDECAR.PROGRE
   return raw as PushOut<typeof CHANNELS.SIDECAR.PROGRESS>
 }
 
+function toSidecarJobEvent(raw: unknown): PushOut<typeof CHANNELS.SIDECAR.JOB_EVENT> {
+  return raw as PushOut<typeof CHANNELS.SIDECAR.JOB_EVENT>
+}
+
 function toOverlayEvent(raw: unknown): PushOut<typeof CHANNELS.OVERLAY.EVENT> {
   return raw as PushOut<typeof CHANNELS.OVERLAY.EVENT>
 }
@@ -107,7 +111,11 @@ const api = {
     editDirective: toInvoke(CHANNELS.SIDECAR.EDIT),
     invoke: toInvoke(CHANNELS.SIDECAR.INVOKE),
     run: toInvoke(CHANNELS.SIDECAR.RUN),
-    onProgress: toSubscribe(CHANNELS.SIDECAR.PROGRESS, toSidecarProgress)
+    jobs: toInvoke(CHANNELS.SIDECAR.JOBS),
+    startJob: toInvoke(CHANNELS.SIDECAR.START_JOB),
+    stopJob: toInvoke(CHANNELS.SIDECAR.STOP_JOB),
+    onProgress: toSubscribe(CHANNELS.SIDECAR.PROGRESS, toSidecarProgress),
+    onJobEvent: toSubscribe(CHANNELS.SIDECAR.JOB_EVENT, toSidecarJobEvent)
   },
   doc: {
     convert: toInvoke(CHANNELS.DOC.CONVERT)

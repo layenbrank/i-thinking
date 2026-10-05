@@ -49,7 +49,11 @@ export interface Api {
     editDirective: IpcFn<typeof CHANNELS.SIDECAR.EDIT>
     invoke: IpcFn<typeof CHANNELS.SIDECAR.INVOKE>
     run: IpcFn<typeof CHANNELS.SIDECAR.RUN>
+    jobs: IpcFn<typeof CHANNELS.SIDECAR.JOBS>
+    startJob: IpcFn<typeof CHANNELS.SIDECAR.START_JOB>
+    stopJob: IpcFn<typeof CHANNELS.SIDECAR.STOP_JOB>
     onProgress: Subscribe<PushOut<typeof CHANNELS.SIDECAR.PROGRESS>>
+    onJobEvent: Subscribe<PushOut<typeof CHANNELS.SIDECAR.JOB_EVENT>>
   }
 
   doc: {

@@ -59,6 +59,15 @@ export function buildSidecarHandlers(ctx: Context): DomainHandlers<'sidecar'> {
         input.input ?? {},
         toProgress(event.sender, input.runId)
       )
+    },
+    [CHANNELS.SIDECAR.JOBS]: async function (input) {
+      return { jobs: await ctx.corex.fetchJobs(input.kind) }
+    },
+    [CHANNELS.SIDECAR.START_JOB]: function (input) {
+      return ctx.corex.startJob(input.kind, input.name, { immediate: input.immediate })
+    },
+    [CHANNELS.SIDECAR.STOP_JOB]: function (input) {
+      return ctx.corex.stopJob(input.kind, input.name, { force: input.force })
     }
   }
 }

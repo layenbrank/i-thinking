@@ -7,7 +7,8 @@ import {
   dropRunFrames,
   findRunFrames,
   flushRunFrames,
-  registerRun
+  registerRun,
+  unregisterRun
 } from '@/stores/run-logs'
 
 /**
@@ -169,6 +170,18 @@ describe('registration', function () {
     vi.advanceTimersByTime(80)
 
     expect(texts('a')).toEqual([])
+  })
+
+  it('unregister 保留已落地日志但拒收新帧', function () {
+    appendRunFrame(frame('a', 0))
+    vi.advanceTimersByTime(80)
+    expect(texts('a')).toEqual(['a-0'])
+
+    unregisterRun('a')
+    appendRunFrame(frame('a', 1))
+    vi.advanceTimersByTime(80)
+
+    expect(texts('a')).toEqual(['a-0'])
   })
 
   it('keeps the runs that survived the same drop', function () {

@@ -57,7 +57,7 @@ function EngineStatus() {
         icon="mdi:database-outline"
         className="shrink-0"
       />
-      <span className="truncate">指令库：{status.directivesDb || '未就绪'}</span>
+      <span className="truncate">指令库：{status.database || '未就绪'}</span>
       <span className="shrink-0">
         · corex {status.version || '未知'}（{origin}）
       </span>

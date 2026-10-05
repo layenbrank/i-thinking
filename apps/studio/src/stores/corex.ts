@@ -5,11 +5,19 @@ import type {
   DirectiveContent,
   DirectiveDocument,
   DirectiveEntry,
-  ImportResult
+  ImportResult,
+  JobEvent
 } from '@/shared/ipc/specs/sidecar'
+import type { CorexProgress } from '@/stores/run-logs'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
-import { appendRunFrame, dropRunFrames, flushRunFrames, registerRun } from './run-logs'
+import {
+  appendRunFrame,
+  dropRunFrames,
+  flushRunFrames,
+  registerRun,
+  unregisterRun
+} from './run-logs'
 
 /**
  * corex 引擎的运行数据（谁的功能谁维护）。
@@ -19,8 +27,8 @@ import { appendRunFrame, dropRunFrames, flushRunFrames, registerRun } from './ru
  * 那份悄悄错位。sidecar 未就绪时目录为空、运行抛错，由 UI 呈现，不在这里吞。
  *
  * 运行是**多任务**的：不同指令可以并行，状态是 `runs` 数组而不是一个 `isRunning`，
- * 帧靠 `runId` 各归各位。同一条指令在运行台只占一个选项卡 —— 重跑会换掉已结束的那次；
- * 还在跑时再点运行则聚焦已有任务（宿主没法叫停 corex，也就没法「顶掉」进行中的那次）。
+ * 帧靠 `runId` 各归各位。同一条指令在运行台只占一个选项卡：单次与守护触发复用同一枚；
+ * 还在跑时再点运行则聚焦已有任务（宿主没法叫停 corex，也就没法另开一次）。
  *
  * 「这条指令的结果看没看过」是**宿主**的事（corex 不记谁看没看），故存在这里、落到宿主自己的
  * KV：重启之后卡片上的未读圆点还得对得上。
@@ -69,6 +77,10 @@ interface CorexRun {
   /** corex 的终帧数据；失败时为 `null` */
   result: unknown
   error: string | null
+  /** 守护触发时带上；单次运行为空 */
+  trigger?: 'cron' | 'watch'
+  /** 已请求优雅停止，仍等本轮触发跑完 */
+  isStopping?: boolean
 }
 
 interface CorexStore {
@@ -82,6 +94,8 @@ interface CorexStore {
   runs: CorexRun[]
   /** 指令名 → 上次「看过结果」的时刻；卡片上的未读圆点靠它算（跨会话留着） */
   seenAt: Record<string, number>
+  /** 守护刚开的一次运行：运行台拿去聚焦并展开 */
+  focusRunId: string | null
 
   initialize: () => Promise<void>
   /**
@@ -123,9 +137,19 @@ interface CorexStore {
   removeRun: (id: string) => void
   /** 清掉已结束的任务；还在跑的留着 —— 宿主没有叫停 corex 任务的手段 */
   clearRuns: () => void
+  /** 运行台已接住 focusRunId */
+  clearFocusRun: () => void
+  /**
+   * 强制停守护时收尾对应触发运行：进程可能已被干掉，不会再有 progress end 帧。
+   * `kind` 缺省则该指令下所有守护触发运行都收。
+   */
+  cancelTriggerRuns: (name: string, kind?: 'cron' | 'watch') => void
+  /** 优雅停止：标记「正在停止」，UI 与 CLI 的 STOP（非 force）对齐 */
+  markTriggerStopping: (name: string, kind?: 'cron' | 'watch') => void
 }
 
 let unsubscribeProgress: (() => void) | null = null
+let unsubscribeJobEvent: (() => void) | null = null
 let runSeq = 0
 
 /**
@@ -141,11 +165,26 @@ function bindProgress(onFrame: (frame: Parameters<Parameters<typeof itc.sidecar.
   unsubscribeProgress = itc.sidecar.onProgress(onFrame)
 }
 
+function bindJobEvent(
+  onEvent: (event: Parameters<Parameters<typeof itc.sidecar.onJobEvent>[0]>[0]) => void
+) {
+  if (unsubscribeJobEvent) {
+    unsubscribeJobEvent()
+    unsubscribeJobEvent = null
+  }
+  unsubscribeJobEvent = itc.sidecar.onJobEvent(onEvent)
+}
+
 if (import.meta.hot) {
   import.meta.hot.dispose(function () {
-    if (!unsubscribeProgress) return
-    unsubscribeProgress()
-    unsubscribeProgress = null
+    if (unsubscribeProgress) {
+      unsubscribeProgress()
+      unsubscribeProgress = null
+    }
+    if (unsubscribeJobEvent) {
+      unsubscribeJobEvent()
+      unsubscribeJobEvent = null
+    }
   })
 }
 
@@ -209,6 +248,23 @@ function commitRuns(runs: readonly CorexRun[]): { runs: CorexRun[] } {
   return { runs: kept }
 }
 
+/**
+ * 运行台按指令名复用一枚选项卡：同名已有则原地换成这次运行（id / 状态 / 帧）。
+ * 不拆不建，避免单次与 watch 交替时叠出两枚标签。
+ */
+function reuseSeat(runs: readonly CorexRun[], next: CorexRun): CorexRun[] {
+  registerRun(next.id)
+  const index = runs.findIndex(function (run) {
+    return run.name === next.name
+  })
+  if (index < 0) return [...runs, next]
+  const prev = runs[index]
+  if (prev.id !== next.id) dropRunFrames([prev.id])
+  const copied = [...runs]
+  copied[index] = next
+  return copied
+}
+
 export const useCorexStore = create<CorexStore>(function (setter, getter) {
   /**
    * 改一次运行的元数据。落笔前先把攒着的帧推进去：日志是把「帧 + 收尾」拼起来看的，
@@ -257,21 +313,89 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
     loadError: null,
     runs: [],
     seenAt: {},
+    focusRunId: null,
 
     async initialize() {
       if (getter().isLoaded || getter().isLoading) return
       setter({ isLoading: true })
 
-      // 每次初始化都重新绑：若上次失败留下了半截状态，或 HMR 拆掉了模块变量，都能收干净
-      bindProgress(function (frame) {
+      /** 单次 PROGRESS 与守护 JOB_EVENT.progress 共用 */
+      function applyProgressFrame(frame: CorexProgress) {
         appendRunFrame({ ...frame, receivedAt: new Date() })
-
         // 只有「一步走完」要惊动元数据；输出帧一个都不碰，列表便不跟着输出流重渲染
         if (frame.kind === 'step_end') {
           patchRun(frame.runId, function (run) {
             return { doneSteps: run.doneSteps + 1 }
           })
         }
+      }
+
+      function ensureTriggerRun(event: Extract<JobEvent, { phase: 'start' }>) {
+        const existing = getter().runs.find(function (run) {
+          return run.id === event.runId
+        })
+        if (existing) {
+          setter({ focusRunId: event.runId })
+          return
+        }
+        const occupied = getter().runs.find(function (run) {
+          return run.name === event.name && run.status === 'running' && !run.trigger
+        })
+        // 单次还在跑：只聚焦，不换 id、不丢帧（watch 仍在守护进程里跑）
+        if (occupied) {
+          setter({ focusRunId: occupied.id })
+          return
+        }
+        const run: CorexRun = {
+          id: event.runId,
+          name: event.name,
+          status: 'running',
+          startedAt: new Date(),
+          endedAt: null,
+          doneSteps: 0,
+          result: null,
+          error: null,
+          trigger: event.kind
+        }
+        setter({ ...commitRuns(reuseSeat(getter().runs, run)), focusRunId: event.runId })
+      }
+
+      function finishTriggerRun(event: Extract<JobEvent, { phase: 'end' }>) {
+        flushRunFrames()
+        unregisterRun(event.runId)
+        const current = getter().runs.find(function (run) {
+          return run.id === event.runId
+        })
+        if (!current || current.status !== 'running') return
+        patchRun(event.runId, {
+          status: event.ok ? 'ok' : 'failed',
+          endedAt: new Date(),
+          error: event.ok ? null : (event.error ?? '守护执行失败'),
+          result: event.ok ? {} : null,
+          isStopping: false
+        })
+      }
+
+      const JOB_PHASE: Record<JobEvent['phase'], (event: JobEvent) => void> = {
+        start(event) {
+          if (event.phase !== 'start') return
+          ensureTriggerRun(event)
+        },
+        progress(event) {
+          if (event.phase !== 'progress') return
+          applyProgressFrame({ ...event.progress, runId: event.runId })
+        },
+        end(event) {
+          if (event.phase !== 'end') return
+          finishTriggerRun(event)
+        }
+      }
+
+      // 每次初始化都重新绑：若上次失败留下了半截状态，或 HMR 拆掉了模块变量，都能收干净
+      bindProgress(applyProgressFrame)
+
+      bindJobEvent(function (event) {
+        JOB_PHASE[event.phase](event)
       })
 
       try {
@@ -340,23 +464,9 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
         toast.message(`「${name}」已在运行`, {
           description: '同一条指令同时只跑一次；跑完后再点即可重跑'
         })
+        setter({ focusRunId: alive.id })
         return alive.id
       }
-
-      // 同名已结束的那几次让位给新的 —— 模拟终端按指令名开选项卡，不是按每一次运行
-      const stale = current.filter(function (run) {
-        return run.name === name
-      })
-      if (stale.length > 0) {
-        dropRunFrames(
-          stale.map(function (run) {
-            return run.id
-          })
-        )
-      }
-      const others = current.filter(function (run) {
-        return run.name !== name
-      })
 
       const id = nextRunId()
       const run: CorexRun = {
@@ -370,8 +480,7 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
         error: null
       }
       // 先登记再落库：进度帧只认登记过的运行，编号也不会重用，登记绝不会晚于第一帧
-      registerRun(id)
-      setter(commitRuns([...others, run]))
+      setter({ ...commitRuns(reuseSeat(current, run)), focusRunId: id })
 
       void (async function () {
         try {
@@ -410,6 +519,41 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
         })
       )
       setter({ runs: alive })
+    },
+
+    clearFocusRun() {
+      setter({ focusRunId: null })
+    },
+
+    cancelTriggerRuns(name, kind) {
+      flushRunFrames()
+      const at = new Date()
+      const cancelled: string[] = []
+      const runs = getter().runs.map(function (run) {
+        if (run.name !== name || run.status !== 'running' || !run.trigger) return run
+        if (kind && run.trigger !== kind) return run
+        cancelled.push(run.id)
+        return {
+          ...run,
+          status: 'failed' as const,
+          endedAt: at,
+          error: '已强制终止',
+          result: null,
+          isStopping: false
+        }
+      })
+      cancelled.forEach(unregisterRun)
+      setter(commitRuns(runs))
+    },
+
+    markTriggerStopping(name, kind) {
+      const runs = getter().runs.map(function (run) {
+        if (run.name !== name || run.status !== 'running' || !run.trigger) return run
+        if (kind && run.trigger !== kind) return run
+        if (run.isStopping) return run
+        return { ...run, isStopping: true }
+      })
+      setter({ runs })
     }
   }
 })

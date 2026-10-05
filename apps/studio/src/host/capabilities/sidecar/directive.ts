@@ -85,7 +85,9 @@ function parseSummary(raw: unknown): DirectiveSummary | null {
     description: typeof doc.description === 'string' ? doc.description : '',
     step_count: toCount(doc.step_count),
     input_count: toCount(doc.input_count),
-    trigger_count: toCount(doc.trigger_count)
+    trigger_count: toCount(doc.trigger_count),
+    has_cron: doc.has_cron === true,
+    has_watch: doc.has_watch === true
   }
 }
 

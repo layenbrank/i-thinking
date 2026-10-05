@@ -80,6 +80,63 @@ const RunSchema = z.object({
   runId: RunIdSchema
 })
 
+const JobKindSchema = z.enum(['cron', 'watch'])
+
+/** 守护触发帧：起止与步骤同频道顺序推送，避免 PROGRESS / JOB_EVENT 竞态丢帧 */
+const JobEventSchema = z.discriminatedUnion('phase', [
+  z.object({
+    phase: z.literal('start'),
+    runId: RunIdSchema,
+    kind: JobKindSchema,
+    name: z.string().min(1)
+  }),
+  z.object({
+    phase: z.literal('progress'),
+    runId: RunIdSchema,
+    kind: JobKindSchema,
+    name: z.string().min(1),
+    progress: ProgressSchema.omit({ runId: true })
+  }),
+  z.object({
+    phase: z.literal('end'),
+    runId: RunIdSchema,
+    kind: JobKindSchema,
+    name: z.string().min(1),
+    ok: z.boolean(),
+    error: z.string().optional()
+  })
+])
+
+const JobViewSchema = z.object({
+  kind: JobKindSchema,
+  name: z.string(),
+  id: z.string(),
+  pid: z.number().int(),
+  is_alive: z.boolean(),
+  started_at_ms: z.number().optional(),
+  directive_path: z.string()
+})
+
+const JobsQuerySchema = z.object({
+  kind: JobKindSchema.optional()
+})
+
+const JobsReplySchema = z.object({
+  jobs: z.array(JobViewSchema)
+})
+
+const StartJobSchema = z.object({
+  kind: JobKindSchema,
+  name: z.string().min(1),
+  immediate: z.boolean().optional()
+})
+
+const StopJobSchema = z.object({
+  kind: JobKindSchema,
+  name: z.string().min(1),
+  force: z.boolean().optional()
+})
+
 const DirectiveNameSchema = z.object({ name: z.string().min(1) })
 
 /**
@@ -99,7 +156,10 @@ const DirectiveSummarySchema = z.object({
   description: z.string(),
   step_count: z.number().int(),
   input_count: z.number().int(),
-  trigger_count: z.number().int()
+  trigger_count: z.number().int(),
+  /** 旧 daemon 没有这两项时当 false */
+  has_cron: z.boolean().default(false),
+  has_watch: z.boolean().default(false)
 })
 
 /** 一次运行的结局：corex 账本里的一项 */
@@ -387,6 +447,9 @@ type DirectivePermissions = z.infer<typeof PermissionsSchema>
 type DirectiveInput = z.infer<typeof DirectiveInputSchema>
 type DirectiveRun = z.infer<typeof DirectiveRunSchema>
 type DirectiveSummary = z.infer<typeof DirectiveSummarySchema>
+type JobKind = z.infer<typeof JobKindSchema>
+type JobView = z.infer<typeof JobViewSchema>
+type JobEvent = z.infer<typeof JobEventSchema>
 
 export const sidecarSpecs = {
   [CHANNELS.SIDECAR.READ]: { in: z.void(), out: StatusSchema },
@@ -398,14 +461,21 @@ export const sidecarSpecs = {
   [CHANNELS.SIDECAR.IMPORT]: { in: ImportSchema, out: ImportResultSchema },
   [CHANNELS.SIDECAR.EDIT]: { in: DirectiveNameSchema, out: z.void() },
   [CHANNELS.SIDECAR.INVOKE]: { in: InvokeSchema, out: z.unknown() },
-  [CHANNELS.SIDECAR.RUN]: { in: RunSchema, out: z.unknown() }
+  [CHANNELS.SIDECAR.RUN]: { in: RunSchema, out: z.unknown() },
+  [CHANNELS.SIDECAR.JOBS]: { in: JobsQuerySchema, out: JobsReplySchema },
+  [CHANNELS.SIDECAR.START_JOB]: { in: StartJobSchema, out: JobViewSchema },
+  [CHANNELS.SIDECAR.STOP_JOB]: { in: StopJobSchema, out: JobViewSchema }
 } as const satisfies Record<
-  Exclude<ChannelOfDomain<'sidecar'>, typeof CHANNELS.SIDECAR.PROGRESS>,
+  Exclude<
+    ChannelOfDomain<'sidecar'>,
+    typeof CHANNELS.SIDECAR.PROGRESS | typeof CHANNELS.SIDECAR.JOB_EVENT
+  >,
   ChannelSpec
 >
 
 export const sidecarPushSpec = {
-  [CHANNELS.SIDECAR.PROGRESS]: { out: ProgressSchema }
+  [CHANNELS.SIDECAR.PROGRESS]: { out: ProgressSchema },
+  [CHANNELS.SIDECAR.JOB_EVENT]: { out: JobEventSchema }
 } as const
 
 export {
@@ -430,6 +500,7 @@ export {
   isValidDirectiveName,
   PermissionsSchema,
   ProgressSchema,
+  JobEventSchema,
   RunOutcomeSchema,
   StatusSchema,
   StepSchema,
@@ -452,6 +523,9 @@ export type {
   ImportEntry,
   ImportResult,
   ImportStatus,
+  JobEvent,
+  JobKind,
+  JobView,
   OnError,
   ParallelStep,
   RepeatStep,

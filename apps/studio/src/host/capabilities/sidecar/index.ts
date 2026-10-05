@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline'
 
 import type { CHANNELS } from '../../../shared/ipc/channels'
 import type { Out } from '../../../shared/ipc/specs'
-import type { DirectiveContent, ImportResult } from '../../../shared/ipc/specs/sidecar'
+import type { DirectiveContent, ImportResult, JobView } from '../../../shared/ipc/specs/sidecar'
 import { isValidDirectiveName } from '../../../shared/ipc/specs/sidecar'
 import type { Context } from '../../framework/context'
 import type { Logger } from '../../framework/logger'
@@ -19,6 +19,7 @@ import {
   resolveAuthToken,
   type CorexInstall
 } from './install'
+import { watchJobProgress } from './job-progress'
 
 const READY_TIMEOUT_MS = 15_000
 /** 静止多久算死：收到任何一帧（含 daemon 每两秒一帧的心跳）都重新计时 */
@@ -111,6 +112,8 @@ class CorexHost {
   private requestId = 1
   private endpoint = ''
   private startPromise: Promise<void> | null = null
+  /** 盯守护 progress.ndjson；stop / 断开时拆掉 */
+  private stopJobWatch: (() => void) | null = null
 
   constructor(logger: Logger) {
     this.logger = logger.child('corex')
@@ -203,6 +206,7 @@ class CorexHost {
     await this.waitUntilReady(probe === 'unauthorized')
     this.isReady = true
     await this.refreshActions()
+    this.beginJobWatch()
     this.logger.info('corex ready', {
       version: this.version,
       endpoint: this.endpoint,
@@ -210,6 +214,13 @@ class CorexHost {
       isBundled: this.isBundledInstall,
       actions: this.actions.length
     })
+  }
+
+  private beginJobWatch() {
+    this.stopJobWatch?.()
+    this.stopJobWatch = null
+    if (!this.dataDir) return
+    this.stopJobWatch = watchJobProgress(this.dataDir)
   }
 
   /** 执行单个 Action（如 capture.screenshot）。给 onProgress 则走 stream。 */
@@ -236,6 +247,31 @@ class CorexHost {
       { name, input, ...(onProgress ? { stream: true } : {}) },
       onProgress
     )
+  }
+
+  /** cron / watch 作业；`kind` 缺省则两族都要。 */
+  async fetchJobs(kind?: 'cron' | 'watch'): Promise<JobView[]> {
+    const data = await this.call('jobs', kind ? { kind } : {})
+    const doc = data && typeof data === 'object' ? (data as { jobs?: unknown }) : {}
+    return parseJobs(doc.jobs)
+  }
+
+  /** 按指令名拉起对应族的 supervisor。 */
+  async startJob(
+    kind: 'cron' | 'watch',
+    name: string,
+    options: { immediate?: boolean } = {}
+  ): Promise<JobView> {
+    return parseJobView(await this.call('start_job', { kind, name, ...options }))
+  }
+
+  /** 停止作业。 */
+  async stopJob(
+    kind: 'cron' | 'watch',
+    name: string,
+    options: { force?: boolean } = {}
+  ): Promise<JobView> {
+    return parseJobView(await this.call('stop_job', { kind, name, ...options }))
   }
 
   /**
@@ -559,6 +595,8 @@ class CorexHost {
   }
 
   private markDisconnected(reason: string): void {
+    this.stopJobWatch?.()
+    this.stopJobWatch = null
     this.isReady = false
     this.actions = []
     this.catalog = []
@@ -652,6 +690,31 @@ function findActionItems(data: unknown): unknown[] {
     return (data as { actions: unknown[] }).actions
   }
   return []
+}
+
+function parseJobView(raw: unknown): JobView {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('corex job 回话形状不对')
+  }
+  const doc = raw as Record<string, unknown>
+  const kind = doc.kind === 'watch' ? 'watch' : doc.kind === 'cron' ? 'cron' : null
+  if (!kind || typeof doc.name !== 'string' || typeof doc.id !== 'string') {
+    throw new Error('corex job 缺少 kind / name / id')
+  }
+  return {
+    kind,
+    name: doc.name,
+    id: doc.id,
+    pid: typeof doc.pid === 'number' ? doc.pid : 0,
+    is_alive: doc.is_alive === true,
+    started_at_ms: typeof doc.started_at_ms === 'number' ? doc.started_at_ms : undefined,
+    directive_path: typeof doc.directive_path === 'string' ? doc.directive_path : ''
+  }
+}
+
+function parseJobs(raw: unknown): JobView[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map(parseJobView)
 }
 
 function sleep(ms: number): Promise<void> {

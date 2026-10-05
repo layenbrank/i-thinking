@@ -58,6 +58,12 @@ function registerRun(id: string): void {
   liveRuns.add(id)
 }
 
+/** 只停收帧，保留已有日志（强制终止后不再吃迟到的 progress） */
+function unregisterRun(id: string): void {
+  liveRuns.delete(id)
+  if (pending) pending.delete(id)
+}
+
 /** 把攒着的帧一次落地；没攒着就什么都不做 */
 function flushRunFrames(): void {
   if (timer !== null) {
@@ -172,6 +178,7 @@ export {
   findRunFrames,
   flushRunFrames,
   registerRun,
+  unregisterRun,
   useRunFrames
 }
 export type { CorexFrame, CorexProgress, RunFrames }
