@@ -32,7 +32,6 @@ export default function Capture(props: Props) {
         size={props.size}
         direction={props.direction}
         shape={props.shape}
-        title={props.title}
       />
     </MagneticTile.Section>
   )

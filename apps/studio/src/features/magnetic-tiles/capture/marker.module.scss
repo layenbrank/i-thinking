@@ -1,7 +1,4 @@
 .marker {
-  flex-direction: column;
-  gap: 0.45em;
-
   &.lv1 {
     font-size: 0.7rem;
   }
@@ -26,14 +23,7 @@
   line-height: 1;
 
   :global(svg) {
-    width: 1.4em;
-    height: 1.4em;
+    width: 1.8em;
+    height: 1.8em;
   }
-}
-
-.name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

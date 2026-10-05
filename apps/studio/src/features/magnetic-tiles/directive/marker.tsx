@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/directive/marker.module.scss'
 
-type Props = Pick<MagneticTile, 'title'> & Omit<MarkerProps, 'children'>
+type Props = Omit<MarkerProps, 'children'>
 
 export default function Marker(props: Props) {
   return (
@@ -17,7 +17,6 @@ export default function Marker(props: Props) {
         aria-hidden="true">
         <Icon icon="lucide:zap" />
       </span>
-      <span className={styles.name}>{props.title}</span>
     </MagneticTile.Marker>
   )
 }

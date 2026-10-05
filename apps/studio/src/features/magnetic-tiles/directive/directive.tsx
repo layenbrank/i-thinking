@@ -31,7 +31,6 @@ export default function Directive(props: Props) {
         size={props.size}
         direction={props.direction}
         shape={props.shape}
-        title={props.title}
       />
     </MagneticTile.Section>
   )
