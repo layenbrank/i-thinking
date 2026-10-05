@@ -3,7 +3,9 @@
  * 调用方在不再需要时必须 revokeBlobUrl。
  */
 function buildBlobUrl(bytes: Uint8Array): string {
-  return URL.createObjectURL(new Blob([bytes], { type: 'image/png' }))
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return URL.createObjectURL(new Blob([copy.buffer], { type: 'image/png' }))
 }
 
 /** data URL → Blob URL；贴图路径：Konva 仍产出 data URL，显示侧立刻转 Blob 后可丢字符串 */
