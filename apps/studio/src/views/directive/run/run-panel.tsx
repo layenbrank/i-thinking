@@ -50,13 +50,14 @@ interface FocusProps {
   now: number
 }
 
-/** 选中的那条；没选中（或它已被清理）就退回最新一条 */
+/** 选中的那条；id 因席位复用对不上时，按指令名钉回同一枚 */
 function findFocus(runs: readonly CorexRun[], selectedId: string | null): CorexRun | null {
   if (runs.length === 0) return null
   const selected = runs.find(function (run) {
     return run.id === selectedId
   })
-  return selected ?? runs[runs.length - 1]
+  if (selected) return selected
+  return runs[runs.length - 1]
 }
 
 function FocusRun(props: FocusProps) {

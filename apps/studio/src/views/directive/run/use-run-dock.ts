@@ -1,9 +1,10 @@
 import { usePanelRef } from '@i-thinking/design/components/resizable'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { useCorexStore } from '@/stores/corex'
 
-import { RUN_MAX, findSplitterState, writeSplitterOpen } from '../splitter'
+import { RUN_MAX } from '../splitter'
+import { useRunDockStore } from './run-dock-store'
 import { indexStepCounts } from './run-status'
 
 /**
@@ -12,8 +13,11 @@ import { indexStepCounts } from './run-status'
  * 2. 同帧 `onResize` 再打一轮 setState，Directive 整页（含卡片墙）重渲染
  * 3. expand + resize 连续两次改 flex，墙面双重回流
  *
- * 对策：程序化开合静音 onResize；布局存档只在用户拖拽时写；展开一次 resize 到 MAX；
- * runPanel 引用稳定，避免无谓重渲染。
+ * 对策：程序化开合静音 onResize；布局存档只在用户拖拽时写；展开到 RUN_MAX。
+ * 小窗展开会被邻居 minSize 夹成更小占比，最大化后不会自动回到 RUN_MAX，
+ * 所以窗口 resize 时若仍钉在默认占比，再套一次。
+ *
+ * 开合 / 选中 tab 在 `run-dock-store`：卡片墙与编排台统一，默认收缩。
  */
 
 export function useRunDock() {
@@ -29,6 +33,22 @@ export function useRunDock() {
   const initialize = useCorexStore(function (state) {
     return state.initialize
   })
+  const focusRunId = useCorexStore(function (state) {
+    return state.focusRunId
+  })
+
+  const isRunOpen = useRunDockStore(function (state) {
+    return state.isRunOpen
+  })
+  const selectedRunId = useRunDockStore(function (state) {
+    return state.selectedRunId
+  })
+  const selectedName = useRunDockStore(function (state) {
+    return state.selectedName
+  })
+  const isLibraryOpen = useRunDockStore(function (state) {
+    return state.isLibraryOpen
+  })
 
   useEffect(
     function () {
@@ -38,25 +58,19 @@ export function useRunDock() {
   )
 
   const runRef = usePanelRef()
-  const [initial] = useState(findSplitterState)
-  const [isRunOpen, updateRunOpen] = useState(initial.isRunOpen)
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
-  const [isLibraryOpen, updateLibraryOpen] = useState(false)
-
-  const openRef = useRef(initial.isRunOpen)
   /** 程序化开合期间忽略 onResize，避免套娃 setState */
   const muteResizeRef = useRef(false)
+  /**
+   * 展开后钉在 `RUN_MAX`：小窗被夹过的占比，窗口变大时再套回上限。
+   * 用户拖过分栏后松开，改跟用户占比走。
+   */
+  const pinToMaxRef = useRef(true)
+  const openRef = useRef(isRunOpen)
+  openRef.current = isRunOpen
 
-  function persistOpen(next: boolean) {
-    globalThis.queueMicrotask(function () {
-      writeSplitterOpen({ isRunOpen: next })
-    })
-  }
-
-  const setRunOpen = useCallback(function (next: boolean) {
+  const writeRunOpen = useCallback(function (next: boolean) {
     openRef.current = next
-    updateRunOpen(next)
-    persistOpen(next)
+    useRunDockStore.getState().writeRunOpen(next)
   }, [])
 
   function withMutedResize(task: () => void) {
@@ -73,8 +87,8 @@ export function useRunDock() {
   function expandPanel() {
     const panel = runRef.current
     if (!panel) return
+    pinToMaxRef.current = true
     withMutedResize(function () {
-      // 一次到位：从收起直接拉到可用最大高度，避免 expand 再 resize 双回流
       panel.resize(RUN_MAX)
     })
   }
@@ -82,12 +96,64 @@ export function useRunDock() {
   function collapsePanel() {
     const panel = runRef.current
     if (!panel) return
+    pinToMaxRef.current = true
     withMutedResize(function () {
       panel.collapse()
     })
   }
 
-  // 挂载后按存档对齐一次
+  function applyPinnedMax() {
+    if (!openRef.current || !pinToMaxRef.current) return
+    const panel = runRef.current
+    if (!panel || panel.isCollapsed()) return
+    withMutedResize(function () {
+      panel.resize(RUN_MAX)
+    })
+  }
+
+  /** 分栏回流完成后再挂台体，避免同帧「改 flex + 挂 Chips/Output」抢主线程 */
+  function openAfterResize() {
+    globalThis.requestAnimationFrame(function () {
+      writeRunOpen(true)
+    })
+  }
+
+  // 守护触发：自动展开运行台并盯住这次输出
+  useEffect(
+    function () {
+      if (!focusRunId) return
+      const focused = useCorexStore.getState().runs.find(function (run) {
+        return run.id === focusRunId
+      })
+      useRunDockStore.getState().selectRun(focusRunId, focused?.name ?? null)
+      if (!openRef.current) {
+        expandPanel()
+        openAfterResize()
+      }
+      useCorexStore.getState().clearFocusRun()
+    },
+    [focusRunId, writeRunOpen]
+  )
+
+  // 席位复用换了 id：按指令名把选中钉回同一枚标签
+  useEffect(
+    function () {
+      if (runs.some(function (run) {
+        return run.id === selectedRunId
+      })) {
+        return
+      }
+      const byName = selectedName
+        ? runs.find(function (run) {
+            return run.name === selectedName
+          })
+        : null
+      if (byName) useRunDockStore.getState().selectRun(byName.id, byName.name)
+    },
+    [runs, selectedRunId, selectedName]
+  )
+
+  // 挂载后按共享态对齐一次
   useEffect(
     function () {
       if (openRef.current) expandPanel()
@@ -105,17 +171,25 @@ export function useRunDock() {
     [isRunOpen, runRef]
   )
 
-  /** 分栏回流完成后再挂台体，避免同帧「改 flex + 挂 Chips/Output」抢主线程 */
-  function openAfterResize() {
-    globalThis.requestAnimationFrame(function () {
-      setRunOpen(true)
-    })
-  }
+  // 窗口最大化 / 缩放：把被小窗夹住的占比重新套回 RUN_MAX
+  useEffect(
+    function () {
+      function onWindowResize() {
+        applyPinnedMax()
+      }
+      window.addEventListener('resize', onWindowResize)
+      return function () {
+        window.removeEventListener('resize', onWindowResize)
+      }
+    },
+    [runRef]
+  )
 
   const startRun = useCallback(
     function (name: string, input: Record<string, unknown>) {
       markSeen(name)
-      setSelectedRunId(useCorexStore.getState().startRun(name, input))
+      const id = useCorexStore.getState().startRun(name, input)
+      useRunDockStore.getState().selectRun(id, name)
       // 点卡片「运行」只起任务，不掀开模拟终端；要看输出时用户自己展开标题栏
     },
     [markSeen]
@@ -131,32 +205,54 @@ export function useRunDock() {
   const toggleRun = useCallback(
     function () {
       if (openRef.current) {
-        setRunOpen(false)
+        writeRunOpen(false)
         return
       }
       expandPanel()
       openAfterResize()
     },
-    [setRunOpen]
+    [writeRunOpen]
   )
 
-  const onRunResize = useCallback(function () {
-    if (muteResizeRef.current) return
-    const nextOpen = !(runRef.current?.isCollapsed() ?? false)
-    if (nextOpen === openRef.current) return
-    setRunOpen(nextOpen)
-  }, [setRunOpen, runRef])
+  const onRunResize = useCallback(
+    function () {
+      if (muteResizeRef.current) return
+      const nextOpen = !(runRef.current?.isCollapsed() ?? false)
+      if (nextOpen === openRef.current) return
+      writeRunOpen(nextOpen)
+    },
+    [writeRunOpen, runRef]
+  )
 
   const onRemove = useCallback(function (id: string) {
     useCorexStore.getState().removeRun(id)
-    setSelectedRunId(function (selected) {
-      return selected === id ? null : selected
-    })
+    const store = useRunDockStore.getState()
+    if (store.selectedRunId === id) store.selectRun(null)
   }, [])
 
   const onClear = useCallback(function () {
     useCorexStore.getState().clearRuns()
-    setSelectedRunId(null)
+    useRunDockStore.getState().selectRun(null)
+  }, [])
+
+  const selectRun = useCallback(
+    function (id: string | null) {
+      const name = id
+        ? useCorexStore.getState().runs.find(function (run) {
+            return run.id === id
+          })?.name ?? null
+        : null
+      useRunDockStore.getState().selectRun(id, name)
+    },
+    []
+  )
+
+  const updateLibraryOpen = useCallback(function (next: boolean) {
+    useRunDockStore.getState().writeLibraryOpen(next)
+  }, [])
+
+  const releaseRunSizePin = useCallback(function () {
+    pinToMaxRef.current = false
   }, [])
 
   const stepCounts = useMemo(
@@ -172,13 +268,13 @@ export function useRunDock() {
         isCollapsed: !isRunOpen,
         selectedId: selectedRunId,
         onToggle: toggleRun,
-        onSelect: setSelectedRunId,
+        onSelect: selectRun,
         onVisible: markSeen,
         onRemove,
         onClear
       }
     },
-    [isRunOpen, selectedRunId, toggleRun, markSeen, onRemove, onClear]
+    [isRunOpen, selectedRunId, toggleRun, selectRun, markSeen, onRemove, onClear]
   )
 
   return {
@@ -191,7 +287,8 @@ export function useRunDock() {
     quickRun,
     onRunResize,
     isLibraryOpen,
-    updateLibraryOpen
+    updateLibraryOpen,
+    releaseRunSizePin
   }
 }
 

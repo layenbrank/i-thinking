@@ -24,6 +24,7 @@ import {
   STACK_GROUP_ID,
   WORKSPACE_ID,
   WORKSPACE_MIN,
+  alignRunLayout,
   findSplitterState,
   writeSplitterLayout,
   writeSplitterOpen
@@ -80,6 +81,13 @@ export default function DirectiveWorkspace() {
     [navigate]
   )
 
+  const handleToggleList = useCallback(
+    function () {
+      setListOpen(!isListOpen)
+    },
+    [isListOpen, setListOpen]
+  )
+
   function handleListResize() {
     const nextOpen = !(listRef.current?.isCollapsed() ?? false)
     if (nextOpen === isListOpen) return
@@ -131,14 +139,15 @@ export default function DirectiveWorkspace() {
         <ResizablePanel
           id={WORKSPACE_ID}
           minSize={WORKSPACE_MIN}
-          className="min-h-0 min-w-0">
+          className="flex h-full min-h-0 min-w-0 flex-col">
           <ResizablePanelGroup
             id={STACK_GROUP_ID}
             orientation="vertical"
-            className="min-h-0"
-            defaultLayout={initial.layouts[STACK_GROUP_ID]}
+            className="min-h-0 h-full flex-1"
+            defaultLayout={alignRunLayout(initial.layouts[STACK_GROUP_ID], dock.isRunOpen)}
             onLayoutChanged={function (layout, meta) {
               if (!meta.isUserInteraction) return
+              dock.releaseRunSizePin()
               writeSplitterLayout(STACK_GROUP_ID, layout)
             }}>
             <ResizablePanel
@@ -149,9 +158,7 @@ export default function DirectiveWorkspace() {
                 name={name}
                 isListOpen={isListOpen}
                 onOpen={handleOpen}
-                onToggleList={function () {
-                  setListOpen(!isListOpen)
-                }}
+                onToggleList={handleToggleList}
                 onRun={dock.startRun}
               />
             </ResizablePanel>

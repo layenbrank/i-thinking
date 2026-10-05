@@ -20,7 +20,9 @@ import {
 } from '@i-thinking/design/components/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { cn } from 'cn'
-import { useState, type ReactNode } from 'react'
+import { memo, useState, type ReactNode } from 'react'
+
+import { toast } from 'sonner'
 
 import type { CorexAction } from '@/stores/corex'
 
@@ -43,9 +45,9 @@ import {
   CONTROL_KINDS,
   STEP_KINDS,
   buildControlStep,
-  cloneStep,
-  moveStep,
+  childStepsOf,
   nextStepId,
+  nextToken,
   switchStepKind,
   type ControlKind,
   type StepKind
@@ -88,12 +90,13 @@ function findAction(catalog: CorexAction[], id: string | undefined): CorexAction
  * 逐步把步骤骨架拼出来。
  *
  * id 由调用方给：新增步骤时用 `nextStepId` 推一个不撞车的；换动作时沿用原 id ——
- * id 是用户可能改过的东西，换个动作不该顺带把它改掉。
+ * id 是用户可能改过的别名，换个动作不该顺带把它改掉。token 同样沿用，免得列表卸掉这张卡。
  */
-function buildStep(action: CorexAction, id: string): Step {
+function buildStep(action: CorexAction, id: string, token?: string): Step {
   const params = createDefaultValues(action.params)
   return {
     id,
+    token: token ?? nextToken(),
     action: action.id,
     ...(Object.keys(params).length > 0 ? { params } : {})
   }
@@ -143,7 +146,7 @@ function KindSelect(props: KindSelectProps) {
       }}>
       <SelectTrigger
         size="sm"
-        className="w-28 shrink-0"
+        className="w-28 shrink-0 cursor-pointer"
         aria-label="条件类型">
         <SelectValue />
       </SelectTrigger>
@@ -318,11 +321,15 @@ function ConditionNode(props: ConditionNodeProps) {
  */
 function toKind(step: Step, kind: StepKind, catalog: CorexAction[]): Step {
   if (kind !== 'action') return switchStepKind(step, kind)
+  if (childStepsOf(step).length > 0) {
+    toast.error('换成动作会丢掉子步骤', { description: '先改成顺序块，或把子步骤挪走再换。' })
+    return step
+  }
   const action = catalog[0]
   // 目录空着时就没什么可选的动作，保持原样好过造一个空 action
   if (!action) return step
-  // 顺序块的 id 是可选的：没写就现推一个，别把空 id 塞进 React key
-  return buildStep(action, step.id ?? nextStepId(action.id, []))
+  // 顺序块的 id 是可选的：没写就现推一个 YAML 名；列表身份沿用原 token
+  return buildStep(action, step.id ?? nextStepId(action.id, []), step.token)
 }
 
 interface AddStepButtonProps {
@@ -480,6 +487,10 @@ interface ChildStepsProps {
   steps: Step[]
   catalog: CorexAction[]
   onChange: (steps: Step[]) => void
+  onStepChange: (next: Step) => void
+  onRemove: (token: string) => void
+  onDuplicate: (token: string) => void
+  onMove: (token: string, delta: number) => void
   /** 给分支加一个「收进顺序块」：parallel 的分支只吃一个步骤，两步的分支得先包起来 */
   onWrap?: (index: number) => void
 }
@@ -494,46 +505,19 @@ function ChildSteps(props: ChildStepsProps) {
         const canWrap = wrap !== undefined && !('steps' in child)
         return (
           <StepNode
-            key={child.id || index}
+            key={child.token ?? `step-${index}`}
             step={child}
             catalog={props.catalog}
-            onChange={function (next) {
-              props.onChange(
-                props.steps.map(function (item, i) {
-                  return i === index ? next : item
-                })
-              )
-            }}
-            onRemove={function () {
-              props.onChange(
-                props.steps.filter(function (_, i) {
-                  return i !== index
-                })
-              )
-            }}
-            onDuplicate={function () {
-              const next = [...props.steps]
-              next.splice(index + 1, 0, cloneStep(child))
-              props.onChange(next)
-            }}
+            index={index}
+            count={props.steps.length}
+            onChange={props.onStepChange}
+            onRemove={props.onRemove}
+            onDuplicate={props.onDuplicate}
+            onMove={props.onMove}
             onWrapSteps={
               canWrap
                 ? function () {
                     wrap(index)
-                  }
-                : undefined
-            }
-            onMoveUp={
-              index > 0
-                ? function () {
-                    props.onChange(moveStep(props.steps, index, index - 1))
-                  }
-                : undefined
-            }
-            onMoveDown={
-              index < props.steps.length - 1
-                ? function () {
-                    props.onChange(moveStep(props.steps, index, index + 1))
                   }
                 : undefined
             }
@@ -621,7 +605,7 @@ function StepHeader(props: StepHeaderProps) {
           <SelectTrigger
             size="sm"
             aria-label="切换步骤类型"
-            className="h-5 w-fit gap-1 border-transparent bg-secondary px-1.5 text-[11px] font-normal text-secondary-foreground shadow-none [&_svg]:size-3">
+            className="h-5 w-fit cursor-pointer gap-1 border-transparent bg-secondary px-1.5 text-[11px] font-normal text-secondary-foreground shadow-none hover:bg-secondary/80 [&_svg]:size-3">
             <SelectValue />
           </SelectTrigger>
           <SelectContent position="popper">
@@ -685,6 +669,13 @@ function StepHeader(props: StepHeaderProps) {
   )
 }
 
+interface StepTreeOps {
+  onChange: (next: Step) => void
+  onRemove: (token: string) => void
+  onDuplicate: (token: string) => void
+  onMove: (token: string, delta: number) => void
+}
+
 interface StepOps {
   onDuplicate?: () => void
   onMoveUp?: () => void
@@ -693,6 +684,8 @@ interface StepOps {
   onKindChange: (kind: StepKind) => void
   /** 把这一条收进顺序块（并行分支只吃一个步骤时用得着） */
   onWrapSteps?: () => void
+  /** 整棵步骤树的 token 操作，子步骤列表直接沿用，避免按 index 闭包 */
+  tree: StepTreeOps
 }
 
 interface ActionSelectProps {
@@ -712,7 +705,7 @@ function ActionSelect(props: ActionSelectProps) {
       }}>
       <SelectTrigger
         size="sm"
-        className="h-6 max-w-52 border-transparent bg-transparent px-1 text-sm font-semibold shadow-none"
+        className="h-6 max-w-52 cursor-pointer border-transparent bg-transparent px-1 text-sm font-semibold shadow-none hover:bg-accent"
         aria-label="切换动作">
         <SelectValue />
       </SelectTrigger>
@@ -765,7 +758,7 @@ function ActionStepCard(props: ActionStepCardProps) {
             value={step.action}
             catalog={catalog}
             onChange={function (next) {
-              props.onChange(buildStep(next, step.id))
+              props.onChange(buildStep(next, step.id, step.token))
             }}
           />
         }
@@ -852,10 +845,10 @@ function ActionStepCard(props: ActionStepCardProps) {
                   placeholder="0"
                   onChange={function (event) {
                     const raw = event.target.value
-                    props.onChange({
-                      ...step,
-                      ...(raw === '' ? {} : { retry: Number(raw) })
-                    })
+                    const next = { ...step }
+                    if (raw === '') delete next.retry
+                    else next.retry = Number(raw)
+                    props.onChange(next)
                   }}
                 />
               </Field>
@@ -915,6 +908,10 @@ function IfStepCard(props: IfStepCardProps) {
           <ChildSteps
             steps={step.then}
             catalog={catalog}
+            onStepChange={props.tree.onChange}
+            onRemove={props.tree.onRemove}
+            onDuplicate={props.tree.onDuplicate}
+            onMove={props.tree.onMove}
             onChange={function (next) {
               props.onChange({ ...step, then: next })
             }}
@@ -928,6 +925,10 @@ function IfStepCard(props: IfStepCardProps) {
           <ChildSteps
             steps={step.else ?? []}
             catalog={catalog}
+            onStepChange={props.tree.onChange}
+            onRemove={props.tree.onRemove}
+            onDuplicate={props.tree.onDuplicate}
+            onMove={props.tree.onMove}
             onChange={function (next) {
               props.onChange({ ...step, else: next })
             }}
@@ -1001,10 +1002,10 @@ function RepeatStepCard(props: RepeatStepCardProps) {
                 disabled={hasEach}
                 onChange={function (event) {
                   const raw = event.target.value
-                  props.onChange({
-                    ...step,
-                    repeat: { ...step.repeat, ...(raw === '' ? {} : { count: Number(raw) }) }
-                  })
+                  const repeat = { ...step.repeat }
+                  if (raw === '') delete repeat.count
+                  else repeat.count = Number(raw)
+                  props.onChange({ ...step, repeat })
                 }}
               />
             </Field>
@@ -1037,10 +1038,10 @@ function RepeatStepCard(props: RepeatStepCardProps) {
                 placeholder="1（串行）"
                 onChange={function (event) {
                   const raw = event.target.value
-                  props.onChange({
-                    ...step,
-                    ...(raw === '' ? {} : { max_concurrency: Number(raw) })
-                  })
+                  const next = { ...step }
+                  if (raw === '') delete next.max_concurrency
+                  else next.max_concurrency = Number(raw)
+                  props.onChange(next)
                 }}
               />
             </Field>
@@ -1049,6 +1050,10 @@ function RepeatStepCard(props: RepeatStepCardProps) {
         <ChildSteps
           steps={step.steps}
           catalog={catalog}
+          onStepChange={props.tree.onChange}
+          onRemove={props.tree.onRemove}
+          onDuplicate={props.tree.onDuplicate}
+          onMove={props.tree.onMove}
           onChange={function (next) {
             props.onChange({ ...step, steps: next })
           }}
@@ -1096,25 +1101,31 @@ function ParallelStepCard(props: ParallelStepCardProps) {
             placeholder="默认 8"
             onChange={function (event) {
               const raw = event.target.value
-              props.onChange({
-                ...step,
-                ...(raw === '' ? {} : { max_concurrency: Number(raw) })
-              })
+              const next = { ...step }
+              if (raw === '') delete next.max_concurrency
+              else next.max_concurrency = Number(raw)
+              props.onChange(next)
             }}
           />
         </Field>
         <ChildSteps
           steps={step.parallel}
           catalog={catalog}
+          onStepChange={props.tree.onChange}
+          onRemove={props.tree.onRemove}
+          onDuplicate={props.tree.onDuplicate}
+          onMove={props.tree.onMove}
           onChange={function (next) {
             props.onChange({ ...step, parallel: next })
           }}
           onWrap={function (index) {
             const next = [...step.parallel]
-            next[index] = {
+            const wrapped: Step = {
               id: nextStepId('steps', step.parallel),
+              token: nextToken(),
               steps: [next[index]]
             }
+            next[index] = wrapped
             props.onChange({ ...step, parallel: next })
           }}
         />
@@ -1155,6 +1166,10 @@ function StepsStepCard(props: StepsStepCardProps) {
         <ChildSteps
           steps={step.steps}
           catalog={catalog}
+          onStepChange={props.tree.onChange}
+          onRemove={props.tree.onRemove}
+          onDuplicate={props.tree.onDuplicate}
+          onMove={props.tree.onMove}
           onChange={function (next) {
             props.onChange({ ...step, steps: next })
           }}
@@ -1167,27 +1182,55 @@ function StepsStepCard(props: StepsStepCardProps) {
 interface StepNodeProps {
   step: Step
   catalog: CorexAction[]
+  index: number
+  count: number
   onChange: (next: Step) => void
-  onRemove: () => void
-  onDuplicate?: () => void
-  onMoveUp?: () => void
-  onMoveDown?: () => void
+  onRemove: (token: string) => void
+  onDuplicate: (token: string) => void
+  onMove: (token: string, delta: number) => void
   /** 只有并行分支会传：把这一条包进顺序块（一个分支只吃一个步骤） */
   onWrapSteps?: () => void
 }
 
 function StepNode(props: StepNodeProps) {
+  const token = props.step.token
   const shared = {
     catalog: props.catalog,
     onChange: props.onChange,
-    onRemove: props.onRemove,
+    onRemove: function () {
+      if (token) props.onRemove(token)
+    },
     onKindChange: function (kind: StepKind) {
       const rebuilt = toKind(props.step, kind, props.catalog)
       if (rebuilt !== props.step) props.onChange(rebuilt)
     },
-    ...(props.onDuplicate ? { onDuplicate: props.onDuplicate } : {}),
-    ...(props.onMoveUp ? { onMoveUp: props.onMoveUp } : {}),
-    ...(props.onMoveDown ? { onMoveDown: props.onMoveDown } : {}),
+    tree: {
+      onChange: props.onChange,
+      onRemove: props.onRemove,
+      onDuplicate: props.onDuplicate,
+      onMove: props.onMove
+    },
+    ...(token
+      ? {
+          onDuplicate: function () {
+            props.onDuplicate(token)
+          }
+        }
+      : {}),
+    ...(token && props.index > 0
+      ? {
+          onMoveUp: function () {
+            props.onMove(token, -1)
+          }
+        }
+      : {}),
+    ...(token && props.index < props.count - 1
+      ? {
+          onMoveDown: function () {
+            props.onMove(token, 1)
+          }
+        }
+      : {}),
     ...(props.onWrapSteps ? { onWrapSteps: props.onWrapSteps } : {})
   }
 
@@ -1231,5 +1274,5 @@ function StepNode(props: StepNodeProps) {
   )
 }
 
-export default StepNode
+export default memo(StepNode)
 export { AddStepButton }

@@ -34,7 +34,8 @@ import { useWallCols } from './use-wall-cols'
 /** 超过这么多才启用可见区门闩；小组直接流式即可 */
 const VIEWPORT_GATE_MIN = 8
 const WALL_CHUNK = 12
-const WALL_GRID = 'grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+/** lg 起三列：~1100 宽窗口不再两列撑满；与 findWallCols 同步 */
+const WALL_GRID = 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
 
 interface Props {
   /** 与运行台共用同一份步骤数，别各自算一遍 */

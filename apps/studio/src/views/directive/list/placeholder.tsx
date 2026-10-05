@@ -66,7 +66,7 @@ function LoadingSkeleton(props: { isCompact?: boolean }) {
   }
 
   return (
-    <div className="grid w-full gap-3.5 pt-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="grid w-full gap-3 pt-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {Array.from({ length: 8 }, function (_, i) {
         return (
           <Skeleton

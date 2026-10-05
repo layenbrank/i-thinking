@@ -7,16 +7,16 @@
 
 const CARD_SIZE = {
   wall: {
-    /** 左右分区：左内容 + 右状态/运行，略矮于旧纵向堆叠 */
-    minHeight: 132,
-    className: 'min-h-[132px]',
-    /** 与 WALL_GRID 的 gap-3.5 一致 */
-    gap: 14,
+    /** 单列流：顶行名称+状态，底行元信息+图标动作 */
+    minHeight: 112,
+    className: 'min-h-[112px]',
+    /** 与 WALL_GRID 的 gap-3 一致 */
+    gap: 12,
     /** group-section wall body 的 pt-3 */
     bodyPad: 12,
     /** minHeight + gap，单行滚动估高 */
-    row: 146,
-    intrinsic: 'auto_132px'
+    row: 124,
+    intrinsic: 'auto_112px'
   },
   rail: {
     minHeight: 84,
@@ -39,10 +39,10 @@ const CARD_SIZE = {
 
 type CardSizeVariant = keyof typeof CARD_SIZE
 
-/** 对齐 Tailwind：sm=2 / xl=3 / 2xl=4（与墙面网格一致） */
+/** 对齐 Tailwind：sm=2 / lg=3 / 2xl=4（与墙面网格一致） */
 function findWallCols(width: number): number {
   if (width >= 1536) return 4
-  if (width >= 1280) return 3
+  if (width >= 1024) return 3
   if (width >= 640) return 2
   return 1
 }

@@ -14,6 +14,7 @@ import {
   WALL_GROUP_ID,
   WALL_ID,
   WALL_MIN,
+  alignRunLayout,
   findSplitterState,
   writeSplitterLayout
 } from '@/views/directive/splitter'
@@ -49,10 +50,11 @@ export default function Directive() {
         id={WALL_GROUP_ID}
         orientation="vertical"
         className="min-h-0 flex-1"
-        defaultLayout={initial.layouts[WALL_GROUP_ID]}
+        defaultLayout={alignRunLayout(initial.layouts[WALL_GROUP_ID], dock.isRunOpen)}
         onLayoutChanged={function (layout, meta) {
           // 程序化 expand/collapse 也会改 layout；只在用户拖拽时落盘，避免开合同步打 localStorage
           if (!meta.isUserInteraction) return
+          dock.releaseRunSizePin()
           writeSplitterLayout(WALL_GROUP_ID, layout)
         }}>
         <ResizablePanel

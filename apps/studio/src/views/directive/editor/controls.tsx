@@ -1,4 +1,6 @@
+import { Input } from '@i-thinking/design/components/input'
 import { Label } from '@i-thinking/design/components/label'
+import { Textarea } from '@i-thinking/design/components/textarea'
 import {
   Tooltip,
   TooltipContent,
@@ -7,17 +9,17 @@ import {
 } from '@i-thinking/design/components/tooltip'
 import { Icon } from '@iconify/react/offline'
 import { cn } from 'cn'
-import { useState, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useId, useState, type ReactElement, type ReactNode } from 'react'
 
 /** 侧栏与步骤表单共用的紧凑控件：白底前景字，避免透明叠灰底像禁用 */
 const CONTROL_CLASS = 'h-8 rounded-lg bg-background text-xs text-foreground shadow-xs'
 
 /**
- * 多行输入：固定最小高度，超出丝滑滚动。
+ * 多行输入：固定最小高度，内容超出时在框内滚。
  * `field-sizing-fixed` 关掉 content 自适应，避免长文本把整卡撑爆。
  */
 const TEXTAREA_CLASS =
-  'field-sizing-fixed min-h-[150px] resize-none scroll-smooth overflow-y-auto overscroll-y-contain rounded-lg bg-background text-xs text-foreground shadow-xs'
+  'field-sizing-fixed min-h-[150px] resize-none overflow-y-auto overscroll-auto rounded-lg bg-background text-xs text-foreground shadow-xs'
 
 /** 步骤卡片外壳：与指令墙白卡同一套圆角 / 轻阴影 */
 const STEP_CARD_CLASS =
@@ -121,21 +123,37 @@ function ItemCardActionRow(props: ItemCardActionRowProps) {
 }
 
 function Field(props: FieldProps) {
+  const fallbackId = useId()
+  const child = props.children
+  const canBind =
+    isValidElement(child) && (child.type === Input || child.type === Textarea || typeof child.type === 'string')
+  const hasId = canBind ? (child.props as { id?: string }).id : undefined
+  const controlId = hasId ?? fallbackId
+  const control = canBind
+    ? cloneElement(child as ReactElement<{ id?: string }>, { id: controlId })
+    : child
+
   return (
     <div className={cn('flex min-w-0 flex-col gap-1', props.className)}>
-      <Label className="flex w-full flex-col items-stretch gap-1 text-[11px] font-medium tracking-wide text-foreground">
-        <span className="inline-flex h-4 min-w-0 items-center gap-1 leading-none">
-          <span className="truncate">{props.label}</span>
-          {props.required ? <span className="text-destructive">*</span> : null}
-          {props.hint ? (
-            <HintTooltip
-              hint={props.hint}
-              label={`${props.label} 说明`}
-            />
-          ) : null}
-        </span>
-        {props.children}
-      </Label>
+      <span className="inline-flex h-4 min-w-0 items-center gap-1 text-[11px] font-medium tracking-wide text-foreground">
+        {canBind ? (
+          <Label
+            htmlFor={controlId}
+            className="truncate leading-none">
+            {props.label}
+          </Label>
+        ) : (
+          <span className="truncate leading-none">{props.label}</span>
+        )}
+        {props.required ? <span className="text-destructive">*</span> : null}
+        {props.hint ? (
+          <HintTooltip
+            hint={props.hint}
+            label={`${props.label} 说明`}
+          />
+        ) : null}
+      </span>
+      {control}
     </div>
   )
 }

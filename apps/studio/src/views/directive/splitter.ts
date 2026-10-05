@@ -5,7 +5,8 @@
  * 上下叠；卡片墙（`directive.tsx`）只用其中的运行台一项，铺成「墙 / 运行台」。夹取、吸附、收起交给
  * `react-resizable-panels`；这里只管库不管的事 —— 默认尺寸、记住上次拖到哪、两侧栏的开合。
  *
- * 数字单位是像素（无单位的字符串才是百分比）。面板 id 参与存档的键，必须与用它的页面一致。
+ * Panel 尺寸：数字 = 像素，无单位字符串 / `"N%"` = 百分比。
+ * Group `defaultLayout` 里的数字是库给出的占比（0..100）。面板 id 参与存档键，须与页面一致。
  */
 
 const STORAGE_KEY = 'studio.directive.splitter'
@@ -33,15 +34,20 @@ const LIST_MAX = 440
 /** 工作区的最小宽度：再窄编辑器就摆不下元信息 + 步骤两栏 */
 const WORKSPACE_MIN = 560
 
-/** 卡片墙的最小高度：留够两三行卡片，拖到底也不至于被运行台吃光 */
-const WALL_MIN = 560
+/**
+ * 上方面板（卡片墙 / 编辑器）最小高度。不宜过大：窗口化时若把运行台挤到有效上限，
+ * 占比会被库夹小，最大化后仍按被夹过的比例走，看起来就不在 `RUN_MAX`。
+ */
+const WALL_MIN = 280
+const EDITOR_MIN = WALL_MIN
 
-/** 编辑器与运行台的最小高度 */
-const EDITOR_MIN = 280
-
-const RUN_SIZE = 240
+/** 运行台最小高度（像素） */
 const RUN_MIN = 160
-const RUN_MAX = 460
+/**
+ * 展开默认 = 拖动上限，父组百分比。窗口变大时必须再 `resize` 一次，
+ * 否则小窗被夹过的占比会一直保留，最大化后还能往上拖。
+ */
+const RUN_MAX = '35%'
 
 /** 运行台收起后只剩标题栏，高度必须与标题栏（`h-12` = 48px）一致才对得上 */
 const RUN_COLLAPSED = 48
@@ -53,7 +59,8 @@ const META_MAX = 480
 const STEPS_MIN = 360
 
 const LIST_OPEN = true
-const RUN_OPEN = true
+/** 卡片墙 / 编排台运行台默认收缩，只露标题栏 */
+const RUN_OPEN = false
 
 /** 库的 `Layout` 是「面板 id → flexGrow」，我们不解释它，原样存回去 */
 type SplitterLayout = Record<string, number>
@@ -157,6 +164,27 @@ function writeSplitterOpen(open: Partial<SplitterOpen>): void {
   writeSplitterState({ ...findSplitterState(), ...open })
 }
 
+/**
+ * 运行台收起时，存档里的占比仍可能是上次展开高度。
+ * 首帧若原样喂给 Group，会先撑开再 collapse，且 onResize 可能把 isRunOpen 又掰开。
+ * 收起态去掉运行台那一项，交给 `collapsedSize`（像素）+ `collapse()`。
+ * 展开态一律写成 `RUN_MAX`：卡片墙与编排台各存各的组，不能沿用旧像素时代的占比。
+ */
+function alignRunLayout(
+  layout: SplitterLayout | undefined,
+  isRunOpen: boolean
+): SplitterLayout | undefined {
+  const runPercent = Number.parseFloat(RUN_MAX)
+  if (!isRunOpen) {
+    if (!layout) return undefined
+    const next = { ...layout }
+    delete next[RUN_ID]
+    return Object.keys(next).length > 0 ? next : undefined
+  }
+  if (!layout) return { [RUN_ID]: runPercent }
+  return { ...layout, [RUN_ID]: runPercent }
+}
+
 export {
   EDITOR_ID,
   EDITOR_MIN,
@@ -174,7 +202,6 @@ export {
   RUN_ID,
   RUN_MAX,
   RUN_MIN,
-  RUN_SIZE,
   STACK_GROUP_ID,
   STEPS_ID,
   STEPS_MIN,
@@ -183,6 +210,7 @@ export {
   WALL_MIN,
   WORKSPACE_ID,
   WORKSPACE_MIN,
+  alignRunLayout,
   findSplitterState,
   writeSplitterLayout,
   writeSplitterOpen

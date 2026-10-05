@@ -15,17 +15,18 @@ import {
   formatDuration,
   formatRelativeTime
 } from '../run/run-status'
+import { WallRunBar, capsFromSummary } from '../run/run-menu'
 import { CARD_SIZE } from '../render/card-size'
 import { findBucketMark } from './bucket'
 
 /**
  * 指令卡片：一眼看清是哪条指令、几步、几个输入、现在跑得怎么样、上次什么时候跑的、能不能直接跑。
  *
- * 墙面左右分区（对齐生产力工具「内容 / 动作」分层）：
- * - 左：图标 + 名称 / 描述 / 元信息 —— 点整卡打开编排
- * - 右：状态 + 运行 —— 独立触达区，按钮 ≥ 32px，避免右下角小三角误触
+ * 墙面单列流：
+ * - 顶行：图标 + 名称 / 描述，右侧贴状态徽标（不再独占宽动作轨）
+ * - 底行：元信息 + 删除 / 运行 / cron·watch（有才显）
  *
- * 窄栏仍紧凑，但运行钮升到 `icon-sm`。
+ * 窄栏仍紧凑，运行用图标钮。
  *
  * 卡片自己是个 `div`（里面还有一键执行按钮），不能用 `button` 套 `button`：整卡的点击交给容器的
  * `onClick`，键盘焦点交给铺满卡片的那层无内容按钮，两者最终都走同一个 `onOpen`。
@@ -43,9 +44,9 @@ const VARIANTS = {
     hasSummary: false
   },
   wall: {
-    card: `rounded-2xl p-3.5 shadow-xs ${CARD_SIZE.wall.className}`,
-    icon: 'size-9 rounded-xl',
-    iconGlyph: 'size-[18px]',
+    card: `rounded-2xl p-3 shadow-xs ${CARD_SIZE.wall.className}`,
+    icon: 'size-8 rounded-xl',
+    iconGlyph: 'size-4',
     hasSummary: true
   }
 }
@@ -79,25 +80,19 @@ function DirectiveCard(props: Props) {
     ? `最近执行：${formatAbsoluteTime(runs.lastAt)}${runs.lastDurationMs === null ? '' : `（耗时 ${formatDuration(runs.lastDurationMs)}）`}`
     : ''
   const description = variant.hasSummary ? (entry.summary?.description ?? '') : ''
+  const caps = capsFromSummary(entry.summary)
 
   const statusBadge = !isParsed ? (
     <Badge
       variant="outline"
-      className={cn(
-        'gap-1 font-normal text-destructive',
-        variantKey === 'wall' ? 'w-full justify-center' : 'shrink-0'
-      )}>
+      className="shrink-0 gap-1 font-normal text-destructive">
       <Icon icon="mdi:file-alert-outline" />
       解析失败
     </Badge>
   ) : status ? (
     <Badge
       variant="outline"
-      className={cn(
-        'gap-1.5 rounded-full font-normal',
-        status.tone,
-        variantKey === 'wall' ? 'w-full justify-center' : 'shrink-0'
-      )}>
+      className={cn('shrink-0 gap-1.5 rounded-full font-normal', status.tone)}>
       <span
         aria-hidden
         className={cn(
@@ -115,76 +110,53 @@ function DirectiveCard(props: Props) {
     props.onRun(entry.name)
   }
 
+  function haltBubble(event: MouseEvent) {
+    event.stopPropagation()
+  }
+
   function handleDelete(event: MouseEvent) {
     event.stopPropagation()
     props.onDelete(entry.name)
   }
 
-  const deleteButton =
-    variantKey === 'wall' ? (
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        title={`删除 ${entry.name}`}
-        className={cn(
-          'relative z-10 h-8 w-8 shrink-0 cursor-pointer',
-          'border-border/80 text-muted-foreground',
-          'hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive',
-          'opacity-70 group-hover/card:opacity-100 focus-visible:opacity-100'
-        )}
-        aria-label={`删除 ${entry.name}`}
-        onClick={handleDelete}>
-        <Icon
-          icon="mdi:trash-can-outline"
-          className="size-4"
-        />
-      </Button>
-    ) : (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className={cn(
-              'relative z-10 shrink-0 cursor-pointer text-muted-foreground',
-              'opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100',
-              'hover:bg-destructive/10 hover:text-destructive'
-            )}
-            aria-label={`删除 ${entry.name}`}
-            onClick={handleDelete}>
-            <Icon
-              icon="mdi:trash-can-outline"
-              className="size-4"
-            />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">删除 {entry.name}</TooltipContent>
-      </Tooltip>
-    )
+  const deleteButton = (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant={variantKey === 'wall' ? 'outline' : 'ghost'}
+          size="icon-sm"
+          className={cn(
+            'relative z-10 h-8 w-8 shrink-0 cursor-pointer text-muted-foreground',
+            variantKey === 'wall' &&
+              'border-border/80 opacity-70 group-hover/card:opacity-100 focus-visible:opacity-100',
+            variantKey === 'wall'
+              ? 'hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive'
+              : 'opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 hover:bg-destructive/10 hover:text-destructive'
+          )}
+          aria-label={`删除 ${entry.name}`}
+          title={`删除 ${entry.name}`}
+          onClick={handleDelete}>
+          <Icon
+            icon="mdi:trash-can-outline"
+            className="size-4"
+          />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top">删除 {entry.name}</TooltipContent>
+    </Tooltip>
+  )
 
   const runButton =
     isParsed && variantKey === 'wall' ? (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        title={`运行 ${entry.name}`}
-        className={cn(
-          'relative z-10 h-8 min-w-0 flex-1 cursor-pointer gap-1.5 px-2.5',
-          'border-border/80 text-foreground',
-          'hover:border-primary hover:bg-primary hover:text-primary-foreground',
-          'focus-visible:border-primary'
-        )}
-        aria-label={`运行 ${entry.name}`}
-        onClick={handleRun}>
-        <Icon
-          icon="mdi:play"
-          className="size-4"
-        />
-        运行
-      </Button>
+      <WallRunBar
+        name={entry.name}
+        caps={caps}
+        disabled={!isParsed}
+        onOnce={function () {
+          props.onRun(entry.name)
+        }}
+      />
     ) : isParsed ? (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -207,13 +179,6 @@ function DirectiveCard(props: Props) {
         <TooltipContent side="top">运行 {entry.name}</TooltipContent>
       </Tooltip>
     ) : null
-
-  const wallActions = (
-    <div className="mt-auto flex items-center gap-1.5">
-      {deleteButton}
-      {runButton ?? <div className="h-8 min-w-0 flex-1" />}
-    </div>
-  )
 
   const metaTitle = [
     isParsed ? `${props.stepCount} 步 · ${inputCount} 输入` : '',
@@ -269,77 +234,68 @@ function DirectiveCard(props: Props) {
         props.onOpen(entry.name)
       }}>
       {variantKey === 'wall' ? (
-        <div className="relative z-10 flex min-h-0 flex-1 items-stretch gap-3">
-          {/* 左：识别 + 说明 */}
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div className="flex items-start gap-2.5">
-              <span
-                title={mark.label}
-                className={cn(
-                  'inline-flex shrink-0 items-center justify-center',
-                  variant.icon,
-                  mark.tile
-                )}>
-                <Icon
-                  icon={mark.icon}
-                  className={variant.iconGlyph}
-                />
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
-                <div className="flex min-w-0 items-center gap-2">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-1.5">
+          <div className="flex items-start gap-2.5">
+            <span
+              title={mark.label}
+              className={cn(
+                'inline-flex shrink-0 items-center justify-center',
+                variant.icon,
+                mark.tile
+              )}>
+              <Icon
+                icon={mark.icon}
+                className={variant.iconGlyph}
+              />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-0.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  title={entry.name}
+                  className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">
+                  {entry.name}
+                </span>
+                {runs.hasUnread ? (
                   <span
-                    title={entry.name}
-                    className="min-w-0 truncate text-sm font-semibold tracking-tight">
-                    {entry.name}
-                  </span>
-                  {runs.hasUnread ? (
-                    <span
-                      role="img"
-                      aria-label="有还没看过的执行结果"
-                      title="有还没看过的执行结果"
-                      className="size-1.5 shrink-0 rounded-full bg-primary ring-2 ring-primary/20"
-                    />
-                  ) : null}
-                </div>
-                {description ? (
-                  <p
-                    title={description}
-                    className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                    {description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="mt-auto flex flex-col gap-1.5 pl-11">
-              {meta}
-              {runs.status === 'running' && props.stepCount > 0 ? (
-                <div className="flex items-center gap-2">
-                  <Progress
-                    value={Math.min(100, (runs.doneSteps / props.stepCount) * 100)}
-                    className="h-1 bg-primary/15"
-                    aria-label={`${entry.name} 运行进度`}
+                    role="img"
+                    aria-label="有还没看过的执行结果"
+                    title="有还没看过的执行结果"
+                    className="size-1.5 shrink-0 rounded-full bg-primary ring-2 ring-primary/20"
                   />
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
-                    {runs.doneSteps}/{props.stepCount}
-                  </span>
-                </div>
+                ) : null}
+                {statusBadge}
+              </div>
+              {description ? (
+                <p
+                  title={description}
+                  className="truncate text-xs leading-snug text-muted-foreground">
+                  {description}
+                </p>
               ) : null}
             </div>
           </div>
 
-          {/* 右：状态 + 删除/运行，形成一块动作轨 */}
-          <div
-            className={cn(
-              'relative z-10 flex min-w-[6.5rem] shrink-0 flex-col items-stretch justify-between gap-2',
-              'border-l border-border/50 pl-3'
-            )}
-            onClick={function (event) {
-              // 右侧空白也不要触发打开，避免点状态附近误开编辑
-              event.stopPropagation()
-            }}>
-            <div className="min-h-5">{statusBadge}</div>
-            {wallActions}
+          <div className="mt-auto flex min-w-0 flex-col gap-1.5 pl-10.5">
+            {runs.status === 'running' && props.stepCount > 0 ? (
+              <div className="flex items-center gap-2">
+                <Progress
+                  value={Math.min(100, (runs.doneSteps / props.stepCount) * 100)}
+                  className="h-1 bg-primary/15"
+                  aria-label={`${entry.name} 运行进度`}
+                />
+                <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+                  {runs.doneSteps}/{props.stepCount}
+                </span>
+              </div>
+            ) : null}
+            <div
+              className="flex min-w-0 items-center gap-1.5"
+              onClick={haltBubble}
+              onPointerDown={haltBubble}>
+              <div className="min-w-0 flex-1 overflow-hidden">{meta}</div>
+              {deleteButton}
+              {runButton}
+            </div>
           </div>
         </div>
       ) : (

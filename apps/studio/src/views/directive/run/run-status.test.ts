@@ -210,7 +210,14 @@ describe('indexStepCounts', function () {
         visible: true,
         updated_at_ms: 0,
         bucket: 'system',
-        summary: { description: '', step_count: 3, input_count: 0, trigger_count: 0 }
+        summary: {
+          description: '',
+          step_count: 3,
+          input_count: 0,
+          trigger_count: 0,
+          has_cron: false,
+          has_watch: false
+        }
       },
       { name: 'broken', folder: null, source: null, visible: true, updated_at_ms: 0, bucket: null, summary: null }
     ])

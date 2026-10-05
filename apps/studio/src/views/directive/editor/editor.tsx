@@ -38,7 +38,7 @@ import { Textarea } from '@i-thinking/design/components/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@i-thinking/design/components/toggle-group'
 import { cn } from 'cn'
 import { motion, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Glide } from '@/components/glide/glide'
@@ -48,8 +48,9 @@ import { useCorexStore, type CorexAction } from '@/stores/corex'
 
 import { createDirective } from '../draft'
 import { BUCKET_LABELS, BUCKETS, parseBucket } from '../list/bucket'
-import { CARD_ENTER, cardDelay, cardTransition } from '../list/motion'
+import { CARD_ENTER } from '../list/motion'
 import { PERMISSION_ICONS, PERMISSION_KEYS, PERMISSION_LABELS } from '../permissions'
+import { RunMenu, capsFromTriggers } from '../run/run-menu'
 import {
   META_ID,
   META_MAX,
@@ -74,8 +75,23 @@ import {
 import InputsEditor from './inputs-editor'
 import { OnErrorSelect } from './on-error'
 import StepNode, { AddStepButton } from './step-node'
-import { buildControlStep, cloneStep, moveStep, nextStepId } from './step-utils'
-import type { DirectiveContent, DirectivePermissions, DirectiveTrigger } from './types'
+import {
+  buildControlStep,
+  duplicateStep,
+  mergeTokens,
+  moveByToken,
+  nextStepId,
+  nextToken,
+  removeStep,
+  replaceStep,
+  sanitizeSteps,
+  stampSteps
+} from './step-utils'
+import type { DirectiveContent, DirectivePermissions, DirectiveTrigger, Step } from './types'
+
+/** 步骤卡进场：常量对象，避免每帧 new transition 让 motion 对账 */
+const STEP_TRANSITION = { duration: 0.22, ease: 'easeOut' } as const
+const STEP_TRANSITION_REDUCED = { duration: 0.1, ease: 'easeOut' } as const
 
 /** Radix Select 不允许空字符串作为选项值 */
 const UNCATEGORIZED = 'uncategorized'
@@ -309,21 +325,24 @@ function PermissionsEditor(props: PermissionsEditorProps) {
     <div className="@container">
       <div className="grid grid-cols-1 gap-1.5 @min-[16rem]:grid-cols-2">
         {PERMISSION_KEYS.map(function (key) {
-          const id = `perm-${key}`
           const isOn = Boolean(props.permissions[key])
           return (
-            <label
+            <div
               key={key}
-              htmlFor={id}
               className={cn(
                 'flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-xs transition-colors',
                 isOn
                   ? 'border-primary/40 bg-primary/5 text-foreground'
                   : 'border-border/70 bg-background text-foreground hover:bg-accent'
-              )}>
+              )}
+              onClick={function () {
+                props.onChange({ ...props.permissions, [key]: !isOn })
+              }}>
               <Checkbox
-                id={id}
                 checked={isOn}
+                onClick={function (event) {
+                  event.stopPropagation()
+                }}
                 onCheckedChange={function (checked) {
                   props.onChange({ ...props.permissions, [key]: checked === true })
                 }}
@@ -332,7 +351,7 @@ function PermissionsEditor(props: PermissionsEditorProps) {
                 <Glyph icon={PERMISSION_ICONS[key]} />
                 {PERMISSION_LABELS[key]}
               </span>
-            </label>
+            </div>
           )
         })}
       </div>
@@ -672,6 +691,32 @@ function initialInputs(content: DirectiveContent): Record<string, string> {
   return values
 }
 
+/** 输入声明改名/删除时，把「本次运行」的值跟着搬或丢掉 */
+function relocateInputValues(
+  previous: DirectiveContent['inputs'],
+  next: DirectiveContent['inputs'],
+  values: Record<string, string>
+): Record<string, string> {
+  const relocated = { ...values }
+  previous.forEach(function (input, index) {
+    const renamed = next[index]
+    if (!renamed || renamed.name === input.name) return
+    if (Object.prototype.hasOwnProperty.call(relocated, input.name)) {
+      relocated[renamed.name] = relocated[input.name]
+      delete relocated[input.name]
+    }
+  })
+  const kept = new Set(
+    next.map(function (input) {
+      return input.name
+    })
+  )
+  Object.keys(relocated).forEach(function (name) {
+    if (!kept.has(name)) delete relocated[name]
+  })
+  return relocated
+}
+
 interface Props {
   /** 要打开的指令；空串表示还没选过，退回列表第一条 */
   name: string
@@ -686,7 +731,7 @@ interface Props {
  * 指令编辑器：上元数据/输入/变量/权限/触发器，下步骤树（递归控制流）。
  * 草稿按指令名分桶，来回切换不丢未保存的改动；运行交给下方运行台。
  */
-export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
+function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
   const catalog = useCorexStore(function (state) {
     return state.catalog
   })
@@ -695,8 +740,8 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   })
 
   const [drafts, setDrafts] = useState<Record<string, DirectiveContent>>({})
-  /** 已落盘内容的 JSON 快照，用来判断草稿脏没脏 */
-  const [saved, setSaved] = useState<Record<string, string>>({})
+  /** 按指令名记脏：在 updateContent 置位，读盘/保存时清掉，避免每帧 JSON.stringify */
+  const [dirty, updateDirty] = useState<Record<string, boolean>>({})
   /** corex 序列化出来的 YAML：只读对账用，改它不会生效 */
   const [yamls, setYamls] = useState<Record<string, string>>({})
   const [inputValues, setInputValues] = useState<Record<string, Record<string, string>>>({})
@@ -723,7 +768,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   const content = drafts[activeName] ?? (isPending ? createDirective(activeName) : null)
   const values = inputValues[activeName] ?? {}
   const error = errors[activeName] ?? null
-  const isDirty = content !== null && saved[activeName] !== JSON.stringify(content)
+  const isDirty = content !== null && (dirty[activeName] ?? isPending)
   /** 名字不合法就别保存：corex 会拒，界面得先把话说在前面（提示在名字输入框下） */
   const nameError = content && !isValidDirectiveName(content.name) ? NAME_RULE_HINT : null
 
@@ -736,14 +781,15 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
         .loadDirective(activeName)
         .then(function (document) {
           const loaded = document.definition
-          setSaved(function (prev) {
-            return { ...prev, [loaded.name]: JSON.stringify(loaded) }
+          const stamped = { ...loaded, steps: stampSteps(loaded.steps) }
+          updateDirty(function (prev) {
+            return { ...prev, [loaded.name]: false }
           })
           setYamls(function (prev) {
             return { ...prev, [loaded.name]: document.yaml }
           })
           setDrafts(function (prev) {
-            return { ...prev, [loaded.name]: loaded }
+            return { ...prev, [loaded.name]: stamped }
           })
           setInputValues(function (prev) {
             return { ...prev, [loaded.name]: initialInputs(loaded) }
@@ -772,7 +818,12 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       const current = prev[activeName] ?? (isPending ? createDirective(activeName) : null)
       if (!current) return prev
       const next = update(current)
-      return next === current ? prev : { ...prev, [activeName]: next }
+      if (next === current) return prev
+      updateDirty(function (flags) {
+        if (flags[activeName]) return flags
+        return { ...flags, [activeName]: true }
+      })
+      return { ...prev, [activeName]: next }
     })
   }
 
@@ -781,6 +832,44 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       return { ...prev, ...patch }
     })
   }
+
+  const onStepChange = useCallback(
+    function (next: Step) {
+      const token = next.token
+      if (!token) return
+      updateContent(function (prev) {
+        return { ...prev, steps: replaceStep(prev.steps, token, next) }
+      })
+    },
+    [activeName, isPending]
+  )
+
+  const onStepRemove = useCallback(
+    function (token: string) {
+      updateContent(function (prev) {
+        return { ...prev, steps: removeStep(prev.steps, token) }
+      })
+    },
+    [activeName, isPending]
+  )
+
+  const onStepDuplicate = useCallback(
+    function (token: string) {
+      updateContent(function (prev) {
+        return { ...prev, steps: duplicateStep(prev.steps, token) }
+      })
+    },
+    [activeName, isPending]
+  )
+
+  const onStepMove = useCallback(
+    function (token: string, delta: number) {
+      updateContent(function (prev) {
+        return { ...prev, steps: moveByToken(prev.steps, token, delta) }
+      })
+    },
+    [activeName, isPending]
+  )
 
   function setInput(name: string, value: string) {
     setInputValues(function (prev) {
@@ -803,12 +892,13 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       const document = await useCorexStore.getState().saveDirective(
         {
           ...content,
-          triggers: sanitizeTriggers(content.triggers)
+          triggers: sanitizeTriggers(content.triggers),
+          steps: sanitizeSteps(content.steps)
         },
         originalName
       )
-      setSaved(function (prev) {
-        const next = { ...prev, [document.name]: JSON.stringify(document.definition) }
+      updateDirty(function (prev) {
+        const next = { ...prev, [document.name]: false }
         if (document.name !== saving) delete next[saving]
         return next
       })
@@ -819,7 +909,14 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       })
       loadedRef.current.add(document.name)
       setDrafts(function (prev) {
-        const next = { ...prev, [document.name]: document.definition }
+        const prior = prev[saving]?.steps ?? content.steps
+        const next = {
+          ...prev,
+          [document.name]: {
+            ...document.definition,
+            steps: mergeTokens(prior, document.definition.steps)
+          }
+        }
         if (document.name !== saving) delete next[saving]
         return next
       })
@@ -860,7 +957,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
         delete next[target]
         return next
       })
-      setSaved(function (prev) {
+      updateDirty(function (prev) {
         const next = { ...prev }
         delete next[target]
         return next
@@ -1068,21 +1165,20 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
           )}
           保存
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          className="cursor-pointer rounded-full px-3.5 shadow-xs"
-          title={`运行（${modifier} + Enter）`}
+        <RunMenu
+          name={activeName}
+          caps={capsFromTriggers(content?.triggers)}
           disabled={!content}
-          onClick={function () {
+          onceTitle={`运行（${modifier} + Enter）`}
+          onOnce={function () {
             void run()
-          }}>
-          <Glyph
-            icon="mdi:play"
-            className="size-4"
-          />
-          运行
-        </Button>
+          }}
+          beforeGuard={async function () {
+            if (!content) return null
+            const target = isDirty ? await save() : activeName
+            return target
+          }}
+        />
       </div>
     </header>
   )
@@ -1203,6 +1299,13 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 <InputsEditor
                   inputs={content.inputs}
                   onChange={function (next) {
+                    const previous = content.inputs
+                    setInputValues(function (prev) {
+                      return {
+                        ...prev,
+                        [activeName]: relocateInputValues(previous, next, prev[activeName] ?? {})
+                      }
+                    })
                     patchContent({ inputs: next })
                   }}
                 />
@@ -1334,62 +1437,23 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
               ) : null}
               <div className="flex flex-col gap-2.5">
                 {content.steps.map(function (step, index) {
-                  const delay = cardDelay(index, !!isReducedMotion)
+                  const node = step as Step
                   const enter = isReducedMotion ? CARD_ENTER.reduced : CARD_ENTER
                   return (
                     <motion.div
-                      key={step.id || index}
+                      key={node.token ?? `step-${index}`}
                       initial={enter.initial}
                       animate={enter.animate}
-                      transition={cardTransition(delay, !!isReducedMotion)}>
+                      transition={isReducedMotion ? STEP_TRANSITION_REDUCED : STEP_TRANSITION}>
                       <StepNode
-                        step={step}
+                        step={node}
                         catalog={catalog}
-                        onChange={function (next) {
-                          updateContent(function (prev) {
-                            return {
-                              ...prev,
-                              steps: prev.steps.map(function (item, i) {
-                                return i === index ? next : item
-                              })
-                            }
-                          })
-                        }}
-                        onRemove={function () {
-                          updateContent(function (prev) {
-                            return {
-                              ...prev,
-                              steps: prev.steps.filter(function (_, i) {
-                                return i !== index
-                              })
-                            }
-                          })
-                        }}
-                        onDuplicate={function () {
-                          updateContent(function (prev) {
-                            const steps = [...prev.steps]
-                            steps.splice(index + 1, 0, cloneStep(step))
-                            return { ...prev, steps }
-                          })
-                        }}
-                        onMoveUp={
-                          index > 0
-                            ? function () {
-                                updateContent(function (prev) {
-                                  return { ...prev, steps: moveStep(prev.steps, index, index - 1) }
-                                })
-                              }
-                            : undefined
-                        }
-                        onMoveDown={
-                          index < content.steps.length - 1
-                            ? function () {
-                                updateContent(function (prev) {
-                                  return { ...prev, steps: moveStep(prev.steps, index, index + 1) }
-                                })
-                              }
-                            : undefined
-                        }
+                        index={index}
+                        count={content.steps.length}
+                        onChange={onStepChange}
+                        onRemove={onStepRemove}
+                        onDuplicate={onStepDuplicate}
+                        onMove={onStepMove}
                       />
                     </motion.div>
                   )
@@ -1404,6 +1468,7 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                           ...prev.steps,
                           {
                             id: nextStepId(action.id, prev.steps),
+                            token: nextToken(),
                             action: action.id
                           }
                         ]
@@ -1447,3 +1512,5 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
     </div>
   )
 }
+
+export default memo(Editor)
