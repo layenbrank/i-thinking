@@ -1,6 +1,4 @@
-import { type BrowserWindow } from 'electron'
-import { type UpdateInfo } from 'electron-updater'
-import { autoUpdater } from 'electron-updater'
+import { type BrowserWindow, autoUpdater } from 'electron'
 
 import { CHANNELS } from '../../shared/ipc/channels'
 import { IpcError } from '../../shared/ipc/error'
@@ -11,13 +9,57 @@ type FindStatusR = Out<typeof CHANNELS.UPDATER.READ>
 type CheckR = Out<typeof CHANNELS.UPDATER.CHECK>
 type UpdaterEvent = PushOut<typeof CHANNELS.UPDATER.EVENT>
 
+import { findFeedUrl, hasSquirrelFirstRun } from './updater-feed'
+
+function waitForCheck(): Promise<CheckR> {
+  return new Promise(function (resolve, reject) {
+    function finish(next: () => void) {
+      autoUpdater.removeListener('update-available', onAvailable)
+      autoUpdater.removeListener('update-not-available', onNotAvailable)
+      autoUpdater.removeListener('error', onError)
+      next()
+    }
+
+    function onAvailable() {
+      finish(function () {
+        resolve({
+          available: true,
+          version: null,
+          releaseNotes: null
+        })
+      })
+    }
+
+    function onNotAvailable() {
+      finish(function () {
+        resolve({
+          available: false,
+          version: null,
+          releaseNotes: null,
+          reason: 'latest'
+        })
+      })
+    }
+
+    function onError(error: Error) {
+      finish(function () {
+        reject(error)
+      })
+    }
+
+    autoUpdater.once('update-available', onAvailable)
+    autoUpdater.once('update-not-available', onNotAvailable)
+    autoUpdater.once('error', onError)
+    autoUpdater.checkForUpdates()
+  })
+}
+
 class Service {
   private readonly ctx: Context
   private readonly findWindow: () => BrowserWindow | null
   private checking = false
   private downloading = false
   private downloaded = false
-  private progress: number | null = null
   private version: string | null = null
   private error: string | null = null
   private enabled = false
@@ -29,40 +71,22 @@ class Service {
   }
 
   configure(): void {
-    if (this.ctx.isDev) {
+    if (this.ctx.isDev || !this.ctx.app.isPackaged) {
       this.enabled = false
       return
     }
 
-    const provider = process.env.STUDIO_UPDATE_PROVIDER
-    const updateUrl = process.env.STUDIO_UPDATE_URL
-    const owner = process.env.STUDIO_GITHUB_OWNER ?? 'i-thinking'
-    const repo = process.env.STUDIO_GITHUB_REPO ?? 'i-thinking'
-
-    autoUpdater.autoDownload = false
-    autoUpdater.autoInstallOnAppQuit = true
-
-    if (provider === 'generic' && updateUrl) {
-      autoUpdater.setFeedURL({ provider: 'generic', url: updateUrl })
-      this.enabled = true
-    } else if (provider === 'github') {
-      autoUpdater.setFeedURL({
-        provider: 'github',
-        owner,
-        repo
-      })
-      this.enabled = true
-    } else if (updateUrl) {
-      autoUpdater.setFeedURL({ provider: 'generic', url: updateUrl })
-      this.enabled = true
-    } else {
+    const feedUrl = findFeedUrl()
+    if (!feedUrl) {
       this.enabled = false
       this.ctx.logger
         .child('updater')
-        .info('disabled: set STUDIO_UPDATE_PROVIDER / STUDIO_UPDATE_URL')
+        .info('disabled: set STUDIO_UPDATE_URL or STUDIO_S3_UPDATE_BASE')
       return
     }
 
+    autoUpdater.setFeedURL({ url: feedUrl })
+    this.enabled = true
     this.wireEvents()
   }
 
@@ -72,7 +96,7 @@ class Service {
       checking: this.checking,
       downloading: this.downloading,
       downloaded: this.downloaded,
-      progress: this.progress,
+      progress: null,
       version: this.version,
       error: this.error
     }
@@ -88,65 +112,42 @@ class Service {
       }
     }
 
+    if (hasSquirrelFirstRun()) {
+      return {
+        available: false,
+        version: null,
+        releaseNotes: null,
+        reason: 'squirrel-firstrun'
+      }
+    }
+
+    const service = this
     this.checking = true
     this.error = null
     this.emit({ type: 'checking' })
 
     try {
-      const result = await autoUpdater.checkForUpdates()
+      const result = await waitForCheck()
       this.checking = false
-      if (!result?.updateInfo) {
-        return {
-          available: false,
-          version: null,
-          releaseNotes: null,
-          reason: 'no-update-info'
-        }
+      if (result.available) {
+        this.downloading = true
+        this.emit({ type: 'available', version: result.version ?? '', releaseNotes: null })
+      } else {
+        this.emit({ type: 'not-available', version: result.version ?? '' })
       }
-
-      const info = result.updateInfo
-      const current = this.ctx.app.getVersion()
-      const available = info.version !== current
-      this.version = info.version
-
-      if (!available) {
-        this.emit({ type: 'not-available', version: info.version })
-        return {
-          available: false,
-          version: info.version,
-          releaseNotes: parseReleaseNotes(info),
-          reason: 'latest'
-        }
-      }
-
-      this.emit({
-        type: 'available',
-        version: info.version,
-        releaseNotes: parseReleaseNotes(info)
-      })
-      return {
-        available: true,
-        version: info.version,
-        releaseNotes: parseReleaseNotes(info)
-      }
+      return result
     } catch (error) {
-      this.checking = false
+      service.checking = false
+      service.downloading = false
       const message = error instanceof Error ? error.message : String(error)
-      this.error = message
-      this.emit({ type: 'error', message })
-      throw error
+      service.error = message
+      service.emit({ type: 'error', message })
+      throw new IpcError('UPDATER_CHECK_FAILED', message)
     }
   }
 
   async download(): Promise<void> {
-    if (!this.enabled) {
-      throw new IpcError('UPDATER_NOT_CONFIGURED', 'Updater is not configured')
-    }
-    this.downloading = true
-    this.downloaded = false
-    this.progress = 0
-    this.error = null
-    await autoUpdater.downloadUpdate()
+    await this.check()
   }
 
   install(): void {
@@ -156,7 +157,7 @@ class Service {
     if (!this.downloaded) {
       throw new IpcError('UPDATER_NO_UPDATE_DOWNLOADED', 'No update downloaded')
     }
-    autoUpdater.quitAndInstall(false, true)
+    autoUpdater.quitAndInstall()
   }
 
   private wireEvents(): void {
@@ -164,17 +165,20 @@ class Service {
     this.wired = true
     const service = this
 
-    autoUpdater.on('download-progress', function (progress: { percent: number }) {
-      service.progress = progress.percent
-      service.emit({ type: 'progress', percent: progress.percent })
+    autoUpdater.on('checking-for-update', function () {
+      service.checking = true
     })
 
-    autoUpdater.on('update-downloaded', function (info: { version: string }) {
+    autoUpdater.on('update-available', function () {
+      service.downloading = true
+    })
+
+    autoUpdater.on('update-downloaded', function (_event, _notes, releaseName) {
+      service.checking = false
       service.downloading = false
       service.downloaded = true
-      service.progress = 100
-      service.version = info.version
-      service.emit({ type: 'downloaded', version: info.version })
+      service.version = releaseName || service.version
+      service.emit({ type: 'downloaded', version: service.version ?? '' })
     })
 
     autoUpdater.on('error', function (error: Error) {
@@ -191,21 +195,6 @@ class Service {
     if (!win || win.isDestroyed()) return
     win.webContents.send(CHANNELS.UPDATER.EVENT, event)
   }
-}
-
-function parseReleaseNotes(info: UpdateInfo): string | null {
-  const notes = info.releaseNotes
-  if (!notes) return null
-  if (typeof notes === 'string') return notes
-  if (Array.isArray(notes)) {
-    return notes
-      .map(function (item) {
-        return typeof item === 'string' ? item : item.note
-      })
-      .filter(Boolean)
-      .join('\n')
-  }
-  return null
 }
 
 export { Service }

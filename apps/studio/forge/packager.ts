@@ -31,7 +31,7 @@ const ELECTRON_DOWNLOAD_MIRROR =
  * - `.vite/` 构建产物
  * - `package.json`
  * - `drizzle/`（迁移 SQL + meta/journal，运行时 migrator 要读）
- * - `node_modules/`（external 模块：better-sqlite3、electron-updater 及其依赖闭包需进 asar，
+ * - `node_modules/`（external 模块：better-sqlite3 及其依赖闭包需进 asar，
  *   因 Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载）
  * 排除 `@i-thinking/*`：pnpm workspace 符号链接指向包外，asar 无法处理；
  * Vite 已将这些 workspace 依赖打包进 .vite/build/main.js
@@ -61,7 +61,6 @@ function isIgnoredPath(filePath: string): boolean {
 
 function findIconPath(): string | undefined {
   const candidates = [
-    path.join(PACKAGE_ROOT, 'resources', 'icon'),
     path.join(PACKAGE_ROOT, 'resources', 'icon.ico'),
     path.join(PACKAGE_ROOT, 'resources', 'icon.icns'),
     path.join(PACKAGE_ROOT, 'resources', 'icon.png')
@@ -70,6 +69,16 @@ function findIconPath(): string | undefined {
     if (existsSync(candidate)) return candidate
   }
   return undefined
+}
+
+function findExtraResources(): string[] {
+  const files = ['icon.ico', 'icon.png', 'icon.icns']
+  const found: string[] = []
+  for (const file of files) {
+    const candidate = path.join(PACKAGE_ROOT, 'resources', file)
+    if (existsSync(candidate)) found.push(candidate)
+  }
+  return found
 }
 
 function runAfterCopy(
@@ -135,12 +144,7 @@ function buildPackagerConfig(): NonNullable<ForgeConfig['packagerConfig']> {
     appCategoryType: 'public.app-category.developer-tools',
     appCopyright: `Copyright © ${new Date().getFullYear()} i-thinking`,
     ignore: isIgnoredPath,
-    // 窗口 / 托盘图标：`public/` 不在 ignore 白名单里（会被整个排除），
-    // 所以显式把它们随包发到 resources/，运行时用 `findAppIconPath()` 取
-    extraResource: [
-      path.join(PACKAGE_ROOT, 'public', 'icon.ico'),
-      path.join(PACKAGE_ROOT, 'public', 'icon.png')
-    ],
+    extraResource: findExtraResources(),
     download: {
       mirrorOptions: {
         mirror: ELECTRON_DOWNLOAD_MIRROR

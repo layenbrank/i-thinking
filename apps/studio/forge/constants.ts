@@ -12,6 +12,7 @@ const MONOREPO_ROOT = path.resolve(FORGE_DIR, '..', '..', '..')
 const PACKAGE_ROOT = path.resolve(FORGE_DIR, '..')
 
 const APP_ID = 'com.i-thinking.studio'
+const APP_AUMID = 'com.squirrel.i-thinking.i-thinking'
 const APP_NAME = 'i-thinking'
 const APP_EXECUTABLE = 'i-thinking'
 const APP_VERSION = pkg.version
@@ -20,6 +21,7 @@ const APP_AUTHORS = pkg.author.name
 const PRODUCT_NAME = pkg.productName
 
 export {
+  APP_AUMID,
   APP_AUTHORS,
   APP_DESCRIPTION,
   APP_EXECUTABLE,

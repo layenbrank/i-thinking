@@ -22,7 +22,7 @@ const MAKE_PKG = !isEnabled('STUDIO_MAKE_PKG_OFF')
 const PUBLISH_GITHUB = isEnabled('STUDIO_PUBLISH_GITHUB')
 const PUBLISH_S3 = isEnabled('STUDIO_PUBLISH_S3')
 
-const GITHUB_OWNER = findEnv('STUDIO_GITHUB_OWNER') ?? 'i-thinking'
+const GITHUB_OWNER = findEnv('STUDIO_GITHUB_OWNER') ?? 'layenbrank'
 const GITHUB_REPO = findEnv('STUDIO_GITHUB_REPO') ?? 'i-thinking'
 const GITHUB_TOKEN = findEnv('GITHUB_TOKEN') ?? findEnv('STUDIO_GITHUB_TOKEN')
 
@@ -43,8 +43,7 @@ const APPLE_ID_PASSWORD =
 const APPLE_TEAM_ID = findEnv('APPLE_TEAM_ID')
 const OSX_NOTARIZE = Boolean(APPLE_ID && APPLE_ID_PASSWORD && APPLE_TEAM_ID)
 
-/** 自动更新：github | generic；未设置则 updater 模块保持空闲 */
-const UPDATE_PROVIDER = findEnv('STUDIO_UPDATE_PROVIDER')
+/** 自动更新 feed：STUDIO_UPDATE_URL 或 STUDIO_S3_UPDATE_BASE（make 时写入 STUDIO_UPDATE_FEED_URL） */
 const UPDATE_URL = findEnv('STUDIO_UPDATE_URL')
 
 const MSIX_PUBLISHER = findEnv('STUDIO_MSIX_PUBLISHER') ?? 'CN=i-thinking'
@@ -72,7 +71,6 @@ export {
   S3_PUBLIC,
   S3_REGION,
   S3_UPDATE_BASE,
-  UPDATE_PROVIDER,
   UPDATE_URL,
   WINDOWS_CERTIFICATE_FILE,
   WINDOWS_CERTIFICATE_PASSWORD,

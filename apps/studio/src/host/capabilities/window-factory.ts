@@ -45,11 +45,17 @@ interface LifecycleOpts {
  */
 function findAppIconPath(): string | undefined {
   const file = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
-  const root = app.isPackaged ? process.resourcesPath : (process.env.VITE_PUBLIC ?? '')
-  if (!root) return undefined
-
-  const candidate = path.join(root, file)
-  return existsSync(candidate) ? candidate : undefined
+  const roots: string[] = app.isPackaged ? [process.resourcesPath] : [process.env.VITE_PUBLIC ?? '']
+  if (!app.isPackaged && typeof app.getAppPath === 'function') {
+    const appPath = app.getAppPath()
+    roots.push(path.join(appPath, 'resources'), path.join(appPath, 'public'))
+  }
+  for (const root of roots) {
+    if (!root) continue
+    const candidate = path.join(root, file)
+    if (existsSync(candidate)) return candidate
+  }
+  return undefined
 }
 
 function findBundlePaths(): BundlePaths {

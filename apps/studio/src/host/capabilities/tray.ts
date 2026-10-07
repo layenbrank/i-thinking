@@ -13,7 +13,7 @@ import { findAppIconPath } from './window-factory'
  * `window-all-closed` 因此不触发），但界面上再无东西可点 —— 没有托盘就是个回不去的死角。
  * 「关闭主窗口 = 收进托盘」这条规则在 `window.ts` 里，托盘负责把它叫回来。
  *
- * 图标不能用 `public/`（打包后不存在，见 `window-factory.ts` 的说明），
+ * 图标走 `resources/` extraResource（开发态也可从 `public/` 取），
  * 找不到图标时**不建托盘**并记一条 warn —— 建一个没图标的空壳只会让人以为托盘坏了。
  */
 

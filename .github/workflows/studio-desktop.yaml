@@ -3,6 +3,8 @@ name: Studio Desktop
 on:
   workflow_dispatch:
   push:
+    tags:
+      - 'studio-v*'
     branches: [master, develop]
     paths:
       - 'apps/studio/**'
@@ -76,6 +78,9 @@ jobs:
     needs: sidecar
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
+    permissions:
+      contents: write
+      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -149,6 +154,9 @@ jobs:
           NODE_ENV: production
         run: pnpm --filter @i-thinking/studio make
 
+      - name: Smoke packaged exe
+        run: pnpm --filter @i-thinking/studio test:pack
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v6
@@ -158,3 +166,26 @@ jobs:
           path: |
             out/studio/**
           if-no-files-found: warn
+
+      - name: Upload Squirrel feed files
+        if: startsWith(github.ref, 'refs/tags/studio-v')
+        uses: actions/upload-artifact@v6
+        with:
+          name: studio-squirrel-feed
+          retention-days: 30
+          path: |
+            out/studio/make/**/*.exe
+            out/studio/make/**/*.nupkg
+            out/studio/make/**/RELEASES
+          if-no-files-found: warn
+
+      - name: GitHub draft Release (human download, not autoUpdater feed)
+        if: startsWith(github.ref, 'refs/tags/studio-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            out/studio/make/**/*.exe
+            out/studio/make/**/*.nupkg
+            out/studio/make/**/RELEASES
+          fail_on_unmatched_files: false

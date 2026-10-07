@@ -29,7 +29,6 @@ const EventSchema = z.discriminatedUnion('type', [
     releaseNotes: z.string().nullable()
   }),
   z.object({ type: z.literal('not-available'), version: z.string() }),
-  z.object({ type: z.literal('progress'), percent: z.number() }),
   z.object({ type: z.literal('downloaded'), version: z.string() }),
   z.object({ type: z.literal('error'), message: z.string() })
 ])

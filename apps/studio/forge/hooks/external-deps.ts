@@ -14,16 +14,45 @@ import path from 'node:path'
  * 缺陷只在产物离开构建仓库后（装到用户机器 / 换机）才暴露。
  */
 
-const EXTERNAL_PACKAGES = ['better-sqlite3', 'electron-updater']
+const EXTERNAL_PACKAGES = ['better-sqlite3']
 
 /** 仅安装期使用的依赖（如 better-sqlite3 的 install 脚本），运行时不会被 require */
 const INSTALL_ONLY_PACKAGES = new Set(['prebuild-install'])
 
+const SKIP_DIR_NAMES = new Set([
+  'src',
+  'docs',
+  'doc',
+  'test',
+  'tests',
+  'example',
+  'examples',
+  '.github'
+])
+
+function canCopyPath(src: string, pkgDir: string, platform: string, arch: string): boolean {
+  const relative = path.relative(pkgDir, src).replace(/\\/g, '/')
+  if (!relative || relative.startsWith('..')) return true
+  if (relative.endsWith('.map')) return false
+  const parts = relative.split('/')
+  if (parts.some(function (part) {
+    return SKIP_DIR_NAMES.has(part)
+  })) {
+    return false
+  }
+  if (parts[0] === 'prebuilds') {
+    const wanted = `${platform}-${arch}`
+    if (parts.length === 1) return true
+    return parts[1] === wanted || parts[1].startsWith(`${wanted}-`)
+  }
+  return true
+}
+
 function copyExternalDependencies(
   buildPath: string,
   _electronVersion: string,
-  _platform: string,
-  _arch: string,
+  platform: string,
+  arch: string,
   done: (err?: Error) => void
 ): void {
   try {
@@ -47,7 +76,13 @@ function copyExternalDependencies(
       const dest = path.join(destNm, name)
       if (existsSync(dest)) continue
       mkdirSync(path.dirname(dest), { recursive: true })
-      cpSync(pkgDir, dest, { recursive: true, dereference: true })
+      cpSync(pkgDir, dest, {
+        recursive: true,
+        dereference: true,
+        filter(src) {
+          return canCopyPath(src, pkgDir, platform, arch)
+        }
+      })
     }
 
     done()

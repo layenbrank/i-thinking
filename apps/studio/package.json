@@ -18,6 +18,8 @@
     "make:linux": "electron-forge make --platform=linux",
     "publish": "electron-forge publish",
     "publish:github": "electron-forge publish",
+    "icons": "node scripts/generate-icons.mjs",
+    "test:pack": "node scripts/smoke-packaged.mjs",
     "lint": "eslint . --report-unused-disable-directives",
     "postinstall": "electron-rebuild",
     "rebuild": "electron-rebuild -f",
@@ -44,7 +46,6 @@
     "drizzle-orm": "catalog:",
     "electron-squirrel-startup": "catalog:",
     "electron-store": "catalog:",
-    "electron-updater": "catalog:",
     "go-captcha-react": "catalog:",
     "konva": "catalog:",
     "qrcode.react": "catalog:",
@@ -79,7 +80,8 @@
     "@types/better-sqlite3": "catalog:",
     "@types/electron-squirrel-startup": "catalog:",
     "drizzle-kit": "catalog:",
-    "electron": "catalog:"
+    "electron": "catalog:",
+    "sharp": "^0.35.5"
   },
   "keywords": [],
   "author": {

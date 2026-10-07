@@ -48,7 +48,7 @@ export async function bootstrap(): Promise<void> {
     return app.quit()
   }
 
-  if (process.platform === 'win32') app.setAppUserModelId('com.i-thinking.studio')
+  if (process.platform === 'win32') app.setAppUserModelId('com.squirrel.i-thinking.i-thinking')
 
   process.on('uncaughtException', function (err) {
     log.error('uncaughtException', err)

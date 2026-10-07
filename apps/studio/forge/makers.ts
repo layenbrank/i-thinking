@@ -38,7 +38,7 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
       // 增量更新：指向已发布的 Squirrel feed（可选）
       ...(S3_UPDATE_BASE
         ? {
-            remoteReleases: `${S3_UPDATE_BASE}/win32`
+            remoteReleases: `${S3_UPDATE_BASE}/win32/x64`
           }
         : {})
     }),

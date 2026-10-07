@@ -31,7 +31,7 @@
 | sidecar    | `src/host/capabilities/sidecar.ts`                                                                                                         | corex-daemon 宿主 + findStatus                                                                                         |
 | doc        | `src/host/capabilities/doc.ts`                                                                                                             | pandoc 转换                                                                                                            |
 | screenshot | `src/host/capabilities/screenshot.ts`                                                                                                      | `capture.screenshot`                                                                                                   |
-| updater    | `src/host/capabilities/updater.ts`                                                                                                         | electron-updater                                                                                                       |
+| updater    | `src/host/capabilities/updater.ts`                                                                                                         | `electron.autoUpdater`（Squirrel feed）                                                                                |
 | devtools   | `src/host/capabilities/devtools.ts`                                                                                                        | 开发态 DevTools                                                                                                        |
 
 上述路径是**域内实现**（Repository / Service）。IPC 契约与装配不在其中：

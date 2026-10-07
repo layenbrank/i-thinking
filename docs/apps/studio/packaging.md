@@ -10,7 +10,7 @@
   - `forge/makers.ts` — 默认 + 可选 makers
   - `forge/publishers.ts` — GitHub Releases / S3（默认关闭）
   - `forge/plugins.ts` — Vite / Fuses / AutoUnpackNatives
-  - `forge/hooks/external-deps.ts` — Vite external（better-sqlite3、electron-updater）及依赖闭包复制
+  - `forge/hooks/external-deps.ts` — Vite external（better-sqlite3）及依赖闭包复制
   - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验
 
 构建产物目录：**仅** `out/studio/`（仓库根目录下）。
@@ -68,33 +68,40 @@ pnpm --filter @i-thinking/studio publish
 
 ## 5. 发布（Publishers）
 
-| 变量                                                         | 用途                                 |
-| ------------------------------------------------------------ | ------------------------------------ |
-| `STUDIO_PUBLISH_GITHUB=1` + `GITHUB_TOKEN`                   | GitHub Releases（默认 draft）        |
-| `STUDIO_GITHUB_OWNER` / `STUDIO_GITHUB_REPO`                 | 仓库（默认 `i-thinking/i-thinking`） |
-| `STUDIO_PUBLISH_S3=1` + `STUDIO_S3_BUCKET`                   | S3 发布                              |
-| `STUDIO_S3_REGION` / `STUDIO_S3_FOLDER` / `STUDIO_S3_PUBLIC` | S3 可选                              |
-| `STUDIO_S3_UPDATE_BASE`                                      | Squirrel / mac ZIP 增量 feed 前缀    |
+| 变量                                                         | 用途                                          |
+| ------------------------------------------------------------ | --------------------------------------------- |
+| `STUDIO_PUBLISH_GITHUB=1` + `GITHUB_TOKEN`                   | GitHub Releases（默认 draft）                 |
+| `STUDIO_GITHUB_OWNER` / `STUDIO_GITHUB_REPO`                 | 仓库（默认 `layenbrank/i-thinking`）          |
+| `STUDIO_PUBLISH_S3=1` + `STUDIO_S3_BUCKET`                   | S3 发布（**自动更新 feed 走这里**）           |
+| `STUDIO_S3_REGION` / `STUDIO_S3_FOLDER` / `STUDIO_S3_PUBLIC` | S3 可选                                       |
+| `STUDIO_S3_UPDATE_BASE`                                      | 客户端 feed 与 Squirrel `remoteReleases` 前缀 |
 
-## 6. 自动更新（electron-updater）
+`studio-v*` tag 会把 `Setup.exe` / `.nupkg` / `RELEASES` 传到 CI artifact，并打一份 **draft GitHub Release 给人下载**。那份 Release **不是** Squirrel feed：`autoUpdater.setFeedURL` 要的是 HTTP 目录里并排的 `RELEASES` + `.nupkg`（配 `STUDIO_S3_UPDATE_BASE` / `STUDIO_UPDATE_URL`，或日后签名后的 update.electronjs.org）。Maker 的 `remoteReleases` 只用于打增量包时拉旧 `RELEASES`，不能代替客户端 `setFeedURL`。
 
-主进程模块 `modules/updater`，Renderer：`itc.updater.*`。
+避开 Tauri Client 的 `v*` tag，Studio 只用 **`studio-v*`**。发版只 bump `apps/studio/package.json` 的 `version`。
 
-| 变量                                         | 用途             |
-| -------------------------------------------- | ---------------- |
-| `STUDIO_UPDATE_PROVIDER=github\|generic`     | 更新源           |
-| `STUDIO_UPDATE_URL`                          | generic feed URL |
-| `STUDIO_GITHUB_OWNER` / `STUDIO_GITHUB_REPO` | github provider  |
+## 6. 自动更新（`electron.autoUpdater`）
 
-开发态（未 packaged）自动禁用；未配置时 `findStatus().enabled === false`。
+内置 Squirrel：`checkForUpdates()` **发现更新即下载**，没有百分比进度，也没有「只检查不下载」。Renderer：`itc.updater.check` / `download`（download 是 check 的别名）/ `install`。
 
-## 7. asar / Sidecar / Fuses / CI
+| 变量                    | 用途                                      |
+| ----------------------- | ----------------------------------------- |
+| `STUDIO_UPDATE_URL`     | feed 目录 URL（含 `RELEASES`）            |
+| `STUDIO_S3_UPDATE_BASE` | 未设 URL 时拼 `{base}/win32/x64`          |
 
-- asar 保留 `.vite` / `package.json` / `generated` / `node_modules`（排除 `@i-thinking/*` workspace 符号链接，Vite 已打包）；Vite external 模块（better-sqlite3、electron-updater）及其依赖闭包由 `forge/hooks/external-deps.ts` afterCopy 复制进 asar，Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载；侧车由 `forge/hooks/sidecar.ts` afterCopy 写入 `resources/sidecar`
+`make` 时 Vite 把 feed 编译进 `STUDIO_UPDATE_FEED_URL`。开发态 / 未 packaged / 未配置 → `toRead().enabled === false`。`--squirrel-firstrun` 时不检查。
+
+Windows AUMID：`com.squirrel.i-thinking.i-thinking`（与 Maker `name` / exe 一致）。
+
+不要用 electron-updater 的 `latest.yml` / `provider: github`，也不要 `update-electron-app` 系统弹窗。
+
+## 7. asar / Sidecar / Fuses / CI / 图标
+
+- asar 保留 `.vite` / `package.json` / `drizzle` / `node_modules`（排除 `@i-thinking/*`）；Vite external 仅 **better-sqlite3** 闭包由 `forge/hooks/external-deps.ts` 复制（排除 src/docs/test/.map）；**禁止 asar 热更**（Fuses `EnableEmbeddedAsarIntegrityValidation` + `OnlyLoadAppFromAsar`）。打包态页面走 `file://`，不要关 `GrantFileProtocolExtraPrivileges`。
+- 图标：品牌源 `apps/studio/resources/icon.svg` → `pnpm --filter @i-thinking/studio icons` 生成 1024 PNG 与 256 ICO（icns 仅 macOS `iconutil`）；`extraResource` 只收录存在的文件。开发态从 `public/` 或 `resources/` 取。
 - 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
-- 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；本地完整性：`staging/<platform>/checksums.json`
-  （另有 `.cache/sidecar/<tool>/<platform>/.version` 记号 + 二进制 `--version` 自述版本双重核对，
-  见 [online-models.md](./online-models.md#73-agent-运行时--内嵌的-opencode-本体)）
-- **corex** 来自 [layenbrank/corex releases](https://github.com/layenbrank/corex/releases)（`corex-daemon` + CLI），非仓库内自研 stub
+- 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；corex sidecar **目前仅 win32-x64**，CI 不扩 mac/linux
+- **corex** 来自 [layenbrank/corex releases](https://github.com/layenbrank/corex/releases)
 - 开发：`pnpm command sidecar bootstrap studio`
+- 冒烟：`pnpm --filter @i-thinking/studio test:pack` 启动 `out/studio/i-thinking-win32-x64/i-thinking.exe`（**不要**跑 Setup.exe）
 - Fuses 见 [security.md](./security.md)；CI：[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)
