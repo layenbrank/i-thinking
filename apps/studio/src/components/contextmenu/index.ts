@@ -1,11 +1,11 @@
-import { Root, type ContextMenuProps } from '@/components/contextmenu/contextmenu'
-import { Host } from '@/components/contextmenu/host'
+import { Root, type ContextMenuProps } from './contextmenu'
+import { Host } from './host'
 import {
   useContextMenu,
   type HostConfig,
   type PresentInput
-} from '@/components/contextmenu/host-store'
-import { findFocusable, parseMenuItems } from '@/components/contextmenu/menu'
+} from './host-store'
+import { findFocusable, parseMenuItems } from './menu'
 import type {
   MenuClassNames,
   MenuItem,
@@ -14,8 +14,8 @@ import type {
   MenuSelectInfo,
   MenuStyles,
   ParsedMenuItem
-} from '@/components/contextmenu/menu'
-import { parseOrigin } from '@/components/contextmenu/position'
+} from './menu'
+import { parseOrigin } from './position'
 
 const ContextMenu = Object.assign(Root, {
   Host

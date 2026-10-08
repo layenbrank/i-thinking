@@ -1,4 +1,4 @@
-import { ENGINE_UI, type SearchEngine } from '@/views/overview/engine/constants'
+import { ENGINE_UI, type SearchEngine } from './constants'
 
 interface SuggestionItem {
   q: string

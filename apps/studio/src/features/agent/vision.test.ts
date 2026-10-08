@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { canSeeImages } from '@/features/agent/vision.ts'
+import { canSeeImages } from './vision.ts'
 
 describe('canSeeImages', function () {
   it('认出常见视觉模型', function () {

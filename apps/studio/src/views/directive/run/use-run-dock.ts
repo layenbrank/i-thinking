@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { useCorexStore } from '@/stores/corex'
 
-import { RUN_MAX } from '../splitter'
+import { RUN_MAX } from '@/views/directive/splitter'
 import { useRunDockStore } from './run-dock-store'
 import { indexStepCounts } from './run-status'
 
@@ -66,14 +66,21 @@ export function useRunDock() {
    */
   const pinToMaxRef = useRef(true)
   const openRef = useRef(isRunOpen)
-  openRef.current = isRunOpen
+  // 供给下面的稳定回调（它们故意不依赖 isRunOpen）：提交后同步，不在渲染期写 ref
+  useEffect(
+    function () {
+      openRef.current = isRunOpen
+    },
+    [isRunOpen]
+  )
 
   const writeRunOpen = useCallback(function (next: boolean) {
     openRef.current = next
     useRunDockStore.getState().writeRunOpen(next)
   }, [])
 
-  function withMutedResize(task: () => void) {
+  /** 程序化开合期间静音 onResize：下面几个面板操作都要用，故一起稳定下来 */
+  const withMutedResize = useCallback(function (task: () => void) {
     muteResizeRef.current = true
     try {
       task()
@@ -82,41 +89,53 @@ export function useRunDock() {
         muteResizeRef.current = false
       })
     }
-  }
+  }, [])
 
-  function expandPanel() {
-    const panel = runRef.current
-    if (!panel) return
-    pinToMaxRef.current = true
-    withMutedResize(function () {
-      panel.resize(RUN_MAX)
-    })
-  }
+  const expandPanel = useCallback(
+    function () {
+      const panel = runRef.current
+      if (!panel) return
+      pinToMaxRef.current = true
+      withMutedResize(function () {
+        panel.resize(RUN_MAX)
+      })
+    },
+    [runRef, withMutedResize]
+  )
 
-  function collapsePanel() {
-    const panel = runRef.current
-    if (!panel) return
-    pinToMaxRef.current = true
-    withMutedResize(function () {
-      panel.collapse()
-    })
-  }
+  const collapsePanel = useCallback(
+    function () {
+      const panel = runRef.current
+      if (!panel) return
+      pinToMaxRef.current = true
+      withMutedResize(function () {
+        panel.collapse()
+      })
+    },
+    [runRef, withMutedResize]
+  )
 
-  function applyPinnedMax() {
-    if (!openRef.current || !pinToMaxRef.current) return
-    const panel = runRef.current
-    if (!panel || panel.isCollapsed()) return
-    withMutedResize(function () {
-      panel.resize(RUN_MAX)
-    })
-  }
+  const applyPinnedMax = useCallback(
+    function () {
+      if (!openRef.current || !pinToMaxRef.current) return
+      const panel = runRef.current
+      if (!panel || panel.isCollapsed()) return
+      withMutedResize(function () {
+        panel.resize(RUN_MAX)
+      })
+    },
+    [runRef, withMutedResize]
+  )
 
   /** 分栏回流完成后再挂台体，避免同帧「改 flex + 挂 Chips/Output」抢主线程 */
-  function openAfterResize() {
-    globalThis.requestAnimationFrame(function () {
-      writeRunOpen(true)
-    })
-  }
+  const openAfterResize = useCallback(
+    function () {
+      globalThis.requestAnimationFrame(function () {
+        writeRunOpen(true)
+      })
+    },
+    [writeRunOpen]
+  )
 
   // 守护触发：自动展开运行台并盯住这次输出
   useEffect(
@@ -132,15 +151,17 @@ export function useRunDock() {
       }
       useCorexStore.getState().clearFocusRun()
     },
-    [focusRunId, writeRunOpen]
+    [focusRunId, expandPanel, openAfterResize]
   )
 
   // 席位复用换了 id：按指令名把选中钉回同一枚标签
   useEffect(
     function () {
-      if (runs.some(function (run) {
-        return run.id === selectedRunId
-      })) {
+      if (
+        runs.some(function (run) {
+          return run.id === selectedRunId
+        })
+      ) {
         return
       }
       const byName = selectedName
@@ -159,7 +180,7 @@ export function useRunDock() {
       if (openRef.current) expandPanel()
       else collapsePanel()
     },
-    [runRef]
+    [expandPanel, collapsePanel]
   )
 
   // 收起：先卸台体（isRunOpen=false），再缩面板
@@ -168,7 +189,7 @@ export function useRunDock() {
       if (isRunOpen) return
       collapsePanel()
     },
-    [isRunOpen, runRef]
+    [isRunOpen, collapsePanel]
   )
 
   // 窗口最大化 / 缩放：把被小窗夹住的占比重新套回 RUN_MAX
@@ -182,7 +203,7 @@ export function useRunDock() {
         window.removeEventListener('resize', onWindowResize)
       }
     },
-    [runRef]
+    [applyPinnedMax]
   )
 
   const startRun = useCallback(
@@ -211,7 +232,7 @@ export function useRunDock() {
       expandPanel()
       openAfterResize()
     },
-    [writeRunOpen]
+    [writeRunOpen, expandPanel, openAfterResize]
   )
 
   const onRunResize = useCallback(
@@ -235,17 +256,14 @@ export function useRunDock() {
     useRunDockStore.getState().selectRun(null)
   }, [])
 
-  const selectRun = useCallback(
-    function (id: string | null) {
-      const name = id
-        ? useCorexStore.getState().runs.find(function (run) {
-            return run.id === id
-          })?.name ?? null
-        : null
-      useRunDockStore.getState().selectRun(id, name)
-    },
-    []
-  )
+  const selectRun = useCallback(function (id: string | null) {
+    const name = id
+      ? (useCorexStore.getState().runs.find(function (run) {
+          return run.id === id
+        })?.name ?? null)
+      : null
+    useRunDockStore.getState().selectRun(id, name)
+  }, [])
 
   const updateLibraryOpen = useCallback(function (next: boolean) {
     useRunDockStore.getState().writeLibraryOpen(next)

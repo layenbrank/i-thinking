@@ -2,7 +2,7 @@ import { ResizablePanel } from '@i-thinking/design/components/resizable'
 
 import ActionLibraryDialog from '@/views/directive/action-library'
 
-import { RUN_COLLAPSED, RUN_ID, RUN_MAX, RUN_MIN } from '../splitter'
+import { RUN_COLLAPSED, RUN_ID, RUN_MAX, RUN_MIN } from '@/views/directive/splitter'
 import RunPanel from './run-panel'
 import type { RunDock } from './use-run-dock'
 

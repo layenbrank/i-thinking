@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react/offline'
 import {
   Component,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -14,15 +15,18 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { v4 as UUID } from 'uuid'
 
 import { ContextMenu, useContextMenu, type MenuItem } from '@/components/contextmenu'
+import { copyImage, pinTexture, saveToUserPath } from './clipboard'
 import { Annotation, type AnnotationHandle } from '@/features/capture/components/annotation'
-import { type GraphicsEnum, type GraphicsProps } from '@/features/capture/components/graphics'
+import {
+  type GraphicsEnum,
+  type GraphicsProps
+} from '@/features/capture/components/graphics-geometry'
 import Magnifier from '@/features/capture/components/magnifier'
-import { motion, useReducedMotion } from 'motion/react'
 import Utility from '@/features/capture/components/utility'
-import { copyImage, pinTexture, saveToUserPath } from '@/features/capture/clipboard'
-import { decodeImage, decodeImageFromBytes, revokeBlobUrl } from '@/features/capture/image'
+import { decodeImage, decodeImageFromBytes, revokeBlobUrl } from './image'
+import { motion, useReducedMotion } from 'motion/react'
 
-import styles from '@/features/capture/capture.module.scss'
+import styles from './capture.module.scss'
 
 /** 渲染侧会话（Blob URL，非 IPC wire） */
 interface CaptureSessionView {
@@ -191,7 +195,6 @@ function Capture(props: CaptureProps) {
   const [canUndo, onUpdateCanUndo] = useState(false)
   const [canRedo, onUpdateCanRedo] = useState(false)
 
-
   const isReducedMotion = useReducedMotion()
   const { present: presentContextMenu } = useContextMenu()
 
@@ -303,27 +306,31 @@ function Capture(props: CaptureProps) {
   const refreshUrlRef = useRef<string | null>(null)
 
   /** 加载底图：session 为 open 结果；isRefresh 再调 capture:screenshot */
-  async function loadCapture(isRefresh = false) {
-    onUpdateCaptureStatus('loading')
-    onUpdateCaptureError(null)
-    try {
-      if (isRefresh) {
-        const shot = await window.itc.capture.screenshot()
-        const { image, url } = await decodeImageFromBytes(shot.bytes)
-        revokeBlobUrl(refreshUrlRef.current)
-        refreshUrlRef.current = url
-        onUpdateSourceImage(image)
-      } else {
-        const image = await decodeImage(session.url)
-        onUpdateSourceImage(image)
+  const loadCapture = useCallback(
+    async function (isRefresh = false) {
+      onUpdateCaptureStatus('loading')
+      onUpdateCaptureError(null)
+      try {
+        if (isRefresh) {
+          const shot = await window.itc.capture.screenshot()
+          const { image, url } = await decodeImageFromBytes(shot.bytes)
+          revokeBlobUrl(refreshUrlRef.current)
+          refreshUrlRef.current = url
+          onUpdateSourceImage(image)
+        } else {
+          const image = await decodeImage(session.url)
+          onUpdateSourceImage(image)
+        }
+        onUpdateCaptureStatus('ready')
+      } catch (err) {
+        console.error('[capture] load failed', err)
+        onUpdateCaptureError(String(err))
+        onUpdateCaptureStatus('error')
       }
-      onUpdateCaptureStatus('ready')
-    } catch (err) {
-      console.error('[capture] load failed', err)
-      onUpdateCaptureError(String(err))
-      onUpdateCaptureStatus('error')
-    }
-  }
+    },
+    // 三个 setState 来自 useState（引用稳定），依赖只有 session
+    [session]
+  )
 
   useEffect(
     function () {
@@ -335,18 +342,15 @@ function Capture(props: CaptureProps) {
       loadStartedRef.current = true
       void loadCapture(false)
     },
-    [active, session]
+    [active, session, loadCapture]
   )
 
-  useEffect(
-    function () {
-      return function () {
-        revokeBlobUrl(refreshUrlRef.current)
-        refreshUrlRef.current = null
-      }
-    },
-    []
-  )
+  useEffect(function () {
+    return function () {
+      revokeBlobUrl(refreshUrlRef.current)
+      refreshUrlRef.current = null
+    }
+  }, [])
 
   /** 工具切换时同步 phase（放在事件里，避免 useEffect 级联 setState） */
   function handleUpdateGraphics(next: GraphicsEnum | null) {
@@ -818,7 +822,6 @@ function Capture(props: CaptureProps) {
       return
     }
 
-
     // 防御：本轮拖拽已被取消，不再处理后续 move
     if (cancelledRef.current) return
 
@@ -948,10 +951,7 @@ function Capture(props: CaptureProps) {
   }
 
   /** 单个标注被拖拽 / Transform 后回写；history=false 时仅预览不记栈 */
-  function handleAnnotationChange(
-    next: GraphicsProps,
-    options?: { history?: boolean }
-  ) {
+  function handleAnnotationChange(next: GraphicsProps, options?: { history?: boolean }) {
     const shouldCommit = options?.history !== false
     onUpdateAnnotations(function (prev) {
       const updated = prev.map(function (v) {

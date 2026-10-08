@@ -17,6 +17,7 @@ import { ASSISTANT_LABELS_ZH } from '@/features/chat/labels.ts'
 import { ChatRuntimeProvider } from '@/features/chat/runtime.tsx'
 import { cycleModel } from '@/features/chat/model-cycle.ts'
 import { useThreadKey } from '@/features/chat/session.ts'
+import { RuntimeNotice } from '@/features/tool/notice.tsx'
 import { useWindowShortcuts } from '@/features/window/shortcuts.ts'
 
 import { useAgentStore } from '@/stores/agent.ts'
@@ -54,7 +55,7 @@ import AgentUtility from '@/views/agent/components/utility.tsx'
 import { ThreadWelcome } from '@/views/agent/chat/components/welcome.tsx'
 import { useAsidePanel } from '@/views/agent/chat/components/use-aside-panel.ts'
 
-import styles from '@/views/agent/chat/chat.module.scss'
+import styles from './chat.module.scss'
 
 /**
  * 有计划时自动展开右栏（对齐 Qoder plan 场景）。
@@ -307,6 +308,7 @@ export default function Agent() {
                       updateAsideOpen(!isAsideOpen)
                     }}
                   />
+                  <RuntimeNotice />
                   <div className={clsx(styles.thread)}>
                     <Thread
                       components={{

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PLATFORM_PROVIDER_ID } from '@/features/chat/platform.ts'
-import { findHostOptions } from '@/features/chat/port/instance.ts'
+import { findHostOptions } from './instance.ts'
 import { writeAuthToken } from '@/utils/auth.ts'
 
 /**

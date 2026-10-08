@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import path from 'node:path'
 import os from 'node:os'
+import path from 'node:path'
 
+import { findBinaryName, findPlatformKey } from '@/host/framework/binaries'
 import {
   BUNDLED_ENDPOINT,
   COREX_DATA_DIR_ENV,
   DATABASE_FILE,
-  findBinaryName,
   findBundledInstall,
   findCandidateDirs,
   findCorexInstall,
-  findPlatformKey,
   parsePaths
 } from './install'
 

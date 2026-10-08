@@ -6,7 +6,7 @@ import { buildBlobUrl, revokeBlobUrl } from '@/features/capture/image'
 import { useThrough } from '@/hooks/use-through'
 import { Utility } from '@/components/utility'
 
-import styles from '@/views/overlay/overlay.module.scss'
+import styles from './overlay.module.scss'
 
 /** lazy：避免 overlay 启动就解析 Konva 截屏 UI */
 const Capture = lazy(function () {
@@ -51,7 +51,13 @@ export default function Overlay() {
   const [textures, setTextures] = useState<TextureItem[]>([])
   const sessionUrlRef = useRef<string | null>(null)
   const texturesRef = useRef<TextureItem[]>([])
-  texturesRef.current = textures
+  // 卸载时要逐一回收 blob URL：提交后同步列表，渲染期写 ref 会让 React Compiler 规则报警
+  useEffect(
+    function () {
+      texturesRef.current = textures
+    },
+    [textures]
+  )
 
   const isCapture = mode === 'capture'
 

@@ -5,7 +5,7 @@ import {
   clearActiveTenantCache,
   findActiveTenantID,
   isActiveTenantFresh
-} from '@/utils/tenant.ts'
+} from './tenant.ts'
 
 /**
  * 值缓存本身：`http.ts` 要同步读它，所以这里不能有 Promise。

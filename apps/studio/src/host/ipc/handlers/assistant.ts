@@ -1,9 +1,9 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { IpcError } from '../../../shared/ipc/error'
-import { buildKeyStore, connect } from '../../capabilities/assistant'
-import { Repository as ChatRepository } from '../../capabilities/chat'
-import type { Context } from '../../framework/context'
-import type { DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { IpcError } from '@/shared/ipc/error'
+import { buildKeyStore, connect } from '@/host/capabilities/assistant'
+import { Repository as ChatRepository } from '@/host/capabilities/chat'
+import type { Context } from '@/host/framework/context'
+import type { DomainHandlers } from '@/host/ipc/types'
 
 export function buildAssistantHandlers(ctx: Context): DomainHandlers<'assistant'> {
   const log = ctx.logger.child('assistant')

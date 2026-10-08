@@ -2,8 +2,8 @@ import { clsx } from 'clsx'
 import { useId, useState } from 'react'
 
 import type { MenuClassNames } from '@/components/contextmenu'
-import styles from '@/features/magnetic-tile/layout-menu.module.scss'
-import { findMarkerBox } from '@/features/magnetic-tile/size'
+import styles from './layout-menu.module.scss'
+import { findMarkerBox } from './size'
 
 type Tile = Pick<
   MagneticTile,

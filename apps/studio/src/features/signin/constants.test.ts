@@ -5,7 +5,7 @@ import {
   SIGNIN_SCHEMA,
   SIGNUP_SCHEMA,
   findIdentity
-} from '@/features/signin/constants.ts'
+} from './constants.ts'
 
 describe('findIdentity', function () {
   it('returns username for username mode', function () {

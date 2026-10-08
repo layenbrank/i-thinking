@@ -7,10 +7,10 @@ import { Glide } from '@/components/glide/glide'
 import {
   generateDerivedShades,
   parsePresetHues
-} from '@/features/capture/components/colors'
-import { type GraphicsEnum } from '@/features/capture/components/graphics'
+} from './colors'
+import { type GraphicsEnum } from './graphics-geometry'
 
-import styles from '@/features/capture/components/utility.module.scss'
+import styles from './utility.module.scss'
 
 interface UtilityOption {
   type: GraphicsEnum

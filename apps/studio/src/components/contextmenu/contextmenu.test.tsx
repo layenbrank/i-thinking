@@ -4,9 +4,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { ContextMenu } from '@/components/contextmenu'
-import { Host } from '@/components/contextmenu/host'
-import { presentMenu, resetMenu } from '@/components/contextmenu/host-store'
-import { findFocusable, hasChildren, parseMenuItems } from '@/components/contextmenu/menu'
+import { Host } from './host'
+import { presentMenu, resetMenu } from './host-store'
+import { findFocusable, hasChildren, parseMenuItems } from './menu'
 
 describe('MenuItem.content', function () {
   it('treats content as submenu without children', function () {

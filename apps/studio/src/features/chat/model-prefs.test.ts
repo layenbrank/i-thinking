@@ -6,7 +6,7 @@ import {
   findContextIndex,
   findModelPref,
   MODEL_PREF
-} from '@/features/chat/model-prefs.ts'
+} from './model-prefs.ts'
 
 describe('model prefs', function () {
   it('没有存过的模型用默认偏好', function () {

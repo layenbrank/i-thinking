@@ -14,7 +14,7 @@ import {
   findEdgeHandleBox,
   paintSharpGlassL,
   type CornerKind
-} from '@/features/capture/components/corner-handle'
+} from './corner-handle'
 
 interface Point {
   x: number
@@ -77,7 +77,7 @@ export interface SelectionOverlayHandle {
 }
 
 export const SelectionOverlay = forwardRef<SelectionOverlayHandle, SelectionOverlayProps>(
-  function SelectionOverlay(props, ref) {
+  function (props, ref) {
     const {
       selection,
       phase,

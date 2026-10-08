@@ -1,7 +1,7 @@
 import { FetchError, type FetchResponse } from 'ofetch'
 import { describe, expect, it } from 'vitest'
 
-import { HttpEnvelope, HttpError, HttpException, SUCCESS_CODE } from '@/utils/http.errors.ts'
+import { HttpEnvelope, HttpError, HttpException, SUCCESS_CODE } from './http.errors.ts'
 
 const TRACE_ID = '4bf92f3577b34da6a3ce929d0e0e4736'
 const TRACEPARENT = `00-${TRACE_ID}-00f067aa0ba902b7-01`

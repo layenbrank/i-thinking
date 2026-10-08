@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { AGENT_ACTIONS_BY_NATURE, type AgentToolNature } from '../../../shared/agent-tools'
+import { AGENT_ACTIONS_BY_NATURE, type AgentToolNature } from '@/shared/agent-tools'
 import {
   AGENT_PERMISSION_PROFILES,
   describePermission,

@@ -7,7 +7,7 @@ import {
   GET_PAYMENT_ORDER,
   GET_TENANT_ORDERS,
   SYNC_PAYMENT_ORDER
-} from '@/apis/payment.ts'
+} from './payment.ts'
 
 /**
  * 客户端只能做四件事：读目录、下单、查单、关单。这里锁住路径与请求体 —— 下单**只提交** `plan` +

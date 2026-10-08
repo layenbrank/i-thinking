@@ -2,8 +2,8 @@
 // position.ts 依赖 window 尺寸（渲染进程代码）；studio 的 vitest 默认 environment 是 node
 import { describe, expect, it } from 'vitest'
 
-import { parseMenuItems, findFocusable } from '@/components/contextmenu/menu'
-import { parseOrigin, findViewportRect } from '@/components/contextmenu/position'
+import { parseMenuItems, findFocusable } from './menu'
+import { parseOrigin, findViewportRect } from './position'
 
 describe('parseMenuItems', function () {
   it('assigns keys and nested types', function () {

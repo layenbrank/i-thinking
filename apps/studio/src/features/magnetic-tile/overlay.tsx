@@ -10,8 +10,8 @@ import {
   type Cache,
   type DismissReason,
   type OverlayMode
-} from '@/features/magnetic-tile/overlay-context'
-import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
+} from './overlay-context'
+import styles from './magnetic-tile.module.scss'
 
 interface OverlayProps {
   children?: ReactNode

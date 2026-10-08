@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
 import { GET_ENGINE_SUGGESTION, type SuggestionItem } from '@/apis/engine.ts'
-import { ENGINE_UI } from '@/views/overview/engine/constants'
+import { ENGINE_UI } from './constants'
 
 const SUGGESTION_KEY = ['engine', 'suggestion'] as const
 

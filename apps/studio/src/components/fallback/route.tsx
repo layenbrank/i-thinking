@@ -1,7 +1,7 @@
 import { Icon } from '@iconify/react/offline'
 import { useEffect, useState } from 'react'
 
-import { ROUTE } from '@/components/fallback/constants.ts'
+import { ROUTE } from './constants.ts'
 
 /** 路由懒加载占位：延迟 DELAY 后才出现，避免快路径下闪一下 */
 export default function RouteFallback() {

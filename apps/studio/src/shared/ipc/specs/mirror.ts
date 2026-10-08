@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import type { ChannelOfDomain } from '../channels'
-import { CHANNELS } from '../channels'
-import type { ChannelSpec } from '../spec'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 /** 表面样式（背景/景深），镜像与磁贴共用结构 */
 const Background = z.object({

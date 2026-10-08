@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
 
-import type { ContextMenuProps } from '@/components/contextmenu/contextmenu'
-import type { MenuItem, ParsedMenuItem } from '@/components/contextmenu/menu'
-import { findFocusable, parseMenuItems } from '@/components/contextmenu/menu'
-import type { Point } from '@/components/contextmenu/position'
+import type { ContextMenuProps } from './contextmenu'
+import type { MenuItem, ParsedMenuItem } from './menu'
+import { findFocusable, parseMenuItems } from './menu'
+import type { Point } from './position'
 
 /**
  * 命令式菜单的宿主 store（`presentMenu` / `dismissMenu` / `resetMenu` / `useContextMenu`）。

@@ -1,10 +1,10 @@
 import clsx from 'clsx'
 
 import { MagneticTile, type SectionProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import styles from '@/features/magnetic-tiles/capture/capture.module.scss'
+import styles from './capture.module.scss'
 import { useMirrorStore } from '@/stores/mirror'
 
-import Marker from '@/features/magnetic-tiles/capture/marker.tsx'
+import Marker from './marker.tsx'
 
 type Props = Omit<SectionProps, 'children'>
 

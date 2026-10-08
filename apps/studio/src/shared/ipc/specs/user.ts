@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { CHANNELS } from '../channels'
-import type { ChannelOfDomain } from '../channels'
-import type { ChannelSpec } from '../spec'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 /** 合法邮箱，或空字符串表示清空 */
 const OptionalEmail = z.union([z.string().email(), z.literal('')]).optional()

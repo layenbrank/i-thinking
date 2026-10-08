@@ -26,7 +26,9 @@
     "types": ["node"],
     "rootDir": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@schema": ["./drizzle/schema"],
+      "@manifest": ["./sidecar/manifest.json"]
     }
   },
   "include": [

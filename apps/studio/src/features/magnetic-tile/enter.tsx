@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Transition, Variants } from 'motion/react'
 
-import { EnterContext, type EnterValue } from '@/features/magnetic-tile/enter-context'
+import { EnterContext, type EnterValue } from './enter-context'
 
 type EnterProps = {
   children: ReactNode

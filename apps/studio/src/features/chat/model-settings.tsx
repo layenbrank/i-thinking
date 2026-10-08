@@ -30,7 +30,7 @@ import {
   writeModelPrefs,
   type ModelPref,
   type ThinkingLevel
-} from '@/features/chat/model-prefs.ts'
+} from './model-prefs.ts'
 
 interface ModelRow {
   key: string

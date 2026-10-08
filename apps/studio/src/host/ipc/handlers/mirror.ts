@@ -1,6 +1,6 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { MagneticTileService, MirrorService } from '../../capabilities/magnetic-tile'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { MagneticTileService, MirrorService } from '@/host/capabilities/magnetic-tile'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 /**
  * 镜像桌面域：镜像本身 + 其下磁贴（tile）。

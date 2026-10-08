@@ -2,11 +2,11 @@ import type { IpcRendererEvent } from 'electron'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 import { attachAssistantPort } from './preload.port'
-import type { Api, IpcFn, Subscribe, Unsubscribe } from './shared/ipc/api'
-import type { InvokeChannel, PushChannel } from './shared/ipc/channels'
-import { CHANNELS } from './shared/ipc/channels'
-import { IpcClientError, type IpcEnvelope, type IpcErrorPayload } from './shared/ipc/error'
-import type { Out, PushOut } from './shared/ipc/specs'
+import type { Api, IpcFn, Subscribe, Unsubscribe } from '@/shared/ipc/api'
+import type { InvokeChannel, PushChannel } from '@/shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { IpcClientError, type IpcEnvelope, type IpcErrorPayload } from '@/shared/ipc/error'
+import type { Out, PushOut } from '@/shared/ipc/specs'
 
 function isEnvelope(value: unknown): value is IpcEnvelope<unknown> {
   return typeof value === 'object' && value !== null && 'ok' in value
@@ -77,6 +77,11 @@ function toSidecarJobEvent(raw: unknown): PushOut<typeof CHANNELS.SIDECAR.JOB_EV
   return raw as PushOut<typeof CHANNELS.SIDECAR.JOB_EVENT>
 }
 
+/** 在线工具下载进度：主进程主动推，无需校验，只为渲染侧提供类型 */
+function toToolProgress(raw: unknown): PushOut<typeof CHANNELS.TOOL.PROGRESS> {
+  return raw as PushOut<typeof CHANNELS.TOOL.PROGRESS>
+}
+
 function toOverlayEvent(raw: unknown): PushOut<typeof CHANNELS.OVERLAY.EVENT> {
   return raw as PushOut<typeof CHANNELS.OVERLAY.EVENT>
 }
@@ -119,6 +124,12 @@ const api = {
   },
   doc: {
     convert: toInvoke(CHANNELS.DOC.CONVERT)
+  },
+  tool: {
+    toRead: toInvoke(CHANNELS.TOOL.READ),
+    install: toInvoke(CHANNELS.TOOL.INSTALL),
+    toRemove: toInvoke(CHANNELS.TOOL.REMOVE),
+    onProgress: toSubscribe(CHANNELS.TOOL.PROGRESS, toToolProgress)
   },
   capture: {
     screenshot: toInvoke(CHANNELS.CAPTURE.SCREENSHOT),
@@ -178,10 +189,10 @@ const api = {
       toUpdate: toInvoke(CHANNELS.WORKSPACE.FOLDERS.UPDATE),
       toRemove: toInvoke(CHANNELS.WORKSPACE.FOLDERS.REMOVE)
     },
-    listDir: toInvoke(CHANNELS.WORKSPACE.LIST_DIR),
+    readDir: toInvoke(CHANNELS.WORKSPACE.READ_DIR),
     search: toInvoke(CHANNELS.WORKSPACE.SEARCH),
     readFile: toInvoke(CHANNELS.WORKSPACE.READ_FILE),
-    listSkills: toInvoke(CHANNELS.WORKSPACE.LIST_SKILLS),
+    readSkills: toInvoke(CHANNELS.WORKSPACE.READ_SKILLS),
     git: {
       probe: toInvoke(CHANNELS.WORKSPACE.GIT.PROBE),
       branches: toInvoke(CHANNELS.WORKSPACE.GIT.BRANCHES),

@@ -7,7 +7,7 @@
 
 import type { DirectiveEntry } from '@/shared/ipc/specs/sidecar'
 
-import { DAY_MS, HOUR_MS, WEEK_MS, type DirectiveRuns } from '../run/run-status'
+import { DAY_MS, HOUR_MS, WEEK_MS, type DirectiveRuns } from '@/views/directive/run/run-status'
 import { groupByBucket } from './bucket'
 import { groupByFolder } from './folder'
 import type { DirectiveGroup } from './types'

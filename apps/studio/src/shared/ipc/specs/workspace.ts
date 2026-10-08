@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import type { ChannelOfDomain } from '../channels'
-import { CHANNELS } from '../channels'
-import type { ChannelSpec } from '../spec'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 /**
  * 工作区域：Agent 的**沙箱边界**。
@@ -91,7 +91,7 @@ const FolderRemoveSchema = z.object({
   id: z.uuid()
 })
 
-const ListDirSchema = z.object({
+const ReadDirSchema = z.object({
   workspaceID: z.uuid(),
   /** 相对 primary 根的路径；空/省略 = 根目录 */
   relative: z.string().max(2048).optional()
@@ -114,7 +114,7 @@ const SearchHitSchema = z.object({
   relative: z.string()
 })
 
-const ListSkillsSchema = z.object({
+const ReadSkillsSchema = z.object({
   workspaceID: z.uuid()
 })
 
@@ -214,10 +214,10 @@ export const workspaceSpecs = {
   [CHANNELS.WORKSPACE.FOLDERS.UPDATE]: { in: FolderUpdateSchema, out: FolderSchema },
   [CHANNELS.WORKSPACE.FOLDERS.REMOVE]: { in: FolderRemoveSchema, out: z.void() },
 
-  [CHANNELS.WORKSPACE.LIST_DIR]: { in: ListDirSchema, out: z.array(DirEntrySchema) },
+  [CHANNELS.WORKSPACE.READ_DIR]: { in: ReadDirSchema, out: z.array(DirEntrySchema) },
   [CHANNELS.WORKSPACE.SEARCH]: { in: SearchSchema, out: z.array(SearchHitSchema) },
   [CHANNELS.WORKSPACE.READ_FILE]: { in: ReadFileSchema, out: FileContentSchema },
-  [CHANNELS.WORKSPACE.LIST_SKILLS]: { in: ListSkillsSchema, out: z.array(SkillSchema) },
+  [CHANNELS.WORKSPACE.READ_SKILLS]: { in: ReadSkillsSchema, out: z.array(SkillSchema) },
 
   [CHANNELS.WORKSPACE.GIT.PROBE]: { in: GitProbeSchema, out: GitProbeResultSchema },
   [CHANNELS.WORKSPACE.GIT.BRANCHES]: { in: GitProbeSchema, out: GitBranchesResultSchema },

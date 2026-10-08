@@ -10,7 +10,7 @@ import { formatTokens, toQuotaView } from '@/features/quota/quota.ts'
 import { RefreshButton } from '@/features/quota/refresh-button.tsx'
 import { useInvalidateQuota, useSelfQuota } from '@/features/quota/usage.ts'
 import { HttpError } from '@/utils/http.errors.ts'
-import { AsideCard, AsideHint, AsideRow } from '@/views/agent/chat/components/aside-ui.tsx'
+import { AsideCard, AsideHint, AsideRow } from './aside-ui.tsx'
 import { formatClock, formatDateTime } from '@/views/agent/settings/components/format.ts'
 
 /**

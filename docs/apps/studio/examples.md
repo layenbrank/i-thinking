@@ -106,8 +106,12 @@ await itc.chat.provider.toRemove({ id: provider.id })
 ## 6. Sidecar 状态与文档转换
 
 ```ts
-const status = await itc.sidecar.findStatus()
-// { isReady, version, actions, hasCorex, hasPandoc }
+const status = await itc.sidecar.toRead()
+// { isReady, version, actions, hasCorex, dataDir, database, isBundled }
+
+const tools = await itc.tool.toRead()
+// [{ key: 'pandoc', state: 'missing', ... }, ...]：精简版里这些是运行时下载的
+await itc.tool.install({ key: 'pandoc' })
 
 const converted = await itc.doc.convert({
   inputPath: 'C:/docs/note.md',
@@ -204,7 +208,7 @@ export function buildSettingsHandlers(): DomainHandlers<'settings'> {
 并入 `host/ipc/index.ts` 的 `buildHandlers`。
 
 > **频道注册不再由该域承担** —— `host/ipc` 遍历契约统一注册。
-> 只有带生命周期需求（起停 / 建窗 / 关库）的域才写 `host/capabilities/<domain>.ts`
+> 只有带生命周期需求（起停 / 建窗 / 关库）的域才写 `host/capabilities/<domain>.ts`（域有多文件时是 `<domain>/index.ts`）
 > 插件并在 `main.ts` 注册。
 
 ### 9.5 `preload.ts` — 加一行

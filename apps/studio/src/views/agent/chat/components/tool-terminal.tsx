@@ -6,7 +6,7 @@ import { useState, type ReactNode } from 'react'
 import {
   collapseOutput,
   TERMINAL_PREVIEW_LINES
-} from '@/views/agent/chat/components/tool-output.ts'
+} from './tool-output.ts'
 
 /**
  * 命令与代码的「模拟终端」面板。

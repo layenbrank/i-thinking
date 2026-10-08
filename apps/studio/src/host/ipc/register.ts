@@ -1,7 +1,7 @@
 import { type IpcMain, type IpcMainInvokeEvent } from 'electron'
 
-import { INVOKE_CHANNELS } from '../../shared/ipc/channels'
-import { type InvokeChannel } from '../../shared/ipc/channels'
+import { INVOKE_CHANNELS } from '@/shared/ipc/channels'
+import { type InvokeChannel } from '@/shared/ipc/channels'
 import {
   envelopeFail,
   envelopeOk,
@@ -9,11 +9,11 @@ import {
   toErrorPayload,
   toZodDetails,
   type IpcEnvelope
-} from '../../shared/ipc/error'
-import { INVOKE_SPECS } from '../../shared/ipc/specs'
-import { type Out } from '../../shared/ipc/specs'
-import { isTrustedSender } from '../capabilities/trusted-sender'
-import { type Context } from '../framework/context'
+} from '@/shared/ipc/error'
+import { INVOKE_SPECS } from '@/shared/ipc/specs'
+import { type Out } from '@/shared/ipc/specs'
+import { isTrustedSender } from '@/host/capabilities/trusted-sender'
+import { type Context } from '@/host/framework/context'
 import { type Handler, type Handlers } from './types'
 
 export interface IpcDisposable {

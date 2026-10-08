@@ -1,8 +1,8 @@
 import { session, shell, type WebContents } from 'electron'
 
-import type { Context } from '../framework/context'
-import type { Plugin } from '../framework/module'
-import { SUGGEST_ORIGIN } from '../../shared/suggest'
+import type { Context } from '@/host/framework/context'
+import type { Plugin } from '@/host/framework/module'
+import { SUGGEST_ORIGIN } from '@/shared/suggest'
 import { isAllowedPageUrl } from './trusted-sender'
 
 /** 渲染侧 `navigator.clipboard.writeText` 会要这个；空集合等于剪贴板一律拒绝 */

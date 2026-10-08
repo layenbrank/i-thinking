@@ -1,14 +1,14 @@
-import { Icon } from '@iconify/react/offline'
 import {
   ComposerPrimitive,
-  useAui,
   unstable_defaultDirectiveFormatter,
   unstable_useMentionAdapter,
   unstable_useSlashCommandAdapter,
+  useAui,
   type Unstable_Mention,
   type Unstable_SlashCommand,
   type Unstable_TriggerItem
 } from '@assistant-ui/react'
+import { Icon } from '@iconify/react/offline'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
@@ -69,7 +69,10 @@ function TriggerListShell(props: {
     <div className="border-border/60 bg-popover absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-lg border shadow-md">
       {props.isLoading ? (
         <p className="text-muted-foreground flex items-center gap-1.5 px-3 py-2.5 text-xs">
-          <Icon icon="lucide:loader-circle" className="size-3.5 animate-spin" />
+          <Icon
+            icon="lucide:loader-circle"
+            className="size-3.5 animate-spin"
+          />
           读取中…
         </p>
       ) : null}
@@ -98,9 +101,7 @@ function TriggerQuerySync(props: { onQuery: (query: string) => void }) {
   return null
 }
 
-function toMentionItems(
-  rows: Array<{ name: string; relative: string }>
-): Unstable_Mention[] {
+function toMentionItems(rows: Array<{ name: string; relative: string }>): Unstable_Mention[] {
   return rows.map(function (row) {
     return {
       id: row.relative,
@@ -118,9 +119,9 @@ function ComposerTriggers() {
   const [needle, updateNeedle] = useState('')
 
   const skillsQuery = useQuery({
-    queryKey: ['workspace', 'listSkills', workspaceID],
+    queryKey: ['workspace', 'readSkills', workspaceID],
     queryFn: function () {
-      return itc.workspace.listSkills({ workspaceID: workspaceID as string })
+      return itc.workspace.readSkills({ workspaceID: workspaceID as string })
     },
     enabled: Boolean(workspaceID)
   })
@@ -130,7 +131,7 @@ function ComposerTriggers() {
     queryFn: async function () {
       if (!workspaceID) return [] as Unstable_Mention[]
       if (needle.length === 0) {
-        const entries = await itc.workspace.listDir({ workspaceID })
+        const entries = await itc.workspace.readDir({ workspaceID })
         return toMentionItems(
           entries
             .filter(function (entry) {
@@ -219,7 +220,10 @@ function ComposerTriggers() {
                       item={item}
                       index={index}
                       className="data-highlighted:bg-muted hover:bg-muted flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs outline-none">
-                      <Icon icon="lucide:file" className="text-muted-foreground size-3.5 shrink-0" />
+                      <Icon
+                        icon="lucide:file"
+                        className="text-muted-foreground size-3.5 shrink-0"
+                      />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.description ? (
                         <span className="text-muted-foreground max-w-[40%] truncate text-2xs">
@@ -256,7 +260,10 @@ function ComposerTriggers() {
                       item={item}
                       index={index}
                       className="data-highlighted:bg-muted hover:bg-muted flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs outline-none">
-                      <Icon icon="lucide:wrench" className="text-muted-foreground size-3.5 shrink-0" />
+                      <Icon
+                        icon="lucide:wrench"
+                        className="text-muted-foreground size-3.5 shrink-0"
+                      />
                       <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                         <span className="w-full truncate">{item.label}</span>
                         {item.description ? (

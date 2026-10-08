@@ -20,18 +20,18 @@ import {
   POST_SIGNIN_PHONE,
   type SlideProof
 } from '@/apis/auth.ts'
-import { CaptchaField } from '@/features/signin/captcha-field.tsx'
+import { CaptchaField } from './captcha-field.tsx'
 import {
   LIMIT,
   MODE,
   SIGNIN_SCHEMA,
   type AuthMode,
   type SigninValues
-} from '@/features/signin/constants.ts'
-import { AuthField } from '@/features/signin/field.tsx'
-import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
-import styles from '@/features/signin/signin.module.scss'
-import { useSlideProof } from '@/features/signin/slide.tsx'
+} from './constants.ts'
+import { AuthField } from './field.tsx'
+import { FormStagger, MotionField } from './form-motion.tsx'
+import styles from './signin.module.scss'
+import { useSlideProof } from './slide.tsx'
 import { HttpError } from '@/utils/http.errors.ts'
 import { findRememberedUsername, writeAuthToken, writeRememberedUsername } from '@/utils/auth.ts'
 

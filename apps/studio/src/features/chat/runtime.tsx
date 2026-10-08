@@ -25,7 +25,7 @@ import { chatModelPort, findHostOptions } from '@/features/chat/port/instance.ts
  * 会话列表自建（`useRemoteThreadListRuntime`），生成统一走 `useLocalRuntime` +
  * `ChatModelPort` —— 不管跑的是本机 Ollama 还是平台网关，请求都由主进程发出，
  * 所以工具、审批、计划、用量、历史全套能力两边一致；差别只在主进程按 provider 的
- * kind 解析凭据（见 `features/chat/platform.ts` 与 `host/capabilities/assistant-model.ts`）。
+ * kind 解析凭据（见 `features/chat/platform.ts` 与 `host/capabilities/assistant/model.ts`）。
  *
  * 这里曾经有两个 runtime hook（`offline` / `online`）加外层 `key={kind}` 重建整棵树：
  * 那种设计把「模型」绑在了通路上，等于同一份能力写两遍。

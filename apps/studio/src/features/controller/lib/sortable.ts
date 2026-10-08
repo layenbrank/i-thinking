@@ -7,7 +7,7 @@
  */
 import Sortable from 'sortablejs'
 
-import { clearGhost } from '@/features/controller/lib/scroll-fx'
+import { clearGhost } from './scroll-fx'
 
 const DRAG_DELAY = 50
 const DRAG_DISTANCE = 10

@@ -5,20 +5,20 @@ import { findProviderSource } from '@i-thinking/agent/provider'
 import type { ProviderSource } from '@i-thinking/agent/provider'
 import Store from 'electron-store'
 
-import { createApprovalTicket, type ApprovalTicket } from '../assistant-approval'
-import type { KeyStore } from '../assistant-key'
-import { resolveConnection } from '../assistant-model'
+import { createApprovalTicket, type ApprovalTicket } from '@/host/capabilities/assistant/approval'
+import type { KeyStore } from '@/host/capabilities/assistant/key'
+import { resolveConnection } from '@/host/capabilities/assistant/model'
 import {
   findErrorMessage,
   type Log,
   type PortEvent,
   type StartRequest,
   type TerminalPortEvent
-} from '../assistant-protocol'
-import type { ChatUsageRecord, Repository as ChatRepository } from '../chat'
-import { findAllWorkspaceFolders, resolveWorkspaceTarget } from '../workspace'
-import type { WorkspaceTarget } from '../workspace'
-import { resolveInside } from '../workspace-path'
+} from '@/host/capabilities/assistant/protocol'
+import type { ChatUsageRecord, Repository as ChatRepository } from '@/host/capabilities/chat'
+import { findAllWorkspaceFolders, resolveWorkspaceTarget } from '@/host/capabilities/workspace'
+import type { WorkspaceTarget } from '@/host/capabilities/workspace'
+import { resolveInside } from '@/host/capabilities/workspace/path'
 import {
   applyChain,
   applyUndo,

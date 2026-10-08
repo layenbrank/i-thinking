@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type * as GatewayApi from '@/apis/gateway.ts'
-import { AsideQuota } from '@/views/agent/chat/components/aside-usage.tsx'
+import { AsideQuota } from './aside-usage.tsx'
 
 /**
  * 「额度支持刷新按钮」这条要求落在右栏卡片上：卡片角上那颗按钮点下去必须真的再问一次服务端，

@@ -12,7 +12,9 @@ const dbOnly = process.env.STUDIO_DB_TESTS === '1'
 export default defineConfig({
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@schema': fileURLToPath(new URL('./drizzle/schema', import.meta.url)),
+      '@manifest': fileURLToPath(new URL('./sidecar/manifest.json', import.meta.url))
     }
   },
   test: {

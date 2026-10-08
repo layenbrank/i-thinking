@@ -10,8 +10,9 @@ async function copyText(text: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text)
       return
-    } catch {
+    } catch (error) {
       // 失焦 / 权限抖动时落到下面的选区复制
+      console.warn('[clipboard] navigator.clipboard 写入失败，改用选区复制', error)
     }
   }
 

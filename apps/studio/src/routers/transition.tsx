@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Suspense } from 'react'
 import { useMatches, useNavigationType, useOutlet } from 'react-router-dom'
 
-import { Fallback } from '@/components/fallback/index.ts'
+import { Fallback } from '@/components/fallback'
 
 import { findTransitionKey } from './transition-key.ts'
 

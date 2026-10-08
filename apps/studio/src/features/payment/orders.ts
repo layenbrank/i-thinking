@@ -12,7 +12,7 @@ import {
   type PaymentCatalog,
   type PaymentOrder
 } from '@/apis/payment.ts'
-import { ORDER_PAID, ORDER_POLL_INTERVAL_MS, shouldPollOrder } from '@/features/payment/checkout.ts'
+import { ORDER_PAID, ORDER_POLL_INTERVAL_MS, shouldPollOrder } from './checkout.ts'
 import { useInvalidateQuota } from '@/features/quota/usage.ts'
 
 /**

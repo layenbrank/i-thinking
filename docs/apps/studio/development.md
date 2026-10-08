@@ -26,7 +26,8 @@ pnpm install
 | `pnpm --filter @i-thinking/studio test:unit` | Vitest（单测，不含集成测试）                     |
 | `pnpm --filter @i-thinking/studio test:db`   | 数据库集成测试（在 Electron 运行时里跑，见 §8）  |
 | `pnpm --filter @i-thinking/studio lint`      | ESLint                                           |
-| `pnpm command sidecar bootstrap studio`      | tools.lock → downloads → studio staging          |
+| `pnpm command sidecar bootstrap studio`      | tools.lock → downloads → studio staging（**全量落盘**，含按需工具） |
+| `pnpm command sidecar manifest`              | 打印当前平台的在线包（`sidecar/manifest.json`）；`--verify` 下载并核 sha256 |
 | `pnpm command sidecar opencode`              | 仅下载 opencode（按 tools.lock 的 pin 校验版本） |
 | `pnpm command sidecar corex`                 | 仅下载 corex 到 `.cache/sidecar`                 |
 | `pnpm command sidecar ffmpeg`                | 仅下载 FFmpeg（包较大，受网络影响）              |
@@ -34,8 +35,29 @@ pnpm install
 | `pnpm command sidecar stage studio`          | stage → studio staging                           |
 | `pnpm command sidecar verify studio`         | 校验 staging checksums                           |
 | `pnpm --filter @i-thinking/studio package`   | 打出可运行目录到 `out/`（需先 bootstrap）        |
+| `pnpm --filter @i-thinking/studio package:full` | 同上，但带上按需工具（staging 里已经都在） |
 | `pnpm --filter @i-thinking/studio build`     | 同 `package`（供 turbo / PR CI）                 |
-| `pnpm --filter @i-thinking/studio make`      | `electron-forge make` → `out/make`               |
+| `pnpm --filter @i-thinking/studio make`      | `electron-forge make` → `out/make`（精简版）     |
+| `pnpm --filter @i-thinking/studio make:full` | 同上，完整版（内置 pandoc / ffmpeg / opencode）  |
+
+### 两档产物：精简版 / 完整版
+
+`apps/studio/scripts/run-forge.mjs` 把档位以 `STUDIO_SIDECAR_VARIANT` 传给 forge（Windows 的
+cmd/pwsh 没有 `VAR=值 命令` 这种写法，故用一个极小的 runner，不引 cross-env）。
+
+**档位只在这一个地方决定** —— 落盘那一步不管档位（`bootstrap` 一律全量落盘，只把按需工具的名字
+写进 staging 的 `checksums.json.onDemand`），所以切档不用重跑 bootstrap。
+
+| 档位 | 侧车 | 安装包 |
+| ---- | ---- | ------ |
+| `lite`（默认） | 只带 corex（引擎，缺了起不来）；pandoc / ffmpeg / opencode 由 Studio 运行时从在线源下载 | 小 ~824 MB |
+| `full` | 全部内置，离线可用 | 大 |
+
+- 哪些工具算「按需」由 `tools.lock.json` 的 `onDemand` 决定；打包时按档过滤（完整版反而要求它们都在）。
+- **在线源**：`apps/studio/sidecar/manifest.json`（宿主构建期内联，CLI 也能读它核对）。
+  归档是重打包的（可执行文件平铺），地址 + sha256 都在这份 JSON 里；取用顺序 **已下载 → 随包内置**，
+  落点 `<userData>/sidecar/<tool>/<版本>/`，入口在「设置 → 工具」。
+- studio 不落盘 `goose`（agent 走 opencode），要它的是 client。
 
 > 改了 `tools.lock.json` 的 pin 要重跑一次 `bootstrap` 才会换版本：缓存命中按
 > `<工具>/.version` 记号判定（不是「文件在不在」），对不上就重装；版本没变的工具只会
@@ -122,12 +144,12 @@ src/main.ts | src/preload.ts | src/renderer.tsx | src/host/capabilities/ | sidec
 - 约定：`src/**/*.test.ts`；渲染测试写 `*.test.tsx`，并在文件首行加 `// @vitest-environment jsdom` 切到 DOM 环境（默认环境是 `node`，没有 `document`）
 - 现有覆盖示例：
   - `host/capabilities/store.test.ts`
-  - `host/capabilities/user.test.ts`
+  - `host/capabilities/user.test.ts`（User 仓储，实现落在 `capabilities/database.ts`）
   - `host/capabilities/doc.test.ts`
   - `shared/ipc/contract.test.ts`
   - `host/ipc/register.test.ts`（假 IpcMain，无需启动 Electron）
-  - `host/capabilities/sidecar.paths.test.ts`
   - `host/capabilities/trusted-sender.test.ts`
+  - `host/framework/paths.test.ts`（`APP_ROOT` / bundle 目录推导）
   - `preload.expose.test.ts`（断言不暴露 `ipcRenderer`）
   - `components/contextmenu/contextmenu.test.tsx`、`views/agent/chat/components/{diff-view,tool-terminal}.test.tsx`（组件渲染，走 `@testing-library/react`）
 
@@ -147,7 +169,7 @@ pnpm test:db       # 真实引擎的数据库集成测试（建表 / 种子 / �
 - 必须显式写 `pnpm run rebuild`（等价 `pnpm --filter @i-thinking/studio run rebuild`）：裸 `pnpm rebuild` 是 pnpm 的**内置命令**，不会执行这个 script，而是对全仓包重跑 install 脚本（为**宿主 Node** 构建原生模块，会把 Electron ABI 的 `better-sqlite3` 覆盖成宿主 ABI → `NODE_MODULE_VERSION` 不匹配）。为此 [pnpm-workspace.yaml](../../../pnpm-workspace.yaml) 里 `allowBuilds.better-sqlite3: false` 关掉了 better-sqlite3 自己的 install 脚本，构建统一交给 `@electron/rebuild`。
 - 该 script 带 `-f`：`@electron/rebuild` 只读 `build/Release/.forge-meta`（内容 `<arch>--<ABI>`）判断「是否已构建」，**不校验二进制是否存在或正确**；marker 与当前 Electron 一致时会打印 `✔ Rebuild Complete` 却什么都不做，所以修 ABI 问题必须强制重建。
 
-- 集成测试 `src/host/capabilities/*.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它们被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
+- 集成测试 `src/host/**/*.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它们被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
 
 - schema 按领域分文件放在 `drizzle/schema/`（`index.ts` 汇总），迁移产物在 `drizzle/migrations/`（SQL + `meta/journal`）。
 - 访问层用 **Drizzle ORM**，引擎 **better-sqlite3**；新增表应通过 **Repository + 领域 IPC** 暴露，禁止 raw SQL channel。

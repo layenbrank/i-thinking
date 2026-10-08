@@ -6,7 +6,7 @@ import {
   findQuotaSourceLabel,
   formatTokens,
   toQuotaView
-} from '@/features/quota/quota.ts'
+} from './quota.ts'
 
 /**
  * 上限、已用、是否触顶都由服务端算好，这里只验证「原样搬运 + 进度条换算」，

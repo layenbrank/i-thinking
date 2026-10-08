@@ -1,33 +1,37 @@
 import { type IpcMain } from 'electron'
 
-import { type InvokeChannel } from '../../shared/ipc/channels'
-import type { Service as CaptureService } from '../capabilities/capture'
-import { type OverlayWindowPort } from '../capabilities/overlay-window'
-import { type MainWindowPort } from '../capabilities/window'
-import { type WindowPorts } from '../capabilities/window-registry'
-import type { ThroughHost } from '../capabilities/through'
-import { type Context } from '../framework/context'
-import { buildAssistantHandlers } from './handlers/assistant'
-import { buildAssetHandlers } from './handlers/asset'
-import { buildCaptureHandlers } from './handlers/capture'
-import { buildChatHandlers } from './handlers/chat'
-import { buildDevtoolsHandlers } from './handlers/devtools'
-import { buildDialogHandlers } from './handlers/dialog'
-import { buildDocHandlers } from './handlers/doc'
-import { buildMirrorHandlers } from './handlers/mirror'
-import { buildOverlayHandlers } from './handlers/overlay'
-import { buildSidecarHandlers } from './handlers/sidecar'
-import { buildStoreHandlers } from './handlers/store'
-import { buildThroughHandlers } from './handlers/through'
-import { buildUpdaterHandlers } from './handlers/updater'
-import { buildUserHandlers } from './handlers/user'
-import { buildWindowHandlers } from './handlers/window'
-import { buildWorkspaceHandlers } from './handlers/workspace'
+import type { Service as CaptureService } from '@/host/capabilities/capture'
+import type { ThroughHost } from '@/host/capabilities/overlay/through'
+import { type OverlayWindowPort } from '@/host/capabilities/overlay/window-port'
+import type { CorexHost } from '@/host/capabilities/sidecar'
+import { type MainWindowPort } from '@/host/capabilities/window'
+import { type WindowPorts } from '@/host/capabilities/window/registry'
+import { type Context } from '@/host/framework/context'
+import { buildAssetHandlers } from '@/host/ipc/handlers/asset'
+import { buildAssistantHandlers } from '@/host/ipc/handlers/assistant'
+import { buildCaptureHandlers } from '@/host/ipc/handlers/capture'
+import { buildChatHandlers } from '@/host/ipc/handlers/chat'
+import { buildDevtoolsHandlers } from '@/host/ipc/handlers/devtools'
+import { buildDialogHandlers } from '@/host/ipc/handlers/dialog'
+import { buildDocHandlers } from '@/host/ipc/handlers/doc'
+import { buildMirrorHandlers } from '@/host/ipc/handlers/mirror'
+import { buildOverlayHandlers } from '@/host/ipc/handlers/overlay'
+import { buildSidecarHandlers } from '@/host/ipc/handlers/sidecar'
+import { buildStoreHandlers } from '@/host/ipc/handlers/store'
+import { buildThroughHandlers } from '@/host/ipc/handlers/through'
+import { buildToolHandlers } from '@/host/ipc/handlers/tools'
+import { buildUpdaterHandlers } from '@/host/ipc/handlers/updater'
+import { buildUserHandlers } from '@/host/ipc/handlers/user'
+import { buildWindowHandlers } from '@/host/ipc/handlers/window'
+import { buildWorkspaceHandlers } from '@/host/ipc/handlers/workspace'
+import { type InvokeChannel } from '@/shared/ipc/channels'
 import { registerAll, type IpcDisposable } from './register'
 import { type Handlers } from './types'
 
 export interface IpcDeps {
   ctx: Context
+  /** sidecar 宿主：只有 sidecar / capture 两条频道线用它，不挂在 ctx 上 */
+  sidecar: CorexHost
   overlay: OverlayWindowPort
   windows: WindowPorts
   mainWindow: MainWindowPort
@@ -43,9 +47,10 @@ export function buildHandlers(deps: IpcDeps) {
     ...buildDevtoolsHandlers(deps.ctx),
     ...buildDialogHandlers(deps.mainWindow),
     ...buildDocHandlers(),
+    ...buildToolHandlers(),
     ...buildUserHandlers(),
-    ...buildSidecarHandlers(deps.ctx),
-    ...buildCaptureHandlers(deps.ctx, deps.overlay, deps.through, deps.captureService),
+    ...buildSidecarHandlers(deps.sidecar),
+    ...buildCaptureHandlers(deps.sidecar, deps.overlay, deps.through, deps.captureService),
     ...buildAssetHandlers(),
     ...buildThroughHandlers(deps.through),
     ...buildOverlayHandlers(deps.overlay),

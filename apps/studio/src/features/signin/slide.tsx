@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 
 import type { SlideProof } from '@/apis/auth.ts'
-import { SlideDialog } from '@/features/signin/slide-dialog.tsx'
+import { SlideDialog } from './slide-dialog.tsx'
 
 function useSlideProof() {
   const [isOpen, updateOpen] = useState(false)

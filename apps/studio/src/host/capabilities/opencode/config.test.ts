@@ -319,13 +319,21 @@ describe('buildStudioAgents · 档位落成自定义 primary agent', function ()
       })
 
       // 规范化：反斜杠转正斜杠、去掉尾部的 `/`，两种边界都授权
-      expect(grants.map((rule) => rule.resource)).toEqual([
+      expect(
+        grants.map(function (rule) {
+          return rule.resource
+        })
+      ).toEqual([
         'D:/Documents/Rust/service/master',
         'D:/Documents/Rust/service/master/*',
         'D:/Documents/monorepo/i-thinking/master',
         'D:/Documents/monorepo/i-thinking/master/*'
       ])
-      expect(grants.every((rule) => rule.effect === 'allow')).toBe(true)
+      expect(
+        grants.every(function (rule) {
+          return rule.effect === 'allow'
+        })
+      ).toBe(true)
       // last match wins：授权必须排在守卫后面，否则等于没加
       expect(rules.indexOf(grants[0])).toBeGreaterThan(guard)
     }

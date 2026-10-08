@@ -2,8 +2,8 @@ import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-import { ERROR } from '@/components/fallback/constants.ts'
-import styles from '@/components/fallback/error-boundary.module.scss'
+import { ERROR } from './constants.ts'
+import styles from './error-boundary.module.scss'
 
 interface ErrorBoundaryProps {
   children: ReactNode

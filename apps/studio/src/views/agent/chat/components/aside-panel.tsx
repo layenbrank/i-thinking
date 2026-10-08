@@ -4,7 +4,7 @@ import {
   AsidePanelContext,
   type AsidePanelValue,
   type AsideSection
-} from '@/views/agent/chat/components/use-aside-panel.ts'
+} from './use-aside-panel.ts'
 
 interface AsidePanelProviderProps {
   isOpen: boolean

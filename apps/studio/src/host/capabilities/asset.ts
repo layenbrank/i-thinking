@@ -4,11 +4,11 @@ import path from 'node:path'
 
 import { and, asc, desc, eq, type SQL } from 'drizzle-orm'
 
-import { asset } from '../../../drizzle/schema'
-import type { CHANNELS } from '../../shared/ipc/channels'
-import { IpcError } from '../../shared/ipc/error'
-import { type In, type Out } from '../../shared/ipc/specs'
-import { findTextureDir } from './capture-path'
+import { asset } from '@schema'
+import type { CHANNELS } from '@/shared/ipc/channels'
+import { IpcError } from '@/shared/ipc/error'
+import { type In, type Out } from '@/shared/ipc/specs'
+import { findTextureDir } from '@/host/capabilities/capture/path'
 import { findClient } from './database'
 
 /**

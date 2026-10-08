@@ -1,7 +1,7 @@
 import { Icon } from '@iconify/react/offline'
 
 import type { MenuItem } from '@/components/contextmenu'
-import { LayoutPicker, type Tile } from '@/features/magnetic-tile/layout-menu'
+import { LayoutPicker, type Tile } from './layout-menu'
 
 /**
  * 磁贴右键菜单的**构建**部分（`.tsx` 但不定义组件：Fast Refresh 只要求「组件文件的导出都是组件」）。

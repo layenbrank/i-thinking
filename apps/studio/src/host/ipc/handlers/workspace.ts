@@ -1,8 +1,8 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { workspaceChangeJournal } from '../../capabilities/workspace-changes'
-import { WorkspaceGitService } from '../../capabilities/workspace-git'
-import { WorkspaceService } from '../../capabilities/workspace'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { WorkspaceService } from '@/host/capabilities/workspace'
+import { workspaceChangeJournal } from '@/host/capabilities/workspace/changes'
+import { WorkspaceGitService } from '@/host/capabilities/workspace/git'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 /**
  * 工作区域：工作区 + 源文件夹由主进程落库；目录/文件/git/变更一律走
@@ -39,8 +39,8 @@ export function buildWorkspaceHandlers(): DomainHandlers<'workspace'> {
       return workspace.toRemoveFolder(input)
     },
 
-    [CHANNELS.WORKSPACE.LIST_DIR]: function (input) {
-      return workspace.listDir(input)
+    [CHANNELS.WORKSPACE.READ_DIR]: function (input) {
+      return workspace.readDir(input)
     },
     [CHANNELS.WORKSPACE.SEARCH]: function (input) {
       return workspace.search(input)
@@ -48,8 +48,8 @@ export function buildWorkspaceHandlers(): DomainHandlers<'workspace'> {
     [CHANNELS.WORKSPACE.READ_FILE]: function (input) {
       return workspace.readFile(input)
     },
-    [CHANNELS.WORKSPACE.LIST_SKILLS]: function (input) {
-      return workspace.listSkills(input)
+    [CHANNELS.WORKSPACE.READ_SKILLS]: function (input) {
+      return workspace.readSkills(input)
     },
 
     [CHANNELS.WORKSPACE.GIT.PROBE]: function (input) {

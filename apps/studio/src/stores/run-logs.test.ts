@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { CorexFrame } from '@/stores/run-logs'
+import type { CorexFrame } from './run-logs'
 import {
   MAX_FRAMES,
   appendRunFrame,
@@ -9,7 +9,7 @@ import {
   flushRunFrames,
   registerRun,
   unregisterRun
-} from '@/stores/run-logs'
+} from './run-logs'
 
 /**
  * 攒批是性能的核心：一帧一次 setState 会让整个指令页跟着输出流重渲染。这里盯住三件事 ——

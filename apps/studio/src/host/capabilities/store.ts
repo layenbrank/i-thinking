@@ -1,7 +1,7 @@
 import Store from 'electron-store'
 
-import type { CHANNELS } from '../../shared/ipc/channels'
-import { type In, type Out } from '../../shared/ipc/specs'
+import type { CHANNELS } from '@/shared/ipc/channels'
+import { type In, type Out } from '@/shared/ipc/specs'
 
 type ReadP = In<typeof CHANNELS.STORE.READ>
 type ReadR = Out<typeof CHANNELS.STORE.READ>
@@ -48,4 +48,4 @@ export {
   WriteSchema,
   HasSchema,
   RemoveSchema
-} from '../../shared/ipc/specs/store'
+} from '@/shared/ipc/specs/store'

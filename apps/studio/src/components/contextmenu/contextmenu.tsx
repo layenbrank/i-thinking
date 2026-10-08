@@ -14,7 +14,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
-import { useDismiss, findFocusable, parseMenuItems } from '@/components/contextmenu/menu'
+import { useDismiss, findFocusable, parseMenuItems } from './menu'
 import type {
   MenuClassNames,
   MenuItem,
@@ -22,11 +22,11 @@ import type {
   MenuSelectInfo,
   MenuStyles,
   ParsedMenuItem
-} from '@/components/contextmenu/menu'
-import { Surface } from '@/components/contextmenu/surface'
-import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
+} from './menu'
+import { Surface } from './surface'
+import { VIEWPORT_PADDING, type Point } from './position'
 
-import '@/components/contextmenu/contextmenu.scss'
+import './contextmenu.scss'
 
 const SHELL_MOTION = {
   initial: { opacity: 0 },

@@ -1,9 +1,9 @@
 import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
 
-import { parseSuggestionLabel } from '@/views/overview/engine/url'
+import { parseSuggestionLabel } from './url'
 
-import styles from '@/views/overview/engine/engine.module.scss'
+import styles from './engine.module.scss'
 
 interface SuggestionItem {
   id: string

@@ -1,6 +1,6 @@
 import { ofetch, type FetchOptions } from 'ofetch'
 
-import { TIMEOUT_MS } from '@/utils/http.errors'
+import { TIMEOUT_MS } from './http.errors'
 import { findAuthToken } from './auth'
 import { findActiveTenantID } from './tenant'
 import { createTraceparent, TRACEPARENT_HEADER } from './trace'

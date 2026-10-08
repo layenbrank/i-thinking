@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import type { ChannelOfDomain } from '../channels'
-import { CHANNELS } from '../channels'
-import type { ChannelSpec } from '../spec'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 const FilterSchema = z.object({
   name: z.string(),

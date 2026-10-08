@@ -4,9 +4,9 @@ import { toast } from 'sonner'
 import type { ImportResult } from '@/shared/ipc/specs/sidecar'
 import { useCorexStore } from '@/stores/corex'
 
-import { findFreeName } from '../draft'
-import { indexLastRuns, indexRunSummaries } from '../run/run-status'
-import { useNow } from '../use-now'
+import { findFreeName } from '@/views/directive/draft'
+import { indexLastRuns, indexRunSummaries } from '@/views/directive/run/run-status'
+import { useNow } from '@/views/directive/use-now'
 import { DirectiveDeleteDialog } from './delete-confirm-dialog'
 import { type SortMode, findSortMode, groupDirectives, writeSortMode } from './group'
 import {

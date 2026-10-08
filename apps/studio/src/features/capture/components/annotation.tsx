@@ -9,9 +9,9 @@ import {
   BORDER_WIDTH,
   ROTATE_OFFSET,
   cornerAnchor
-} from '@/features/capture/components/corner-handle'
-import Graphics, {
-  SpotlightMask,
+} from './corner-handle'
+import Graphics, { SpotlightMask } from './graphics'
+import {
   bakeTransformSize,
   boundsContainsPoint,
   boundsIntersect,
@@ -21,10 +21,10 @@ import Graphics, {
   findUnionBounds,
   type Bounds,
   type GraphicsProps
-} from '@/features/capture/components/graphics'
-import { SelectionOverlay, type SelectionOverlayHandle } from '@/features/capture/components/selection-overlay'
+} from './graphics-geometry'
+import { SelectionOverlay, type SelectionOverlayHandle } from './selection-overlay'
 
-import styles from '@/features/capture/components/annotation.module.scss'
+import styles from './annotation.module.scss'
 
 /** 橡皮筋视为有效框选的最小对角线像素 */
 const MIN_MARQUEE_PX = 3
@@ -208,7 +208,7 @@ export interface AnnotationHandle {
 }
 
 export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
-  function Annotation(props, ref) {
+  function (props, ref) {
     const {
       annotations,
       clipRect,
@@ -397,7 +397,12 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             return stageRef.current
           },
           startEditing(id: string, initialText?: string) {
-            const text = initialText ?? annotations.find((a) => a.id === id)?.text ?? ''
+            const text =
+              initialText ??
+              annotations.find(function (a) {
+                return a.id === id
+              })?.text ??
+              ''
             setEditingID(id)
             setOriginalText(text)
             setEditValue(text)
@@ -472,7 +477,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
     function handleEditStart(id: string, text: string) {
       // 如果正在编辑另一个标注，先提交当前编辑
       if (editingID && editingID !== id) {
-        const currentAnnotation = annotations.find((a) => a.id === editingID)
+        const currentAnnotation = annotations.find(function (a) {
+          return a.id === editingID
+        })
         if (currentAnnotation && editValue !== originalText) {
           onChange({ ...currentAnnotation, text: editValue })
         }
@@ -489,7 +496,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onSelect(null)
       if (!id) return
       if (value === originalText) return
-      const annotation = annotations.find((a) => a.id === id)
+      const annotation = annotations.find(function (a) {
+        return a.id === id
+      })
       if (annotation) {
         onChange({ ...annotation, text: value })
       }
@@ -749,8 +758,10 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
         </Stage>
         {/* 文字编辑 textarea overlay */}
         {editingID &&
-          (() => {
-            const annotation = annotations.find((a) => a.id === editingID)
+          (function () {
+            const annotation = annotations.find(function (a) {
+              return a.id === editingID
+            })
             if (!annotation || annotation.type !== 'text') return null
             const stage = stageRef.current
             if (!stage) return null
@@ -767,16 +778,21 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             return (
               <textarea
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={function (e) {
+                  setEditValue(e.target.value)
+                }}
                 autoFocus
-                onBlur={() => { handleEditCommit(editValue); handleClose() }}
-                onCompositionStart={() => {
+                onBlur={function () {
+                  handleEditCommit(editValue)
+                  handleClose()
+                }}
+                onCompositionStart={function () {
                   composingRef.current = true
                 }}
-                onCompositionEnd={() => {
+                onCompositionEnd={function () {
                   composingRef.current = false
                 }}
-                onKeyDown={(e) => {
+                onKeyDown={function (e) {
                   if (e.key === 'Escape') {
                     e.preventDefault()
                     handleEditCancel()

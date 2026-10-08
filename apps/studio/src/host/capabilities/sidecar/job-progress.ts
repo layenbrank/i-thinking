@@ -2,7 +2,8 @@ import { BrowserWindow } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { CHANNELS } from '../../../shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { reportOnce } from '@/host/framework/report'
 
 import {
   consumeProgressLines,
@@ -38,7 +39,9 @@ function watchJobProgress(dataDir: string): () => void {
     let entries: fs.Dirent[]
     try {
       entries = fs.readdirSync(root, { withFileTypes: true })
-    } catch {
+    } catch (error) {
+      // 没有 cron / watch 目录是常态（没建过守护）
+      reportOnce(`读取守护目录失败：${root}`, error)
       return
     }
     for (const entry of entries) {
@@ -76,8 +79,9 @@ function watchJobProgress(dataDir: string): () => void {
         }
         try {
           fs.unlinkSync(markerPath)
-        } catch {
-          // ignore
+        } catch (error) {
+          // 标记可能已被守护自己清掉
+          reportOnce(`清理运行标记失败：${markerPath}`, error)
         }
         continue
       }
@@ -87,7 +91,9 @@ function watchJobProgress(dataDir: string): () => void {
       let stat: fs.Stats
       try {
         stat = fs.statSync(logPath)
-      } catch {
+      } catch (error) {
+        // 扫描与守护写盘/清目录会撞车：下一轮再看
+        reportOnce(`读取进度文件信息失败：${logPath}`, error)
         continue
       }
       if (stat.size < state.offset) {
@@ -111,7 +117,8 @@ function watchJobProgress(dataDir: string): () => void {
         } finally {
           fs.closeSync(fd)
         }
-      } catch {
+      } catch (error) {
+        reportOnce(`读取进度增量失败：${logPath}`, error)
         continue
       }
       state.offset = stat.size
@@ -132,7 +139,7 @@ function watchJobProgress(dataDir: string): () => void {
   timer = setInterval(tick, POLL_MS)
   tick()
 
-  return function stop() {
+  return function () {
     stopped = true
     if (timer) clearInterval(timer)
     timer = null

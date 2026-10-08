@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { CHANNELS } from '../channels'
-import type { ChannelOfDomain } from '../channels'
-import type { ChannelSpec } from '../spec'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 /** pandoc 允许的输出格式 */
 const OUTPUT_FORMATS = ['markdown', 'html', 'docx', 'pdf', 'plain'] as const

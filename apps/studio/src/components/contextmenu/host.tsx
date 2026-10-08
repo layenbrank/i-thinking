@@ -2,9 +2,9 @@ import { AnimatePresence } from 'motion/react'
 import { createElement, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 
-import { MenuLayer } from '@/components/contextmenu/contextmenu'
-import { useDismiss } from '@/components/contextmenu/menu'
-import type { MenuSelectInfo } from '@/components/contextmenu/menu'
+import { MenuLayer } from './contextmenu'
+import { useDismiss } from './menu'
+import type { MenuSelectInfo } from './menu'
 import {
   dismissMenu,
   findSnapshot,
@@ -12,8 +12,8 @@ import {
   subscribe,
   updateActiveKey,
   updatePath
-} from '@/components/contextmenu/host-store'
-import { VIEWPORT_PADDING } from '@/components/contextmenu/position'
+} from './host-store'
+import { VIEWPORT_PADDING } from './position'
 
 function Host() {
   const state = useSyncExternalStore(subscribe, findSnapshot, findSnapshot)

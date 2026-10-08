@@ -7,7 +7,7 @@ import {
   clearQuotaCheck,
   findSendBlocker,
   isGatewayTarget
-} from '@/features/quota/gate.ts'
+} from './gate.ts'
 
 /**
  * 拦截判定全部来自服务端那一个只读接口：客户端不再读模型目录、也不再翻页汇总用量。

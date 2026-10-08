@@ -60,6 +60,13 @@ export interface Api {
     convert: IpcFn<typeof CHANNELS.DOC.CONVERT>
   }
 
+  tool: {
+    toRead: IpcFn<typeof CHANNELS.TOOL.READ>
+    install: IpcFn<typeof CHANNELS.TOOL.INSTALL>
+    toRemove: IpcFn<typeof CHANNELS.TOOL.REMOVE>
+    onProgress: Subscribe<PushOut<typeof CHANNELS.TOOL.PROGRESS>>
+  }
+
   capture: {
     screenshot: IpcFn<typeof CHANNELS.CAPTURE.SCREENSHOT>
     open: IpcFn<typeof CHANNELS.CAPTURE.OPEN>
@@ -128,10 +135,10 @@ export interface Api {
       toUpdate: IpcFn<typeof CHANNELS.WORKSPACE.FOLDERS.UPDATE>
       toRemove: IpcFn<typeof CHANNELS.WORKSPACE.FOLDERS.REMOVE>
     }
-    listDir: IpcFn<typeof CHANNELS.WORKSPACE.LIST_DIR>
+    readDir: IpcFn<typeof CHANNELS.WORKSPACE.READ_DIR>
     search: IpcFn<typeof CHANNELS.WORKSPACE.SEARCH>
     readFile: IpcFn<typeof CHANNELS.WORKSPACE.READ_FILE>
-    listSkills: IpcFn<typeof CHANNELS.WORKSPACE.LIST_SKILLS>
+    readSkills: IpcFn<typeof CHANNELS.WORKSPACE.READ_SKILLS>
     git: {
       probe: IpcFn<typeof CHANNELS.WORKSPACE.GIT.PROBE>
       branches: IpcFn<typeof CHANNELS.WORKSPACE.GIT.BRANCHES>

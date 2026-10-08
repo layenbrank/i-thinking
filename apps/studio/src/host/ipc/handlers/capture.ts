@@ -1,19 +1,19 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { Service } from '../../capabilities/capture'
-import type { Context } from '../../framework/context'
-import type { OverlayWindowPort } from '../../capabilities/overlay-window'
-import type { ThroughHost } from '../../capabilities/through'
-import { type DomainHandlers } from '../types'
+import { Service } from '@/host/capabilities/capture'
+import type { ThroughHost } from '@/host/capabilities/overlay/through'
+import type { OverlayWindowPort } from '@/host/capabilities/overlay/window-port'
+import type { CorexHost } from '@/host/capabilities/sidecar'
+import { type DomainHandlers } from '@/host/ipc/types'
+import { CHANNELS } from '@/shared/ipc/channels'
 
 export function buildCaptureHandlers(
-  ctx: Context,
+  sidecar: CorexHost,
   overlay: OverlayWindowPort,
   through: ThroughHost,
   serviceRef: { current: Service | null }
 ): DomainHandlers<'capture'> {
   function service(): Service {
     if (!serviceRef.current) {
-      serviceRef.current = new Service(ctx.corex, overlay, through)
+      serviceRef.current = new Service(sidecar, overlay, through)
     }
     return serviceRef.current
   }

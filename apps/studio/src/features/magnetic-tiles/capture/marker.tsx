@@ -2,7 +2,7 @@ import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import styles from '@/features/magnetic-tiles/capture/marker.module.scss'
+import styles from './marker.module.scss'
 
 type Props = Omit<MarkerProps, 'children'>
 

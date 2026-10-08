@@ -4,7 +4,7 @@ import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import { useSessionChanges, useUndoChanges } from '@/features/agent/changes.ts'
 import { useSessionID } from '@/features/chat/session.ts'
-import { useAsidePanel } from '@/views/agent/chat/components/use-aside-panel.ts'
+import { useAsidePanel } from './use-aside-panel.ts'
 
 /**
  * 本会话文件变更汇总条（对齐 Qoder「已编辑 N 个文件」卡）。

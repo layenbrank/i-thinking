@@ -1,6 +1,6 @@
 import { toModel, type ModelEntry } from '@i-thinking/agent/provider'
 
-import { isGatewayProvider, resolveConnection } from '../assistant-model'
+import { isGatewayProvider, resolveConnection } from '@/host/capabilities/assistant/model'
 import {
   AGENT_PERMISSION_PROFILES,
   findPermissionRules,

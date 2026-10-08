@@ -14,12 +14,12 @@ import { memo, useEffect, useMemo, useState } from 'react'
 
 import { useCorexStore, type CorexAction } from '@/stores/corex'
 
-import { BUCKET_ICONS, BUCKET_LABELS, BUCKETS, findBucketMark, type Bucket } from './list/bucket'
-import { DirectivePlaceholder, type PlaceholderState } from './list/placeholder'
+import { BUCKET_ICONS, BUCKET_LABELS, BUCKETS, findBucketMark, type Bucket } from '@/views/directive/list/bucket'
+import { DirectivePlaceholder, type PlaceholderState } from '@/views/directive/list/placeholder'
 import { findPermissionIcon, findPermissionLabel } from './permissions'
-import { CardSkeleton } from './render/card-skeleton'
-import { StreamedGrid } from './render/streamed-grid'
-import TrialPanel from './trial/trial-panel'
+import { CardSkeleton } from '@/views/directive/render/card-skeleton'
+import { StreamedGrid } from '@/views/directive/render/streamed-grid'
+import TrialPanel from '@/views/directive/trial/trial-panel'
 
 /**
  * 动作库：可复用动作的只读目录（corex `list_actions`），按分类筛。

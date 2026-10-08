@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAuthToken,
   clearAuthTokenIfCurrent,
-  findAuthToken,
   findAuthRole,
+  findAuthToken,
   findRememberedUsername,
   isAdmin,
   isAuthTokenExpired,
@@ -15,8 +15,8 @@ import {
   subscribeAuthToken,
   writeAuthToken,
   writeRememberedUsername
-} from '@/utils/auth.ts'
-import { HttpException } from '@/utils/http.errors.ts'
+} from './auth.ts'
+import { HttpException } from './http.errors.ts'
 
 /**
  * 角色是网关管理面的门槛（服务端非 ADMIN 一律 300006），所以「解不出角色」
@@ -116,7 +116,9 @@ describe('parseAuthClaims', function () {
 
 describe('过期令牌', function () {
   const ONE_HOUR = 3600
-  const nowSeconds = () => Math.floor(Date.now() / 1000)
+  function nowSeconds(): number {
+    return Math.floor(Date.now() / 1000)
+  }
 
   it('判得出 exp 已过，也放过还没到的', function () {
     expect(isAuthTokenExpired(sign({ exp: nowSeconds() - 60 }))).toBe(true)

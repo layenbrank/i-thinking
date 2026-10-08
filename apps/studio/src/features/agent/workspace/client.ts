@@ -11,7 +11,7 @@ import { useAgentStore } from '@/stores/agent.ts'
  */
 
 export type Workspace = Awaited<ReturnType<typeof itc.workspace.toRead>>[number]
-export type DirEntry = Awaited<ReturnType<typeof itc.workspace.listDir>>[number]
+export type DirEntry = Awaited<ReturnType<typeof itc.workspace.readDir>>[number]
 export type SearchHit = Awaited<ReturnType<typeof itc.workspace.search>>[number]
 
 /** 给文件选择器等仍读 `.path` 的调用方：primaryPath 的别名 */
@@ -202,9 +202,9 @@ export function useWorkspaceActions() {
 /** 目录列举 / 搜索 / 读文件（附件与 @ 引用用；primary 根内相对路径） */
 export function useDirEntries(workspaceID: string | null, relative = '') {
   return useQuery({
-    queryKey: ['workspace', 'listDir', workspaceID, relative],
+    queryKey: ['workspace', 'readDir', workspaceID, relative],
     queryFn: function () {
-      return itc.workspace.listDir({
+      return itc.workspace.readDir({
         workspaceID: workspaceID as string,
         ...(relative ? { relative } : {})
       })

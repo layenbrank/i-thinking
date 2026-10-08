@@ -16,13 +16,13 @@ import {
   findPlatformRow,
   PLATFORM_PROVIDER_NAME
 } from '@/features/chat/platform.ts'
-import { PROVIDER_KIND_LABELS } from '@/features/chat/provider/constants.ts'
-import { ProviderForm } from '@/features/chat/provider/form.tsx'
-import { findProviders, PROVIDERS_KEY } from '@/features/chat/provider/query.ts'
-import { collectProviderModels } from '@/features/chat/provider/row.ts'
-import type { ProviderRow } from '@/features/chat/provider/row.ts'
-import { toModelEntries } from '@/features/chat/provider/schema.ts'
-import type { ProviderValues } from '@/features/chat/provider/schema.ts'
+import { PROVIDER_KIND_LABELS } from './constants.ts'
+import { ProviderForm } from './form.tsx'
+import { findProviders, PROVIDERS_KEY } from './query.ts'
+import { collectProviderModels } from './row.ts'
+import type { ProviderRow } from './row.ts'
+import { toModelEntries } from './schema.ts'
+import type { ProviderValues } from './schema.ts'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
 /**

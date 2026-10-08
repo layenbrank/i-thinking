@@ -21,15 +21,15 @@ import { findTargetLabel } from '@/features/chat/port/model.ts'
 import { useProviders } from '@/features/chat/provider/query.ts'
 import { useSessionID, useThreadKey } from '@/features/chat/session.ts'
 import { useAgentStore } from '@/stores/agent.ts'
-import { AsideChanges } from '@/views/agent/chat/components/aside-changes.tsx'
+import { AsideChanges } from './aside-changes.tsx'
 import {
   AsideCard,
   AsideCopy,
   AsideHint,
   AsideRow
-} from '@/views/agent/chat/components/aside-ui.tsx'
-import { AsideQuota, AsideUsage } from '@/views/agent/chat/components/aside-usage.tsx'
-import { useAsidePanel } from '@/views/agent/chat/components/use-aside-panel.ts'
+} from './aside-ui.tsx'
+import { AsideQuota, AsideUsage } from './aside-usage.tsx'
+import { useAsidePanel } from './use-aside-panel.ts'
 import { formatDateTime } from '@/views/agent/settings/components/format.ts'
 
 /**

@@ -3,7 +3,7 @@ import { clsx } from 'clsx'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 
-import { Brand } from '@/features/signin/brand.tsx'
+import { Brand } from './brand.tsx'
 import {
   HEAD,
   MODE,
@@ -11,11 +11,11 @@ import {
   PANEL,
   type AuthMode,
   type PanelView
-} from '@/features/signin/constants.ts'
-import { ForgotForm } from '@/features/signin/forgot-form.tsx'
-import { SigninForm } from '@/features/signin/signin-form.tsx'
-import styles from '@/features/signin/signin.module.scss'
-import { SignupForm } from '@/features/signin/signup-form.tsx'
+} from './constants.ts'
+import { ForgotForm } from './forgot-form.tsx'
+import { SigninForm } from './signin-form.tsx'
+import styles from './signin.module.scss'
+import { SignupForm } from './signup-form.tsx'
 
 type SignInProps = {
   visible: boolean

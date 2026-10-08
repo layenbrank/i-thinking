@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-import type { StartRequest } from '../assistant-protocol'
+import type { StartRequest } from '@/host/capabilities/assistant/protocol'
 
 /**
  * studio 会话 → opencode 会话的映射，以及「这次该发什么」的推导。

@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto'
 
 import { and, asc, eq, isNull, type SQL } from 'drizzle-orm'
 
-import { magneticTile, mirror } from '../../../drizzle/schema'
-import type { CHANNELS } from '../../shared/ipc/channels'
-import { IpcError } from '../../shared/ipc/error'
-import { type In, type Out } from '../../shared/ipc/specs'
+import { magneticTile, mirror } from '@schema'
+import type { CHANNELS } from '@/shared/ipc/channels'
+import { IpcError } from '@/shared/ipc/error'
+import { type In, type Out } from '@/shared/ipc/specs'
 import { findClient } from './database'
 
 /**

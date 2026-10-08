@@ -11,7 +11,7 @@ import { findAuthToken } from '@/utils/auth.ts'
  * 为什么是一行而不是一条通路：网关就是个 OpenAI 兼容端点，跟 Ollama 没有形状差别 ——
  * 差别只在**凭据从哪来**（登录令牌 vs 钥匙串里的 BYOK 密钥）与**模型谁定**（服务端目录 vs
  * 用户手填）。这两点分别由 `kind: 'gateway'` 与 `models` 表达，于是发送链路只有一条：
- * 主进程按 providerID 解析出连接（见 `host/capabilities/assistant-model.ts`），
+ * 主进程按 providerID 解析出连接（见 `host/capabilities/assistant/model.ts`），
  * 在线模型因此和本地模型共用工具、审批、计划、用量全套能力。
  *
  * 平台行用固定 id（不是 uuid），生命周期与用户自建的 BYOK 行不同：

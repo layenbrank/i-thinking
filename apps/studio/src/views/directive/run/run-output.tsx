@@ -11,7 +11,7 @@ import type { CorexRun } from '@/stores/corex'
 import { useRunFrames } from '@/stores/run-logs'
 import { copyText } from '@/utils/clipboard'
 
-import { useNow } from '../use-now'
+import { useNow } from '@/views/directive/use-now'
 import { formatLogText, formatRunLogs } from './run-log'
 import { LOG_LEVEL_STYLES, RUN_STATUS_STYLES, formatElapsed, isRunning } from './run-status'
 import type { RunLog } from './types'

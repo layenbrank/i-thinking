@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ThreadWelcome } from '@/views/agent/chat/components/welcome.tsx'
+import { ThreadWelcome } from './welcome.tsx'
 
 const identity = vi.hoisted(function () {
   return { sessionID: null as string | null }

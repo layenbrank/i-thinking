@@ -46,12 +46,14 @@ import { findModifierLabel } from '@/features/window/shortcuts'
 import { isValidDirectiveName } from '@/shared/ipc/specs/sidecar'
 import { useCorexStore, type CorexAction } from '@/stores/corex'
 
-import { createDirective } from '../draft'
-import { BUCKET_LABELS, BUCKETS, parseBucket } from '../list/bucket'
-import { CARD_ENTER } from '../list/motion'
-import { PERMISSION_ICONS, PERMISSION_KEYS, PERMISSION_LABELS } from '../permissions'
-import { RunMenu, capsFromTriggers } from '../run/run-menu'
+import { createDirective } from '@/views/directive/draft'
+import { BUCKET_LABELS, BUCKETS, parseBucket } from '@/views/directive/list/bucket'
+import { CARD_ENTER } from '@/views/directive/list/motion'
+import { PERMISSION_ICONS, PERMISSION_KEYS, PERMISSION_LABELS } from '@/views/directive/permissions'
+import { capsFromTriggers } from '@/views/directive/run/run-caps'
+import { RunMenu } from '@/views/directive/run/run-menu'
 import {
+  findSplitterState,
   META_ID,
   META_MAX,
   META_MIN,
@@ -59,9 +61,8 @@ import {
   PANEL_GROUP_ID,
   STEPS_ID,
   STEPS_MIN,
-  findSplitterState,
   writeSplitterLayout
-} from '../splitter'
+} from '@/views/directive/splitter'
 import {
   CONTROL_CLASS,
   Field,
@@ -812,20 +813,24 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
     })
   }
 
-  function updateContent(update: (prev: DirectiveContent) => DirectiveContent) {
-    setDrafts(function (prev) {
-      // 新指令的第一次编辑还没有草稿可改，得先把骨架补进去，不然这一下编辑会被丢掉
-      const current = prev[activeName] ?? (isPending ? createDirective(activeName) : null)
-      if (!current) return prev
-      const next = update(current)
-      if (next === current) return prev
-      updateDirty(function (flags) {
-        if (flags[activeName]) return flags
-        return { ...flags, [activeName]: true }
+  /** 选中项 / 待建标记都是渲染期变量，用 useCallback 锁住后再给下游回调当依赖 */
+  const updateContent = useCallback(
+    function (update: (prev: DirectiveContent) => DirectiveContent) {
+      setDrafts(function (prev) {
+        // 新指令的第一次编辑还没有草稿可改，得先把骨架补进去，不然这一下编辑会被丢掉
+        const current = prev[activeName] ?? (isPending ? createDirective(activeName) : null)
+        if (!current) return prev
+        const next = update(current)
+        if (next === current) return prev
+        updateDirty(function (flags) {
+          if (flags[activeName]) return flags
+          return { ...flags, [activeName]: true }
+        })
+        return { ...prev, [activeName]: next }
       })
-      return { ...prev, [activeName]: next }
-    })
-  }
+    },
+    [activeName, isPending]
+  )
 
   function patchContent(patch: Partial<DirectiveContent>) {
     updateContent(function (prev) {
@@ -841,7 +846,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         return { ...prev, steps: replaceStep(prev.steps, token, next) }
       })
     },
-    [activeName, isPending]
+    [updateContent]
   )
 
   const onStepRemove = useCallback(
@@ -850,7 +855,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         return { ...prev, steps: removeStep(prev.steps, token) }
       })
     },
-    [activeName, isPending]
+    [updateContent]
   )
 
   const onStepDuplicate = useCallback(
@@ -859,7 +864,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         return { ...prev, steps: duplicateStep(prev.steps, token) }
       })
     },
-    [activeName, isPending]
+    [updateContent]
   )
 
   const onStepMove = useCallback(
@@ -868,7 +873,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         return { ...prev, steps: moveByToken(prev.steps, token, delta) }
       })
     },
-    [activeName, isPending]
+    [updateContent]
   )
 
   function setInput(name: string, value: string) {

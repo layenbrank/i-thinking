@@ -3,7 +3,7 @@ import {
   toAgentActionLabel,
   type AgentApprovalMode,
   type AgentToolNature
-} from '../../../shared/agent-tools'
+} from '@/shared/agent-tools'
 
 /**
  * studio 的三档审批策略 → opencode v2 的 permission 规则集（`PermissionRule[]`）。

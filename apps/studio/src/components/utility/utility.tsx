@@ -3,7 +3,7 @@ import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
 import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from 'react'
 
-import styles from '@/components/utility/utility.module.scss'
+import styles from './utility.module.scss'
 
 /** 余下的 button 属性一律透传给底层按钮：radix 下拉要把自己的 aria/data-state 挂在它身上 */
 interface UtilityButtonProps extends Omit<

@@ -1,4 +1,5 @@
-import type { JobEvent, JobKind } from '../../../shared/ipc/specs/sidecar'
+import type { JobEvent, JobKind } from '@/shared/ipc/specs/sidecar'
+import { reportOnce } from '@/host/framework/report'
 
 interface TailState {
   runId: string
@@ -125,7 +126,9 @@ function consumeProgressLines(
     let doc: Record<string, unknown>
     try {
       doc = JSON.parse(trimmed) as Record<string, unknown>
-    } catch {
+    } catch (error) {
+      // 按偏移量追尾会读到写了一半的最后一行：下一轮就能读到完整的
+      reportOnce(`进度行不是 JSON：${fallbackName}/${state.kind}`, error)
       continue
     }
     const phase = typeof doc.phase === 'string' ? doc.phase : ''
@@ -134,12 +137,5 @@ function consumeProgressLines(
   }
 }
 
-export {
-  adoptOrphanMarker,
-  beginRun,
-  consumeProgressLines,
-  endRun,
-  finishOpenRun,
-  onLogTruncated
-}
+export { adoptOrphanMarker, beginRun, consumeProgressLines, endRun, finishOpenRun, onLogTruncated }
 export type { JobEvent, JobKind, ScanEmit, TailState }

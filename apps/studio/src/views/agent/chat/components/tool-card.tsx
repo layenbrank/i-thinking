@@ -12,8 +12,8 @@ import { toast } from 'sonner'
 
 import { chatModelPort } from '@/features/chat/port/instance.ts'
 import { toAgentToolLabel } from '@/shared/agent-tools'
-import { toCodeSource, toShellCommand } from '@/views/agent/chat/components/tool-output.ts'
-import { ToolCodeMode, ToolCommand } from '@/views/agent/chat/components/tool-terminal.tsx'
+import { toCodeSource, toShellCommand } from './tool-output.ts'
+import { ToolCodeMode, ToolCommand } from './tool-terminal.tsx'
 
 /**
  * 工具卡：一行摘要 + 展开详情 + 待审批时的放行/拒绝。

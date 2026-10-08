@@ -1,4 +1,4 @@
-import { PROVIDER_KINDS } from '@/features/chat/provider/constants.ts'
+import { PROVIDER_KINDS } from './constants.ts'
 
 /**
  * 模型名候选清单（「默认模型」与「可选用模型」两个下拉的唯一数据源）。

@@ -10,6 +10,8 @@ interface ImportMeta {
   readonly env: ImportMetaEnv
 }
 
+// 全局声明必须用 `var`：`let/const` 在 .d.ts 里无法与 window 上的同名属性合并
+// eslint-disable-next-line no-var
 var MediaStreamTrackProcessor: {
   prototype: MediaStreamTrackProcessor
   new (options: MediaStreamTrack): TransformStream

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toDiffFiles, toDiffPreview } from '@/views/agent/chat/components/diff-lines.ts'
+import { toDiffFiles, toDiffPreview } from './diff-lines.ts'
 
 const SINGLE_FILE = [
   'diff --git a/src/a.ts b/src/a.ts',

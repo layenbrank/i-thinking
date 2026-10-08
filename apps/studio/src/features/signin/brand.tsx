@@ -1,4 +1,4 @@
-import styles from '@/features/signin/signin.module.scss'
+import styles from './signin.module.scss'
 
 const NOTES = ['Agent，对话留在同一处', '指令，流水线可以接着跑'] as const
 const TAGLINE = '网址放在磁贴，书签收进集合。'

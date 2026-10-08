@@ -22,16 +22,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm, useWatch, type Control, type ControllerRenderProps } from 'react-hook-form'
 
-import { PROVIDER_KINDS } from '@/features/chat/provider/constants.ts'
-import { ModelChips, ModelField, ModelsField } from '@/features/chat/provider/model-field.tsx'
-import { collectModelOptions } from '@/features/chat/provider/models.ts'
-import { applyProviderPreset, PROVIDER_FORM_DEFAULTS } from '@/features/chat/provider/preset.ts'
-import type { ProviderRow } from '@/features/chat/provider/row.ts'
+import { PROVIDER_KINDS } from './constants.ts'
+import { ModelChips, ModelField, ModelsField } from './model-field.tsx'
+import { collectModelOptions } from './models.ts'
+import { applyProviderPreset, PROVIDER_FORM_DEFAULTS } from './preset.ts'
+import type { ProviderRow } from './row.ts'
 import {
   PROVIDER_SCHEMA,
   toModelIDs,
   type ProviderValues
-} from '@/features/chat/provider/schema.ts'
+} from './schema.ts'
 
 interface ProviderFormProps {
   provider: ProviderRow | null

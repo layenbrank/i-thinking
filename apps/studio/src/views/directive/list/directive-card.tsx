@@ -14,9 +14,10 @@ import {
   formatAbsoluteTime,
   formatDuration,
   formatRelativeTime
-} from '../run/run-status'
-import { WallRunBar, capsFromSummary } from '../run/run-menu'
-import { CARD_SIZE } from '../render/card-size'
+} from '@/views/directive/run/run-status'
+import { capsFromSummary } from '@/views/directive/run/run-caps'
+import { WallRunBar } from '@/views/directive/run/run-menu'
+import { CARD_SIZE } from '@/views/directive/render/card-size'
 import { findBucketMark } from './bucket'
 
 /**

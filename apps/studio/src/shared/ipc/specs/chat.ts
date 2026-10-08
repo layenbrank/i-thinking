@@ -2,9 +2,9 @@ import { z } from 'zod'
 
 import type { ModelEntry } from '@i-thinking/agent/provider'
 
-import { CHANNELS } from '../channels'
-import type { ChannelOfDomain } from '../channels'
-import type { ChannelSpec } from '../spec'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 /** 合法 URL，或空字符串 / null 表示未设置 */
 const NullableUrl = z.union([z.string().url(), z.literal('')]).nullish()

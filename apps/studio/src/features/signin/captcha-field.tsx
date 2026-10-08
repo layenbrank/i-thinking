@@ -13,8 +13,8 @@ import type { FieldPath, FieldValues, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { POST_OTP, POST_PASSWORD_FORGOT, type SlideProof } from '@/apis/auth.ts'
-import { CAPTCHA_COUNTDOWN, CHANNEL, LIMIT, type AuthMode } from '@/features/signin/constants.ts'
-import styles from '@/features/signin/signin.module.scss'
+import { CAPTCHA_COUNTDOWN, CHANNEL, LIMIT, type AuthMode } from './constants.ts'
+import styles from './signin.module.scss'
 import { HttpError } from '@/utils/http.errors.ts'
 
 /** 表单里验证码字段的固定名（泛型 T 由各表单给出，故此处收窄一次） */

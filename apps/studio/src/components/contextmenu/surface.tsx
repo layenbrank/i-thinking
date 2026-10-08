@@ -11,21 +11,21 @@ import {
   type ReactNode
 } from 'react'
 
-import { findFocusable, hasChildren, parseMotion } from '@/components/contextmenu/menu'
+import { findFocusable, hasChildren, parseMotion } from './menu'
 import type {
   MenuClassNames,
   MenuMotion,
   MenuSelectInfo,
   MenuStyles,
   ParsedMenuItem
-} from '@/components/contextmenu/menu'
+} from './menu'
 import {
   findContainerRect,
   OFFSET_BY_PLACEMENT,
   parseOrigin,
   type Point,
   type Rect
-} from '@/components/contextmenu/position'
+} from './position'
 
 const EXPAND_DELAY_MS = 100
 const COLLAPSE_DELAY_MS = 160

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DirectiveContent } from '@/shared/ipc/specs/sidecar'
-import type { CorexFrame } from '@/stores/run-logs'
-import { appendRunFrame, findRunFrames, flushRunFrames, registerRun } from '@/stores/run-logs'
+import type { CorexFrame } from './run-logs'
+import { appendRunFrame, findRunFrames, flushRunFrames, registerRun } from './run-logs'
 
 import { useCorexStore } from './corex'
 

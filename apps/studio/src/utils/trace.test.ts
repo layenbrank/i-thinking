@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createTraceparent, traceIdOf } from '@/utils/trace.ts'
+import { createTraceparent, traceIdOf } from './trace.ts'
 
 const ZERO_TRACE_ID = '0'.repeat(32)
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createMemoryRouter } from 'react-router-dom'
 
 import { findTransitionKey } from './transition-key'
-import directiveRoutes from './routes/directive'
+import directiveRoutes from '@/routers/routes/directive'
 
 /**
  * 走真实路由表：`createMemoryRouter` 与 `createHashRouter` 一样会给每条路由按它在树上的位置编 id，

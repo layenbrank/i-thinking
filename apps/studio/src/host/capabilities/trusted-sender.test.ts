@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Context } from '../framework/context'
+import type { Context } from '@/host/framework/context'
 import { isAllowedPageUrl } from './trusted-sender'
 
 function stubCtx(partial: Partial<Context> & Pick<Context, 'isDev'>): Context {
@@ -16,7 +16,6 @@ function stubCtx(partial: Partial<Context> & Pick<Context, 'isDev'>): Context {
         return this
       }
     },
-    corex: {} as Context['corex'],
     trustWebContents() {},
     untrustWebContents() {},
     isTrustedWebContents() {

@@ -8,11 +8,11 @@ import { useState } from 'react'
 
 import type { CorexAction } from '@/stores/corex'
 
-import { BUCKET_LABELS, findBucketMark } from '../list/bucket'
-import { createDefaultValues, findParamProblem, setParamValue } from '../params/field'
-import { ParamField } from '../params/param-field'
-import { findPermissionIcon, findPermissionLabel } from '../permissions'
-import RunOutput from '../run/run-output'
+import { BUCKET_LABELS, findBucketMark } from '@/views/directive/list/bucket'
+import { createDefaultValues, findParamProblem, setParamValue } from '@/views/directive/params/field'
+import { ParamField } from '@/views/directive/params/param-field'
+import { findPermissionIcon, findPermissionLabel } from '@/views/directive/permissions'
+import RunOutput from '@/views/directive/run/run-output'
 import { useTrial } from './use-trial'
 
 /**

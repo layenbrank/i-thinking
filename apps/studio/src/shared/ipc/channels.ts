@@ -45,6 +45,13 @@ export const CHANNELS = {
   DOC: {
     CONVERT: 'doc:convert'
   },
+  TOOL: {
+    READ: 'tool:toRead',
+    INSTALL: 'tool:install',
+    REMOVE: 'tool:toRemove',
+    /** 主进程 → 渲染：下载 / 解压进度，不是 invoke 通道 */
+    PROGRESS: 'tool:progress'
+  },
   CAPTURE: {
     SCREENSHOT: 'capture:screenshot',
     OPEN: 'capture:open',
@@ -107,10 +114,10 @@ export const CHANNELS = {
       UPDATE: 'workspace:folders.toUpdate',
       REMOVE: 'workspace:folders.toRemove'
     },
-    LIST_DIR: 'workspace:listDir',
+    READ_DIR: 'workspace:readDir',
     SEARCH: 'workspace:search',
     READ_FILE: 'workspace:readFile',
-    LIST_SKILLS: 'workspace:listSkills',
+    READ_SKILLS: 'workspace:readSkills',
     GIT: {
       PROBE: 'workspace:git.probe',
       BRANCHES: 'workspace:git.branches',
@@ -147,7 +154,7 @@ export const CHANNELS = {
     }
   },
   ASSISTANT: {
-    /** 建立 agent 运行时端口（MessagePort，见 host/capabilities/assistant.ts） */
+    /** 建立 agent 运行时端口（MessagePort，见 host/capabilities/assistant/index.ts） */
     CONNECT: 'assistant:connect',
     /** 主进程 → 渲染进程推送端口；不是 invoke 通道 */
     PORT: 'assistant:port',
@@ -182,6 +189,7 @@ export const PUSH_CHANNELS = [
   CHANNELS.UPDATER.EVENT,
   CHANNELS.SIDECAR.PROGRESS,
   CHANNELS.SIDECAR.JOB_EVENT,
+  CHANNELS.TOOL.PROGRESS,
   CHANNELS.OVERLAY.EVENT
 ] as const
 

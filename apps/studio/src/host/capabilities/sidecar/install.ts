@@ -3,7 +3,12 @@ import { existsSync, readFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { findAppRoot } from '../../framework/paths'
+import {
+  findBinary,
+  findBundledBinary,
+  findUserDataDir,
+  isPackagedApp
+} from '@/host/framework/binaries'
 
 /**
  * 怎么找到 corex。三份来源**各归各位**，谁也不顶替谁：
@@ -22,7 +27,6 @@ import { findAppRoot } from '../../framework/paths'
 
 const COREX_CLI = 'corex'
 const COREX_DAEMON = 'corex-daemon'
-const PANDOC_BINARY = 'pandoc'
 
 /** 显式指定 corex 可执行文件；优先于 PATH 与常见安装位置。 */
 const COREX_CLI_ENV = 'COREX_CLI'
@@ -66,60 +70,6 @@ interface CorexInstall {
   isBundled: boolean
 }
 
-function findPlatformKey(platform = process.platform, arch = process.arch): string {
-  return `${platform}-${arch}`
-}
-
-function findBinaryName(name: string, platform = process.platform): string {
-  return platform === 'win32' ? `${name}.exe` : name
-}
-
-function isPackagedApp(): boolean {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const electron = require('electron') as { app?: { isPackaged?: boolean } }
-    return Boolean(electron.app?.isPackaged)
-  } catch (error) {
-    console.warn('[corex] 读 electron.app.isPackaged 失败，按未打包处理', error)
-    return false
-  }
-}
-
-/** Packaged: resources/sidecar；开发: <appRoot>/sidecar/staging/<platform> */
-function findSidecarRoot(): string {
-  if (isPackagedApp()) {
-    return path.join(process.resourcesPath, 'sidecar')
-  }
-  return path.join(findAppRoot(), 'sidecar', 'staging', findPlatformKey())
-}
-
-function findBundledPath(name: string): string {
-  return path.join(findSidecarRoot(), findBinaryName(name))
-}
-
-function findPandocPath(): string {
-  return findBundledPath(PANDOC_BINARY)
-}
-
-function hasPandoc(): boolean {
-  return existsSync(findPandocPath())
-}
-
-/** electron 的 userData；测试等非 electron 环境退回 `~/.corex-studio`。 */
-function findUserDataDir(): string {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const electron = require('electron') as { app?: { getPath?: (name: string) => string } }
-    const dir = electron.app?.getPath?.('userData')
-    if (dir) {
-      return dir
-    }
-  } catch (error) {
-    console.warn('[corex] 读 electron userData 失败，改用 ~/.corex-studio', error)
-  }
-  return path.join(os.homedir(), '.corex-studio')
-}
-
 /** 找用户装 corex 的常见位置。**不含数据目录** —— `~/.corex` 只放数据。 */
 function findCandidateDirs(): string[] {
   const dirs: string[] = []
@@ -160,9 +110,9 @@ async function findExplicitInstall(): Promise<CorexInstall | null> {
 
 /** 探一个目录：得同时有 cli 与 daemon，且那份 corex 自己认得路。 */
 async function probeDir(dir: string): Promise<CorexInstall | null> {
-  const cli = path.join(dir, findBinaryName(COREX_CLI))
-  const daemon = path.join(dir, findBinaryName(COREX_DAEMON))
-  if (!existsSync(cli) || !existsSync(daemon)) {
+  const cli = findBinary({ dirs: [dir], names: [COREX_CLI] })?.path
+  const daemon = findBinary({ dirs: [dir], names: [COREX_DAEMON] })?.path
+  if (!cli || !daemon) {
     return null
   }
   const paths = await probePaths(cli)
@@ -194,7 +144,7 @@ async function findUserInstall(): Promise<CorexInstall | null> {
 
 /** 自带那份的二进制在不在：开发态没 bootstrap 过就没有，那时才轮到用户装的那份。 */
 function hasBundledBinary(): boolean {
-  return existsSync(findBundledPath(COREX_CLI)) && existsSync(findBundledPath(COREX_DAEMON))
+  return existsSync(findBundledBinary(COREX_CLI)) && existsSync(findBundledBinary(COREX_DAEMON))
 }
 
 /**
@@ -212,9 +162,7 @@ async function findCorexInstall(): Promise<CorexInstall> {
     return explicit
   }
 
-  const sources = isPackagedApp()
-    ? [findUserInstall, bundled]
-    : [bundled, findUserInstall]
+  const sources = isPackagedApp() ? [findUserInstall, bundled] : [bundled, findUserInstall]
   for (const find of sources) {
     const install = await find()
     if (install) {
@@ -287,7 +235,6 @@ function findBundledDataDir(): string {
   }
   return process.env[COREX_DATA_DIR_ENV]?.trim() || privateDir
 }
-
 /**
  * Studio 自带的那份：私有数据目录 + 私有端点，不与用户环境共享任何东西。
  *
@@ -297,8 +244,8 @@ function findBundledDataDir(): string {
 function findBundledInstall(): CorexInstall {
   const dataDir = findBundledDataDir()
   return {
-    cli: findBundledPath(COREX_CLI),
-    daemon: findBundledPath(COREX_DAEMON),
+    cli: findBundledBinary(COREX_CLI),
+    daemon: findBundledBinary(COREX_DAEMON),
     dataDir,
     database: path.join(dataDir, DATABASE_FILE),
     endpoint: process.platform === 'win32' ? BUNDLED_ENDPOINT : path.join(dataDir, 'corex.sock'),
@@ -334,24 +281,15 @@ export {
   BUNDLED_ENDPOINT,
   COREX_CLI,
   COREX_CLI_ENV,
-  COREX_DATA_DIR_ENV,
   COREX_DAEMON,
+  COREX_DATA_DIR_ENV,
   COREX_TOKEN_ENV,
   DATABASE_FILE,
-  PANDOC_BINARY,
-  PATHS_TIMEOUT_MS,
-  findBinaryName,
   findBundledInstall,
-  findBundledPath,
   findCandidateDirs,
   findCorexInstall,
-  findPandocPath,
-  findPlatformKey,
-  findSidecarRoot,
-  findUserDataDir,
-  hasBundledBinary,
-  hasPandoc,
   parsePaths,
+  PATHS_TIMEOUT_MS,
   resolveAuthToken
 }
 export type { CorexInstall, CorexPaths }

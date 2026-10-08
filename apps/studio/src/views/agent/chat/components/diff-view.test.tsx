@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { DiffView } from '@/views/agent/chat/components/diff-view.tsx'
+import { DiffView } from './diff-view.tsx'
 
 /** 单文件 patch：一行上下文 + `addCount` 行新增（用来踩 200 行的裁剪预算） */
 function toPatch(addCount: number): string {

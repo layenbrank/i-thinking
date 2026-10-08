@@ -31,11 +31,11 @@ import {
   findSidebarState,
   writeSidebarState,
   type SidebarState
-} from '@/views/agent/chat/components/sidebar-expansion.ts'
-import { useWorkspaceThreadGroups } from '@/views/agent/chat/components/thread-groups.ts'
-import { ProfileMenu } from '@/views/agent/chat/components/profile-menu.tsx'
-import { QuotaMenu } from '@/views/agent/chat/components/quota-menu.tsx'
-import { ICON_MAP, WorkspaceForm } from '@/views/agent/chat/components/workspace-form.tsx'
+} from './sidebar-expansion.ts'
+import { useWorkspaceThreadGroups } from './thread-groups.ts'
+import { ProfileMenu } from './profile-menu.tsx'
+import { QuotaMenu } from './quota-menu.tsx'
+import { ICON_MAP, WorkspaceForm } from './workspace-form.tsx'
 
 interface SidebarProps {
   onOpenSettings: () => void

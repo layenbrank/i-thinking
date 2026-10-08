@@ -4,10 +4,10 @@ import { useContext } from 'react'
 
 import type { SectionProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import { MagneticTile, OverlayContext } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import styles from '@/features/magnetic-tiles/navigation/navigation.module.scss'
+import styles from './navigation.module.scss'
 
-import Marker from '@/features/magnetic-tiles/navigation/marker.tsx'
-import Overlay from '@/features/magnetic-tiles/navigation/overlay.tsx'
+import Marker from './marker.tsx'
+import Overlay from './overlay.tsx'
 import { useMirrorStore } from '@/stores/mirror'
 
 interface NavigationProps extends Omit<SectionProps, 'children'> {

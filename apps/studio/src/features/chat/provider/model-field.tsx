@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@i-thinking/design/comp
 import { cn } from 'cn'
 import { useState, type ComponentProps } from 'react'
 
-import { addModelIDs, filterModelOptions, toggleModelID } from '@/features/chat/provider/models.ts'
+import { addModelIDs, filterModelOptions, toggleModelID } from './models.ts'
 
 /**
  * 模型名选择器（provider 表单用）。

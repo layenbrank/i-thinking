@@ -2,7 +2,7 @@
  * 截屏导出：剪贴板 / 用户另存 / 贴图（textures + asset 表）。
  */
 
-import { buildBlobUrlFromDataUrl } from '@/features/capture/image'
+import { buildBlobUrlFromDataUrl } from './image'
 
 async function copyText(text: string): Promise<void> {
   if (!navigator.clipboard?.writeText) {

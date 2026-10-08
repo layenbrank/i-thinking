@@ -4,9 +4,9 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { Enter, ENTER } from '@/features/magnetic-tile/enter'
-import { useEnter } from '@/features/magnetic-tile/enter-context'
-import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
+import { Enter, ENTER } from './enter'
+import { useEnter } from './enter-context'
+import styles from './magnetic-tile.module.scss'
 import {
   Overlay,
   OverlayProvider,
@@ -14,9 +14,9 @@ import {
   type OverlayControlProps,
   type OverlayMode,
   type OverlayProps
-} from '@/features/magnetic-tile/overlay'
-import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
-import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
+} from './overlay'
+import { OverlayContext } from './overlay-context'
+import { buildSurfaceStyle } from './surface-style'
 
 interface SectionProps extends MagneticTile {
   children: ReactNode

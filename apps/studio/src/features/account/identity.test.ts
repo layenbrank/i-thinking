@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AuthProfile } from '@/apis/auth.ts'
-import { findAccountIdentity, findInitials, findRoleLabel } from '@/features/account/identity.ts'
+import { findAccountIdentity, findInitials, findRoleLabel } from './identity.ts'
 
 /**
  * 身份展示只有一处来源（`findAccountIdentity`），左栏、账号菜单、设置页都读它 ——

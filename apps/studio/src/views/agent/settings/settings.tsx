@@ -1,6 +1,6 @@
-import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
+import { Icon } from '@iconify/react/offline'
 import { useMemo, useState, type ComponentType } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -15,6 +15,7 @@ import { PlatformProviderSection } from '@/views/agent/settings/sections/platfor
 import { UsageSection } from '@/views/agent/settings/sections/platform-usage.tsx'
 import { QuotaSection } from '@/views/agent/settings/sections/quota.tsx'
 import { ShortcutsSection } from '@/views/agent/settings/sections/shortcuts.tsx'
+import { ToolsSection } from '@/views/agent/settings/sections/tools.tsx'
 
 /**
  * 设置页（`/agent/settings`）：左导航 + 右内容，顶部「返回应用」。
@@ -48,6 +49,7 @@ const GROUPS: SettingsGroup[] = [
       { id: 'general', label: '常规', icon: 'lucide:settings-2', section: GeneralSection },
       { id: 'shortcuts', label: '快捷键', icon: 'lucide:keyboard', section: ShortcutsSection },
       { id: 'model', label: '模型', icon: 'lucide:sparkles', section: ModelSection },
+      { id: 'tools', label: '工具', icon: 'lucide:wrench', section: ToolsSection },
       { id: 'quota', label: '额度', icon: 'lucide:gauge', section: QuotaSection }
     ]
   },
@@ -156,7 +158,10 @@ export default function Settings() {
       <div className="bg-muted/30 flex min-h-0 flex-1 gap-0 p-3">
         <nav className="bg-background border-border flex w-56 shrink-0 flex-col gap-3 rounded-xl border p-2">
           <div className="relative">
-            <Icon icon="lucide:search" className="text-muted-foreground pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+            <Icon
+              icon="lucide:search"
+              className="text-muted-foreground pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2"
+            />
             <Input
               value={query}
               placeholder="搜索设置…"

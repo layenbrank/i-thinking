@@ -1,6 +1,6 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { AssetService } from '../../capabilities/asset'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { AssetService } from '@/host/capabilities/asset'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 /** 资产域：CRUD + 截屏贴图 pin / 用户另存 export */
 export function buildAssetHandlers(): DomainHandlers<'asset'> {

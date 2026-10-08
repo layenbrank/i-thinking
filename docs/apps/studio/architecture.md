@@ -72,29 +72,46 @@ apps/studio/
     ├── shared/ipc/   # 契约：零 electron / node / dom import
     │   ├── channels.ts  spec.ts  specs/  api.ts  error.ts
     ├── host/         # 主进程
-    │   ├── framework/     # 插件框架：module / context / logger / paths
+    │   ├── framework/     # 插件框架：module / context / logger / log-file / paths / binaries / report
     │   ├── ipc/           # IPC 装配：types / register / handlers/
-    │   ├── capabilities/  # 能力域实现：sidecar / chat / database / assistant / security …
-    │   │   ├── assistant*.ts  # 端口装配、协议、密钥、审批（Electron 侧接线）
-    │   │   └── opencode/      # agent 运行时：spawn + 配置 + 事件 + 变更卡
+    │   ├── capabilities/  # 能力域实现
+    │   │   ├── assistant/   # 端口装配、协议、密钥、审批（Electron 侧接线）
+    │   │   ├── capture/     # 截屏服务、结果解析、落盘路径
+    │   │   ├── overlay/     # 浮层窗口 + 点击穿透
+    │   │   ├── updater/     # 自动更新（Squirrel feed）
+    │   │   ├── window/      # 建窗 / 端口规格表 / 托盘
+    │   │   ├── workspace/   # 工作区、路径沙箱、git、技能扫描
+    │   │   ├── opencode/    # agent 运行时：spawn + 配置 + 事件 + 变更卡
+    │   │   ├── sidecar/  tools/
+    │   │   └── *.ts         # 单文件域（asset / chat / database / dialog / doc / security / store …）
     │   └── lifecycle/     # 进程生命周期：single-instance
     └── …             # UI（@ → src/）：views / features / stores / apis
 ```
+
+import 路径：**同目录写 `./x`，其余一切跨目录写 `@/...`**（不再数 `../../../`）。
+`@/` 指向 `src/`，三条进程白名单由 eslint 把关：renderer 可用全量但**不碰 `@/host/**`**（主进程类型走
+`src/types/itc.d.ts` 与 `@/shared/ipc/api`），也禁 `@schema` / `@manifest`；
+host 只允许 `@/shared/**` 与 `@/host/**`（且禁跨目录相对）、preload 只允许 `@/shared/**`。
+`src` 之外的构建期产物有专用别名：`@schema`（Drizzle schema）、`@manifest`（在线工具清单）、`@generated`。
+`src/shared/` 内部保持层内相对（它是三进程共用的自包含层）。
 
 `features/` 里与本层相关的两块：`features/chat/port/`（渲染侧的端口实现，把 UI 意图翻成端口消息）
 与 `features/quota/`（租户、配额、发送前门禁，见 §4）。
 
 各层的边界含义：
 
-| 层                   | 放什么                         | 判据                                                       |
-| -------------------- | ------------------------------ | ---------------------------------------------------------- |
-| `shared/ipc/`        | 频道、schema、派生类型、错误码 | 被三端同时打包；`shared-framework-free` 规则强制零框架依赖 |
-| `host/framework/`    | 插件机制与主进程基建           | 被能力域引用，自身不引用能力域                             |
-| `host/ipc/`          | handler 实现与注册装配         | 频道字符串的唯一来源是契约                                 |
-| `host/capabilities/` | 域的服务实现（**不再是插件**） | 被 `host/ipc/handlers` 调用                                |
-| `host/lifecycle/`    | 进程级钩子，非插件             | 在 `main.ts` 里直接调用而非注册                            |
+| 层                   | 放什么                         | 判据                                                                                              |
+| -------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `shared/ipc/`        | 频道、schema、派生类型、错误码 | 被三端同时打包；`shared-framework-free` 规则强制零框架依赖                                        |
+| `host/framework/`    | 插件机制与主进程基建           | 被能力域引用，自身不引用能力域；`Context` 只装框架级服务（能力域宿主由 `main.ts` 直接交给使用者） |
+| `host/ipc/`          | handler 实现与注册装配         | 频道字符串的唯一来源是契约                                                                        |
+| `host/capabilities/` | 域的服务实现（**不再是插件**） | 被 `host/ipc/handlers` 调用；**一域一目录或一文件**，目录名即域                                   |
+| `host/lifecycle/`    | 进程级钩子，非插件             | 在 `main.ts` 里直接调用而非注册                                                                   |
 
 ESLint：renderer / preload / host / shared 四条边界规则（`eslint.config.ts`）。
+
+**组合根只有一个**（`main.ts`）：窗口端口、sidecar 宿主、各能力域的插件都在这里建好再分发，
+能力域之间不当场互引。
 
 ## 4. 对话：一条链路，两种模型来源
 
@@ -104,10 +121,10 @@ ESLint：renderer / preload / host / shared 四条边界规则（`eslint.config.
 | 组织模型（平台网关）  | `findGatewayBaseURL()` = `${VITE_THINKING}/gateway`；凭据是当前登录令牌 | 网关是 provider 表里固定的一行（id `platform-gateway`），模型由服务端目录下发 |
 
 - **运行链路只有一条**：renderer → `assistant:connect` → MessagePort（纯数据，不用 IPC 传每个 token）
-  → main 的 [`capabilities/assistant.ts`](../../../apps/studio/src/host/capabilities/assistant.ts)（只做 Electron 接线）
+  → main 的 [`capabilities/assistant/index.ts`](../../../apps/studio/src/host/capabilities/assistant/index.ts)（只做 Electron 接线）
   → [`capabilities/opencode/`](../../../apps/studio/src/host/capabilities/opencode/engine.ts) 的引擎
   → 内嵌的 `opencode serve`（HTTP/SSE，127.0.0.1 随机端口）。来源差异只落在
-  `host/capabilities/assistant-model.ts` 的 `resolveConnection` 一处，所以两种来源共用同一份
+  `host/capabilities/assistant/model.ts` 的 `resolveConnection` 一处，所以两种来源共用同一份
   历史适配器、会话、工具、审批与计划。
 - **agent 循环不在 studio 里**：工具执行、上下文压缩、文件快照、子任务、MCP 都是 agent 运行时的本体，
   由 opencode 承担；studio 只做三件事 —— 把 provider/凭据喂给它、把事件翻成端口协议、把审批权握在手里。
@@ -153,7 +170,7 @@ ESLint：renderer / preload / host / shared 四条边界规则（`eslint.config.
 - **网关的失败也是 HTTP 200**（信封 `{code, success:false, msg}`）：请求现在由 opencode 发出，
   所以 `msg` 的挖掘分两层 —— [`opencode/events.ts`](../../../apps/studio/src/host/capabilities/opencode/events.ts)
   的 `describeOpencodeError` 从错误报文里截出 JSON 信封取 `msg`；
-  [`assistant-protocol.ts`](../../../apps/studio/src/host/capabilities/assistant-protocol.ts) 的
+  [`assistant/protocol.ts`](../../../apps/studio/src/host/capabilities/assistant/protocol.ts) 的
   `findErrorMessage` 再补一句可操作的提示（如配额触顶指向「设置 → 额度」）。
 - **工具、审批、计划对两种来源一视同仁**：网关的 `ChatCompletionsP` 用 `#[serde(flatten)]` 原样透传
   上游请求里的 `tools` / `system`；studio 不往请求体里塞工具开关 —— 工具可见性与审批由档位对应的
@@ -211,12 +228,12 @@ interface Plugin {
 - **注册必须显式**：写在 `main.ts` 的数组里。不用基于 glob 的副作用自动注册 —— 那会破坏
   tree-shaking 与可测性。
 - **多窗口**：主窗口与浮层窗口由 window 插件在启动期创建（浮层经 `OverlayWindowPort` 读写）；
-  **Agent 子窗口按需创建**，归 `capabilities/agent-window.ts` 的 `AgentWindowPort`，由
+  **Agent 子窗口按需创建**，归 `capabilities/window/registry.ts` 的 `AgentWindowPort`，由
   `window:agent.toOpen` 触发。建窗公共原语（路径解析 / 加载 / 安全附着）在
-  `capabilities/window-factory.ts` —— 各窗口只写自己的选项，不再各复制一份建窗代码。
-- 能力域粒度：小域单文件（`capabilities/window.ts`）；有内部辅助的域用前缀分组
-  （`capabilities/assistant.ts` + `assistant-protocol.ts` + `assistant-key.ts`）；
-  再大就开子目录（`capabilities/opencode/` 一个文件一件事：`server` / `config` / `events` / `changes` …）。
+  `capabilities/window/factory.ts` —— 各窗口只写自己的选项，不再各复制一份建窗代码。
+- 能力域粒度：**一个域多个文件就开目录**（目录名即域，内部用短名，对外那个叫 `index.ts`）；
+  小域单文件直接平铺（`capabilities/security.ts` 与 `capabilities/assistant/index.ts` 是同一套规则的两面）。
+  更细的子域再开一层（`capabilities/opencode/` 一个文件一件事：`server` / `config` / `events` / `changes` …）。
 - 单文件超过约 300 行即拆分（`sidecar.ts` 目前 545 行，是本层待拆的已知项）。
 
 ## 6. IPC 契约
@@ -258,7 +275,7 @@ interface Plugin {
 
 接线
 7. preload.ts 的 api 字面量加一行（satisfies Api 会强制）
-8. 若该域有生命周期需求：host/capabilities/<domain>.ts 写插件 + main.ts 注册
+8. 若该域有生命周期需求：`host/capabilities/<domain>.ts`（或 `<domain>/index.ts`）写插件 + main.ts 注册
 9. contract.test 绿 + api-reference / examples
 ```
 

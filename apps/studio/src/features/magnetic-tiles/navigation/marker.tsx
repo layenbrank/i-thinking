@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback } from '@i-thinking/design/components/avatar'
 import { clsx } from 'clsx'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import styles from '@/features/magnetic-tiles/navigation/marker.module.scss'
+import styles from './marker.module.scss'
 
 type Props = Pick<MagneticTile, 'mark' | 'title'> & Omit<MarkerProps, 'children'>
 

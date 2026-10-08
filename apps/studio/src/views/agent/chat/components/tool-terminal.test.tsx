@@ -3,8 +3,8 @@ import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { TERMINAL_PREVIEW_LINES } from '@/views/agent/chat/components/tool-output.ts'
-import { ToolCodeMode, ToolCommand } from '@/views/agent/chat/components/tool-terminal.tsx'
+import { TERMINAL_PREVIEW_LINES } from './tool-output.ts'
+import { ToolCodeMode, ToolCommand } from './tool-terminal.tsx'
 
 function toLines(count: number): string {
   return Array.from({ length: count }, function (_, index) {

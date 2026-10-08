@@ -16,7 +16,7 @@ import {
   useThreadUsage
 } from '@/features/chat/usage.ts'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
-import { ChangeSummary } from '@/views/agent/chat/components/change-summary.tsx'
+import { ChangeSummary } from './change-summary.tsx'
 
 /**
  * 输入框下方：变更汇总（若有）+ 工作区 · 运行位置 · 分支 + 上下文用量。

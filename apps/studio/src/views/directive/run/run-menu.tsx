@@ -22,19 +22,9 @@ import { useEffect, useState } from 'react'
 
 import type { JobKind } from '@/shared/ipc/specs/sidecar'
 
-import { Glyph } from '../editor/controls'
+import { Glyph } from '@/views/directive/editor/controls'
+import { findDirectiveCaps, type Caps } from './run-caps'
 import { useGuardRun } from './use-guard-run'
-
-interface Caps {
-  hasCron: boolean
-  hasWatch: boolean
-}
-
-interface SummaryLike {
-  has_cron?: boolean
-  has_watch?: boolean
-  trigger_count?: number
-}
 
 interface RunMenuProps {
   /** 指令名；空则整组禁用 */
@@ -55,9 +45,6 @@ interface WallRunBarProps {
   onOnce: () => void
   disabled?: boolean
 }
-
-const CAPS_CACHE_MS = 10_000
-const capsCache = new Map<string, { at: number; caps: Caps }>()
 
 interface StopDialogProps {
   kind: JobKind | null
@@ -254,13 +241,17 @@ function RunMenu(props: RunMenuProps) {
 function WallRunBar(props: WallRunBarProps) {
   const [caps, updateCaps] = useState(props.caps)
   const guard = useGuardRun({ name: props.name })
+  const { refreshAlive } = guard
 
-  useEffect(
-    function () {
-      updateCaps(props.caps)
-    },
-    [props.caps.hasCron, props.caps.hasWatch]
-  )
+  // props 的能力变了就跟着走：渲染期调整（effect 里 setState 会多一整轮提交）
+  const [givenCaps, updateGivenCaps] = useState({
+    hasCron: props.caps.hasCron,
+    hasWatch: props.caps.hasWatch
+  })
+  if (givenCaps.hasCron !== props.caps.hasCron || givenCaps.hasWatch !== props.caps.hasWatch) {
+    updateGivenCaps({ hasCron: props.caps.hasCron, hasWatch: props.caps.hasWatch })
+    updateCaps(props.caps)
+  }
 
   useEffect(
     function () {
@@ -269,12 +260,12 @@ function WallRunBar(props: WallRunBarProps) {
 
       async function sync() {
         if (props.caps.hasCron && props.caps.hasWatch) {
-          const refined = await fetchDirectiveCaps(props.name)
+          const refined = await findDirectiveCaps(props.name)
           if (cancelled) return
           updateCaps(refined)
         }
         if (cancelled) return
-        await guard.refreshAlive()
+        await refreshAlive()
       }
 
       if (props.caps.hasCron || props.caps.hasWatch) void sync()
@@ -282,7 +273,7 @@ function WallRunBar(props: WallRunBarProps) {
         cancelled = true
       }
     },
-    [props.name, props.caps.hasCron, props.caps.hasWatch]
+    [props.name, props.caps.hasCron, props.caps.hasWatch, refreshAlive]
   )
 
   function onGuardClick(kind: JobKind) {
@@ -462,52 +453,4 @@ function haltBubble(event: { stopPropagation(): void }) {
   event.stopPropagation()
 }
 
-async function fetchDirectiveCaps(name: string): Promise<Caps> {
-  const now = Date.now()
-  const hit = capsCache.get(name)
-  if (hit && now - hit.at < CAPS_CACHE_MS) return hit.caps
-  try {
-    const document = await itc.sidecar.directive({ name })
-    const caps = capsFromTriggers(document.definition.triggers)
-    capsCache.set(name, { at: now, caps })
-    return caps
-  } catch {
-    return hit?.caps ?? { hasCron: true, hasWatch: true }
-  }
-}
-
-function triggerKind(trigger: { type?: string }): string {
-  return typeof trigger.type === 'string' ? trigger.type.trim().toLowerCase() : ''
-}
-
-/** 从 triggers 算出菜单能力；编辑器草稿用 */
-function capsFromTriggers(triggers: Array<{ type?: string }> | undefined): Caps {
-  const items = triggers ?? []
-  return {
-    hasCron: items.some(function (trigger) {
-      return triggerKind(trigger) === 'cron'
-    }),
-    hasWatch: items.some(function (trigger) {
-      return triggerKind(trigger) === 'watch'
-    })
-  }
-}
-
-/**
- * 墙面卡片摘要 → 运行能力。
- *
- * 新 daemon 带 `has_cron` / `has_watch`；旧进程没有时落成 false，
- * 但 `trigger_count` 仍可靠——有触发器却分不清种类时先都放开，挂载后再读定义收窄。
- */
-function capsFromSummary(summary: SummaryLike | null | undefined): Caps {
-  if (!summary) return { hasCron: false, hasWatch: false }
-  const hasCron = summary.has_cron === true
-  const hasWatch = summary.has_watch === true
-  if (!hasCron && !hasWatch && (summary.trigger_count ?? 0) > 0) {
-    return { hasCron: true, hasWatch: true }
-  }
-  return { hasCron, hasWatch }
-}
-
-export { RunMenu, WallRunBar, capsFromTriggers, capsFromSummary }
-export type { Caps }
+export { RunMenu, WallRunBar }

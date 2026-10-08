@@ -6,7 +6,7 @@ import ReSignIn from '@/features/signin/signin.tsx'
 import OverviewUtility from '@/views/overview/components/utility'
 import { EngineSearch } from '@/views/overview/engine/search'
 
-import styles from '@/views/overview/overview.module.scss'
+import styles from './overview.module.scss'
 
 export default function Overview() {
   const [visible, onUpdateVisible] = useState(false)

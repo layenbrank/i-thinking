@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { USAGE_KEY, useRefreshOnRunEnd } from '@/features/chat/usage.ts'
+import { USAGE_KEY, useRefreshOnRunEnd } from './usage.ts'
 import { QUOTA_KEY } from '@/features/quota/usage.ts'
 
 afterEach(cleanup)

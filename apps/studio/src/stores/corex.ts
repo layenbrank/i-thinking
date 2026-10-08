@@ -8,7 +8,7 @@ import type {
   ImportResult,
   JobEvent
 } from '@/shared/ipc/specs/sidecar'
-import type { CorexProgress } from '@/stores/run-logs'
+import type { CorexProgress } from './run-logs'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
 import {

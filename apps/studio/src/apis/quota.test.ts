@@ -5,7 +5,7 @@ import {
   DELETE_TENANT_SUBSCRIPTION,
   GET_MY_TENANTS,
   GET_TENANT_SUBSCRIPTIONS
-} from '@/apis/quota.ts'
+} from './quota.ts'
 
 /**
  * 这里只覆盖租户与订阅；「我此刻的配额」在网关侧（`GET /gateway/quota/me`，见

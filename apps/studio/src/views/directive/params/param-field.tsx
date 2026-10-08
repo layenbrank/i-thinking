@@ -9,7 +9,7 @@ import { useId } from 'react'
 
 import type { CorexAction } from '@/stores/corex'
 
-import { CONTROL_CLASS, HintTooltip, TEXTAREA_CLASS } from '../editor/controls'
+import { CONTROL_CLASS, HintTooltip, TEXTAREA_CLASS } from '@/views/directive/editor/controls'
 import { checkValue, findFieldHint, findFieldKind, formatField, parseInput } from './field'
 import type { FieldKind } from './field'
 

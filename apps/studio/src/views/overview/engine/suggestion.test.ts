@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseSuggestion } from '@/views/overview/engine/suggestion'
+import { parseSuggestion } from './suggestion'
 
 describe('parseSuggestion', function () {
   it('keeps items that have id, q and u', function () {

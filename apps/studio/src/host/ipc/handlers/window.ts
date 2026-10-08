@@ -1,6 +1,6 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { type WindowPorts } from '../../capabilities/window-registry'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { type WindowPorts } from '@/host/capabilities/window/registry'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 /**
  * window 域只有「开窗口」：创建/聚焦归端口，频道只做触发。

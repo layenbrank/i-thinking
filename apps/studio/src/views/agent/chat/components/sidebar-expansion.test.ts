@@ -6,7 +6,7 @@ import {
   findSidebarState,
   parseSidebarState,
   writeSidebarState
-} from '@/views/agent/chat/components/sidebar-expansion.ts'
+} from './sidebar-expansion.ts'
 
 /**
  * 存储里只该有「用户表过态的键」：默认展开不是靠写 `true` 进去，而是靠**没有这个键**。

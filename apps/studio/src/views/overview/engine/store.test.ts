@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseEngineKey } from '@/views/overview/engine/store'
+import { parseEngineKey } from './store'
 
 describe('parseEngineKey', function () {
   it('keeps a known engine key', function () {

@@ -1,10 +1,10 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import type { InvokeChannel } from '../../shared/ipc/channels'
-import { CHANNELS, INVOKE_CHANNELS } from '../../shared/ipc/channels'
-import { IpcError, type IpcEnvelope } from '../../shared/ipc/error'
-import type { Context } from '../framework/context'
+import type { InvokeChannel } from '@/shared/ipc/channels'
+import { CHANNELS, INVOKE_CHANNELS } from '@/shared/ipc/channels'
+import { IpcError, type IpcEnvelope } from '@/shared/ipc/error'
+import type { Context } from '@/host/framework/context'
 import { assertExhaustive, registerAll, type IpcDisposable } from './register'
 import type { Handlers } from './types'
 
@@ -24,7 +24,6 @@ function stubCtx(partial: Partial<Context> & Pick<Context, 'isDev'>): Context {
         return this
       }
     },
-    corex: {} as Context['corex'],
     trustWebContents() {},
     untrustWebContents() {},
     isTrustedWebContents() {
@@ -112,7 +111,7 @@ describe('registerAll', function () {
     disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
 
     expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
-    expect(ipc.size()).toBe(88)
+    expect(ipc.size()).toBe(91)
     for (const channel of INVOKE_CHANNELS) {
       expect(ipc.has(channel)).toBe(true)
     }
@@ -120,6 +119,7 @@ describe('registerAll', function () {
     expect(ipc.has(CHANNELS.ASSISTANT.PORT)).toBe(false)
     expect(ipc.has(CHANNELS.UPDATER.EVENT)).toBe(false)
     expect(ipc.has(CHANNELS.OVERLAY.EVENT)).toBe(false)
+    expect(ipc.has(CHANNELS.TOOL.PROGRESS)).toBe(false)
   })
 
   it('maps a business IpcError to its own code', async function () {

@@ -1,15 +1,14 @@
 import { z } from 'zod'
 
-import type { ChannelOfDomain } from '../channels'
-import { CHANNELS } from '../channels'
-import type { ChannelSpec } from '../spec'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 const StatusSchema = z.object({
   isReady: z.boolean(),
   version: z.string(),
   actions: z.array(z.string()),
   hasCorex: z.boolean(),
-  hasPandoc: z.boolean(),
   /** corex 实际在用的数据目录（指令 / 历史都在这），供界面显示与排错 */
   dataDir: z.string(),
   /** 指令库（SQLite）文件：v13 起指令的唯一真相，界面直接把它显示出来 */

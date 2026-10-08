@@ -2,10 +2,10 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-import type { CHANNELS } from '../../shared/ipc/channels'
-import { IpcError } from '../../shared/ipc/error'
-import { type In, type Out } from '../../shared/ipc/specs'
-import { findPandocPath, hasPandoc } from './sidecar/install'
+import type { CHANNELS } from '@/shared/ipc/channels'
+import { IpcError } from '@/shared/ipc/error'
+import { type In, type Out } from '@/shared/ipc/specs'
+import { findToolBinary } from '@/host/capabilities/tools/install'
 
 /** Pandoc convert process timeout (main-only). */
 const CONVERT_TIMEOUT_MS = 120_000
@@ -15,8 +15,12 @@ type ConvertR = Out<typeof CHANNELS.DOC.CONVERT>
 
 class Service {
   convert(input: ConvertP): Promise<ConvertR> {
-    if (!hasPandoc()) {
-      return Promise.reject(new IpcError('DOC_PANDOC_MISSING', `pandoc not found at ${findPandocPath()}`))
+    // pandoc 属在线工具：运行时下载的那份优先，完整版内置的那份兜底（见 capabilities/tools）
+    const pandocPath = findToolBinary('pandoc')
+    if (!pandocPath) {
+      return Promise.reject(
+        new IpcError('DOC_PANDOC_MISSING', '未安装 pandoc，请在「设置 → 工具」里下载')
+      )
     }
 
     const inputPath = path.resolve(input.inputPath)
@@ -28,7 +32,6 @@ class Service {
       return Promise.reject(new IpcError('DOC_CONVERT_FAILED', 'paths must not contain null bytes'))
     }
 
-    const pandocPath = findPandocPath()
     const args = [inputPath, '-o', outputPath, '-t', input.format]
 
     return new Promise(function (resolve, reject) {
@@ -68,5 +71,5 @@ class Service {
 export type { ConvertP, ConvertR }
 export { Service }
 // 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
-export { ConvertSchema, OUTPUT_FORMATS } from '../../shared/ipc/specs/doc'
-export type { OutputFormat } from '../../shared/ipc/specs/doc'
+export { ConvertSchema, OUTPUT_FORMATS } from '@/shared/ipc/specs/doc'
+export type { OutputFormat } from '@/shared/ipc/specs/doc'

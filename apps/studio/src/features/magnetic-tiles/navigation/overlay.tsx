@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 
 import { MagneticTile, type OverlayControlProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import styles from '@/features/magnetic-tiles/navigation/overlay.module.scss'
+import styles from './overlay.module.scss'
 
 interface Props extends OverlayControlProps {
   url?: string | null

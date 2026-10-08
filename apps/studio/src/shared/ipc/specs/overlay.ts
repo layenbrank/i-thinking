@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { CHANNELS } from '../channels'
-import type { ChannelOfDomain } from '../channels'
-import type { ChannelSpec, PushChannelSpec } from '../spec'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import type { ChannelSpec, PushChannelSpec } from '@/shared/ipc/spec'
 import { BytesSchema } from './capture'
 
 const OverlayModeSchema = z.enum(['idle', 'capture'])

@@ -62,7 +62,13 @@ export const IPC_ERROR_CODES = [
   'CAPTURE_NOT_READY',
   'ASSET_NOT_FOUND',
   'ASSET_BAD_PAYLOAD',
-  'SIDECAR_NOT_READY'
+  'SIDECAR_NOT_READY',
+  // 在线工具（pandoc / ffmpeg / opencode）
+  'TOOL_UNKNOWN',
+  'TOOL_UNSUPPORTED',
+  'TOOL_DOWNLOAD_FAILED',
+  'TOOL_CHECKSUM_MISMATCH',
+  'TOOL_EXTRACT_FAILED'
 ] as const
 
 export type IpcErrorCode = (typeof IPC_ERROR_CODES)[number]

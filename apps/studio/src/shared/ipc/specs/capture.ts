@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { CHANNELS } from '../channels'
-import type { ChannelOfDomain } from '../channels'
-import type { ChannelSpec } from '../spec'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ChannelOfDomain } from '@/shared/ipc/channels'
+import type { ChannelSpec } from '@/shared/ipc/spec'
 
 /** IPC 二进制：主进程 Buffer / 渲染进程 Uint8Array 都认 */
 const BytesSchema = z.custom<Uint8Array>(

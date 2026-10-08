@@ -1,6 +1,6 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { type OverlayWindowPort } from '../../capabilities/overlay-window'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { type OverlayWindowPort } from '@/host/capabilities/overlay/window-port'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 /**
  * overlay 频道：显隐 + mode。窗口本身由 window 插件创建。

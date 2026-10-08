@@ -11,7 +11,7 @@ import {
 } from '@i-thinking/design/components/dropdown-menu'
 import { useState } from 'react'
 
-import { useAccountSession, useSignOut } from '@/features/account/session.ts'
+import { useAccountSession, useSignOut } from './session.ts'
 import SignIn from '@/features/signin/signin.tsx'
 
 interface AccountMenuProps {

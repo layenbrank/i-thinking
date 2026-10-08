@@ -26,9 +26,9 @@ import { toast } from 'sonner'
 
 import type { CorexAction } from '@/stores/corex'
 
-import { findBucketMark } from '../list/bucket'
-import { createDefaultValues, formatValue, setParamValue } from '../params/field'
-import { ParamField } from '../params/param-field'
+import { findBucketMark } from '@/views/directive/list/bucket'
+import { createDefaultValues, formatValue, setParamValue } from '@/views/directive/params/field'
+import { ParamField } from '@/views/directive/params/param-field'
 import {
   COMPARE_PLACEHOLDER,
   CONDITION_KINDS,

@@ -16,6 +16,11 @@ function findBuildFeedUrl(): string {
 export default defineConfig({
   resolve: {
     alias: {
+      // 与渲染侧 / tsconfig 同名同源：主进程内部（host/**）一律走 `@/`，不再靠 ../../../ 数层数
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // src 之外的构建期产物（Drizzle schema / 在线工具清单）
+      '@schema': fileURLToPath(new URL('./drizzle/schema', import.meta.url)),
+      '@manifest': fileURLToPath(new URL('./sidecar/manifest.json', import.meta.url)),
       '@generated': fileURLToPath(new URL('./generated', import.meta.url))
     }
   },

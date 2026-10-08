@@ -1,6 +1,6 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import type { ThroughHost } from '../../capabilities/through'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { ThroughHost } from '@/host/capabilities/overlay/through'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 export function buildThroughHandlers(through: ThroughHost): DomainHandlers<'through'> {
   return {

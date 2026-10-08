@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import type { DirectiveEntry } from '@/shared/ipc/specs/sidecar'
 
-import type { DirectiveRuns } from '../run/run-status'
-import { DAY_MS, HOUR_MS, MINUTE_MS } from '../run/run-status'
+import type { DirectiveRuns } from '@/views/directive/run/run-status'
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/views/directive/run/run-status'
 import { groupDirectives, parseSortMode } from './group'
 
 const NOW = new Date(2026, 0, 8, 12, 0, 0, 0).getTime()

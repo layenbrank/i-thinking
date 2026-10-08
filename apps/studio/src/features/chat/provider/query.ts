@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { dropStalePlatformRow, ensurePlatformProvider } from '@/features/chat/platform.ts'
-import type { ProviderRow } from '@/features/chat/provider/row.ts'
+import type { ProviderRow } from './row.ts'
 
 /**
  * 「可用模型清单」的唯一读取口径：设置页、模型选择器、右侧栏都用它，键相同所以共用缓存。

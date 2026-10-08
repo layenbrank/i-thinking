@@ -22,8 +22,8 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
-import { workspace, workspaceFolder } from '../../../drizzle/schema'
-import type { Plugin } from '../framework/module'
+import { workspace, workspaceFolder } from '@schema'
+import type { Plugin } from '@/host/framework/module'
 import type { Repository } from './chat'
 import type { findClient } from './database'
 

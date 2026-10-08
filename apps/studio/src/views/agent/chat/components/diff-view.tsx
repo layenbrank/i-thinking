@@ -2,8 +2,8 @@ import { Icon } from '@iconify/react/offline'
 import { Button } from '@i-thinking/design/components/button'
 import { useMemo, useState } from 'react'
 
-import { DIFF_PREVIEW_LIMIT, toDiffPreview } from '@/views/agent/chat/components/diff-lines.ts'
-import type { DiffFile, DiffLine } from '@/views/agent/chat/components/diff-lines.ts'
+import { DIFF_PREVIEW_LIMIT, toDiffPreview } from './diff-lines.ts'
+import type { DiffFile, DiffLine } from './diff-lines.ts'
 
 /**
  * unified diff 的展示件：双行号 + 绿/红/灰行。

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { NOTICE_BLIND, NOTICE_HUGE, prepareImages } from '@/features/agent/images.ts'
+import { NOTICE_BLIND, NOTICE_HUGE, prepareImages } from './images.ts'
 
 function message(images?: { mediaType: string; data: string }[]) {
   return {

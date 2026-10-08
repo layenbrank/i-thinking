@@ -1,6 +1,6 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { Service } from '../../capabilities/doc'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { Service } from '@/host/capabilities/doc'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 export function buildDocHandlers(): DomainHandlers<'doc'> {
   const service = new Service()

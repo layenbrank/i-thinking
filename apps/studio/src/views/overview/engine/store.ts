@@ -1,4 +1,4 @@
-import { ENGINE_STORE_KEY, ENGINES, findEngine } from '@/views/overview/engine/constants'
+import { ENGINE_STORE_KEY, ENGINES, findEngine } from './constants'
 
 function parseEngineKey(value: unknown): string {
   if (!value || typeof value !== 'object') return ENGINES[0].key

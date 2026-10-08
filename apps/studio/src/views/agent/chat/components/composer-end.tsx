@@ -2,7 +2,7 @@ import { TooltipProvider } from '@i-thinking/design/components/tooltip'
 import { useNavigate } from 'react-router-dom'
 
 import { ModelPicker } from '@/features/chat/model-picker.tsx'
-import { ApprovalSwitch } from '@/views/agent/chat/components/approval-switch.tsx'
+import { ApprovalSwitch } from './approval-switch.tsx'
 
 /**
  * 输入区右下角：访问权限与模型。

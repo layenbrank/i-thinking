@@ -4,7 +4,7 @@ import type { Api } from './api'
 import type { Domain } from './channels'
 import { CHANNELS, INVOKE_CHANNELS, PUSH_CHANNELS, flattenChannels } from './channels'
 import { INVOKE_SPECS, PUSH_SPECS } from './specs'
-import { DirectiveContentSchema, JobEventSchema } from './specs/sidecar'
+import { DirectiveContentSchema, JobEventSchema } from '@/shared/ipc/specs/sidecar'
 
 type AssertExtends<T, U extends T> = U
 
@@ -29,14 +29,14 @@ void 0 as unknown as _UpdaterHasOnEvent
 void 0 as unknown as _OverlayHasOnEvent
 
 describe('channel derivation', function () {
-  it('flattens to exactly 93 channels', function () {
-    // 92 + sidecar jobEvent
-    expect(flattenChannels()).toHaveLength(93)
+  it('flattens to exactly 97 channels', function () {
+    // 93 + tool（read / install / remove / progress）
+    expect(flattenChannels()).toHaveLength(97)
   })
 
-  it('splits invoke (88) from push (5) with no overlap', function () {
-    expect(PUSH_CHANNELS).toHaveLength(5)
-    expect(INVOKE_CHANNELS).toHaveLength(88)
+  it('splits invoke (91) from push (6) with no overlap', function () {
+    expect(PUSH_CHANNELS).toHaveLength(6)
+    expect(INVOKE_CHANNELS).toHaveLength(91)
     for (const push of PUSH_CHANNELS) {
       expect(INVOKE_CHANNELS).not.toContain(push)
     }
@@ -74,6 +74,10 @@ describe('channel derivation', function () {
     expect(CHANNELS.SIDECAR.EDIT).toBe('sidecar:editDirective')
     expect(CHANNELS.SIDECAR.PROGRESS).toBe('sidecar:progress')
     expect(CHANNELS.SIDECAR.JOB_EVENT).toBe('sidecar:jobEvent')
+    expect(CHANNELS.TOOL.READ).toBe('tool:toRead')
+    expect(CHANNELS.TOOL.INSTALL).toBe('tool:install')
+    expect(CHANNELS.TOOL.REMOVE).toBe('tool:toRemove')
+    expect(CHANNELS.TOOL.PROGRESS).toBe('tool:progress')
     expect(CHANNELS.ASSISTANT.PORT).toBe('assistant:port')
     expect(CHANNELS.UPDATER.EVENT).toBe('updater:event')
   })

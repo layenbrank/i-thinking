@@ -1,10 +1,9 @@
 import { type WebContents } from 'electron'
 
-import { CHANNELS } from '../../../shared/ipc/channels'
-import type { Out } from '../../../shared/ipc/specs'
-import { findStatus, type CorexStepProgress } from '../../capabilities/sidecar'
-import { type Context } from '../../framework/context'
-import { type DomainHandlers } from '../types'
+import { findStatus, type CorexHost, type CorexStepProgress } from '@/host/capabilities/sidecar'
+import { type DomainHandlers } from '@/host/ipc/types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { Out } from '@/shared/ipc/specs'
 
 /**
  * 把 corex 进度帧推回**发起这次请求的窗口**（进度是主动推，不是任何请求的回话）。
@@ -20,54 +19,54 @@ function toProgress(sender: WebContents, runId: string) {
   }
 }
 
-export function buildSidecarHandlers(ctx: Context): DomainHandlers<'sidecar'> {
+export function buildSidecarHandlers(sidecar: CorexHost): DomainHandlers<'sidecar'> {
   return {
     [CHANNELS.SIDECAR.READ]: function () {
-      return findStatus(ctx.corex)
+      return findStatus(sidecar)
     },
     [CHANNELS.SIDECAR.ACTIONS]: function () {
-      return ctx.corex.findCatalog() as Out<typeof CHANNELS.SIDECAR.ACTIONS>
+      return sidecar.findCatalog() as Out<typeof CHANNELS.SIDECAR.ACTIONS>
     },
     [CHANNELS.SIDECAR.DIRECTIVES]: function () {
-      return ctx.corex.fetchDirectives()
+      return sidecar.fetchDirectives()
     },
     [CHANNELS.SIDECAR.DIRECTIVE]: async function (input) {
-      return (await ctx.corex.readDirective(input.name)) as Out<typeof CHANNELS.SIDECAR.DIRECTIVE>
+      return (await sidecar.readDirective(input.name)) as Out<typeof CHANNELS.SIDECAR.DIRECTIVE>
     },
     [CHANNELS.SIDECAR.SAVE]: function (input) {
-      return ctx.corex.saveDirective(input.definition, input.original_name)
+      return sidecar.saveDirective(input.definition, input.original_name)
     },
     [CHANNELS.SIDECAR.DELETE]: function (input) {
-      return ctx.corex.deleteDirective(input.name)
+      return sidecar.deleteDirective(input.name)
     },
     [CHANNELS.SIDECAR.IMPORT]: function (input) {
-      return ctx.corex.importDirectives(input)
+      return sidecar.importDirectives(input)
     },
     [CHANNELS.SIDECAR.EDIT]: function (input) {
-      return ctx.corex.editDirective(input.name)
+      return sidecar.editDirective(input.name)
     },
     [CHANNELS.SIDECAR.INVOKE]: function (input, event) {
-      return ctx.corex.invokeAction(
+      return sidecar.invokeAction(
         input.action,
         input.params ?? {},
         toProgress(event.sender, input.runId)
       )
     },
     [CHANNELS.SIDECAR.RUN]: function (input, event) {
-      return ctx.corex.runDirective(
+      return sidecar.runDirective(
         input.name,
         input.input ?? {},
         toProgress(event.sender, input.runId)
       )
     },
     [CHANNELS.SIDECAR.JOBS]: async function (input) {
-      return { jobs: await ctx.corex.fetchJobs(input.kind) }
+      return { jobs: await sidecar.fetchJobs(input.kind) }
     },
     [CHANNELS.SIDECAR.START_JOB]: function (input) {
-      return ctx.corex.startJob(input.kind, input.name, { immediate: input.immediate })
+      return sidecar.startJob(input.kind, input.name, { immediate: input.immediate })
     },
     [CHANNELS.SIDECAR.STOP_JOB]: function (input) {
-      return ctx.corex.stopJob(input.kind, input.name, { force: input.force })
+      return sidecar.stopJob(input.kind, input.name, { force: input.force })
     }
   }
 }

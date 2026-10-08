@@ -171,7 +171,7 @@ function createOpenAICompatibleStream(): ModelStream {
         headers: {
           'content-type': 'application/json',
           ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
-          ...(provider.headers ?? {})
+          ...provider.headers
         },
         body: JSON.stringify(body),
         signal

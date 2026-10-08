@@ -4,9 +4,9 @@ import { MotionConfig } from 'motion/react'
 import { Suspense } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
-import { Fallback } from '@/components/fallback/index.ts'
+import { Fallback } from '@/components/fallback'
 import { QueryProvider } from '@/components/provider/query'
-import { router } from '@/routers/index'
+import { router } from './routers'
 
 function App() {
   return (

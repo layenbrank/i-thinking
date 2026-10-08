@@ -1,3 +1,3 @@
-import Utility, { UtilityButton } from '@/components/utility/utility'
+import Utility, { UtilityButton } from './utility'
 
 export { Utility, UtilityButton }

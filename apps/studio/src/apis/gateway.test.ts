@@ -10,7 +10,7 @@ import {
   GET_GATEWAY_USAGE,
   UPDATE_GATEWAY_MODEL,
   UPDATE_GATEWAY_PROVIDER
-} from '@/apis/gateway.ts'
+} from './gateway.ts'
 
 const httpMock = vi.hoisted(function () {
   return {

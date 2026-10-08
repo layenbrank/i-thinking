@@ -1,5 +1,6 @@
-import { Icon } from '@iconify/react/offline'
 import { useAui } from '@assistant-ui/react'
+import { Icon } from '@iconify/react/offline'
+
 import { useActiveWorkspace } from '@/features/agent/workspace/client.ts'
 import { useSessionID } from '@/features/chat/session.ts'
 
@@ -37,7 +38,10 @@ function NoHistoryNotice() {
     <div className="mb-2 flex w-full flex-col items-center gap-6 px-2 text-center">
       <div className="flex flex-col items-center gap-3">
         <span className="bg-muted text-muted-foreground inline-flex size-12 items-center justify-center rounded-lg">
-          <Icon icon="lucide:history" className="size-6" />
+          <Icon
+            icon="lucide:history"
+            className="size-6"
+          />
         </span>
         <div className="flex flex-col gap-2">
           <h1 className="text-foreground text-2xl leading-[1.35] font-semibold tracking-[-0.01em]">
@@ -57,7 +61,11 @@ export function ThreadWelcome() {
   // 有 remoteId = 这是从库里打开的老会话；新会话要等首条消息发出去才拿到这个 id
   const sessionID = useSessionID()
 
-  return sessionID ? <NoHistoryNotice /> : <ThreadGreeting />
+  return (
+    <div className="flex w-full flex-col items-center">
+      {sessionID ? <NoHistoryNotice /> : <ThreadGreeting />}
+    </div>
+  )
 }
 
 function ThreadGreeting() {
@@ -73,7 +81,10 @@ function ThreadGreeting() {
     <div className="mb-2 flex w-full flex-col items-center gap-6 px-2 text-center">
       <div className="flex flex-col items-center gap-3">
         <span className="bg-primary/10 text-primary inline-flex size-12 items-center justify-center rounded-lg">
-          <Icon icon="lucide:sparkles" className="size-6" />
+          <Icon
+            icon="lucide:sparkles"
+            className="size-6"
+          />
         </span>
         <div className="flex flex-col gap-2">
           <h1 className="text-foreground text-2xl leading-[1.35] font-semibold tracking-[-0.01em]">
@@ -94,9 +105,7 @@ function ThreadGreeting() {
 
       {activeWorkspace ? (
         <div className="flex w-full max-w-[880px] flex-col items-stretch gap-2.5 text-start">
-          <p className="text-muted-foreground text-md font-medium tracking-[0.02em]">
-            可以试试
-          </p>
+          <p className="text-muted-foreground text-md font-medium tracking-[0.02em]">可以试试</p>
           {/* 按中栏容器宽度折列，避免侧栏占宽后 sm 视口断点仍强行三列裁切 */}
           <div className="grid grid-cols-1 gap-3 @min-[36rem]:grid-cols-3">
             {SUGGESTIONS.map(function (item) {

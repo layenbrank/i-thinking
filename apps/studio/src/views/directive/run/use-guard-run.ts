@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { JobKind, JobView } from '@/shared/ipc/specs/sidecar'
@@ -149,18 +149,24 @@ function useGuardRun(options: UseGuardRunOptions): GuardRunApi {
     })
   })
 
-  async function refreshAlive() {
-    if (!options.name) return
-    try {
-      const jobs = await fetchJobs()
-      updateAlive({
-        cron: isAlive(jobs, 'cron', options.name),
-        watch: isAlive(jobs, 'watch', options.name)
-      })
-    } catch {
-      updateAlive({ cron: false, watch: false })
-    }
-  }
+  // 稳定引用：下面两个 effect 与调用方都要拿它当依赖，每轮重建会让它们空转
+  const refreshAlive = useCallback(
+    async function () {
+      if (!options.name) return
+      try {
+        const jobs = await fetchJobs()
+        updateAlive({
+          cron: isAlive(jobs, 'cron', options.name),
+          watch: isAlive(jobs, 'watch', options.name)
+        })
+      } catch (error) {
+        // 取不到任务列表时按「没在跑」显示，下次轮询再对账
+        console.warn('[guard-run] 对账守护状态失败', options.name, error)
+        updateAlive({ cron: false, watch: false })
+      }
+    },
+    [options.name]
+  )
 
   // 触发任务刚结束（含优雅停止后 supervisor 退出）：立刻对账守护是否还活着
   useEffect(
@@ -171,7 +177,7 @@ function useGuardRun(options: UseGuardRunOptions): GuardRunApi {
       }
       wasCronRunning.current = isCronRunning
     },
-    [isCronRunning, options.name]
+    [isCronRunning, refreshAlive]
   )
   useEffect(
     function () {
@@ -181,7 +187,7 @@ function useGuardRun(options: UseGuardRunOptions): GuardRunApi {
       }
       wasWatchRunning.current = isWatchRunning
     },
-    [isWatchRunning, options.name]
+    [isWatchRunning, refreshAlive]
   )
 
   async function startGuard(kind: JobKind) {

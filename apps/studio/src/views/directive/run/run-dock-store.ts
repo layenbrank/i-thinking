@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { findSplitterState, writeSplitterOpen } from '../splitter'
+import { findSplitterState, writeSplitterOpen } from '@/views/directive/splitter'
 
 /**
  * 卡片墙与编排台共用的运行台 UI 态。

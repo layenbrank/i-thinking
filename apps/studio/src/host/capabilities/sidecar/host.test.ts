@@ -2,7 +2,7 @@ import net from 'node:net'
 import { createInterface } from 'node:readline'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Logger } from '../../framework/logger'
+import type { Logger } from '@/host/framework/logger'
 import { CorexHost, findStatus, parseCatalog } from './index'
 
 /** 复用路径没有 child，测试要点是它别被当成「启动失败」 */
@@ -24,9 +24,6 @@ vi.mock('./install', function () {
         isBundled: false,
         tokenFile: null
       }
-    },
-    hasPandoc: function () {
-      return false
     },
     resolveAuthToken: function () {
       return 'test-token'

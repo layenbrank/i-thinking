@@ -1,8 +1,8 @@
 import type { z } from 'zod'
 
-import type { InvokeChannel, PushChannel } from '../channels'
-import { CHANNELS } from '../channels'
-import type { PushChannelSpec } from '../spec'
+import type { InvokeChannel, PushChannel } from '@/shared/ipc/channels'
+import { CHANNELS } from '@/shared/ipc/channels'
+import type { PushChannelSpec } from '@/shared/ipc/spec'
 import { assistantPushSpec, assistantSpecs } from './assistant'
 import { assetSpecs } from './asset'
 import { captureSpecs } from './capture'
@@ -15,6 +15,7 @@ import { overlayPushSpec, overlaySpecs } from './overlay'
 import { sidecarPushSpec, sidecarSpecs } from './sidecar'
 import { storeSpecs } from './store'
 import { throughSpecs } from './through'
+import { toolsPushSpec, toolsSpecs } from './tools'
 import { updaterPushSpec, updaterSpecs } from './updater'
 import { userSpecs } from './user'
 import { windowSpecs } from './window'
@@ -26,6 +27,7 @@ export const INVOKE_SPECS = {
   ...devtoolsSpecs,
   ...dialogSpecs,
   ...docSpecs,
+  ...toolsSpecs,
   ...overlaySpecs,
   ...userSpecs,
   ...sidecarSpecs,
@@ -45,6 +47,7 @@ export const PUSH_SPECS = {
   ...updaterPushSpec,
   ...assistantPushSpec,
   ...sidecarPushSpec,
+  ...toolsPushSpec,
   ...overlayPushSpec
 } as const satisfies Record<PushChannel, PushChannelSpec>
 

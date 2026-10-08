@@ -5,8 +5,8 @@ import { useState } from 'react'
 
 import { useChangePatch, useSessionChanges, useUndoChanges } from '@/features/agent/changes.ts'
 import type { ChangeEntry } from '@/shared/ipc/specs/workspace.ts'
-import { AsideCard, AsideHint } from '@/views/agent/chat/components/aside-ui.tsx'
-import { DiffView } from '@/views/agent/chat/components/diff-view.tsx'
+import { AsideCard, AsideHint } from './aside-ui.tsx'
+import { DiffView } from './diff-view.tsx'
 
 /**
  * 变更段 —— 本会话改了哪些文件、每个文件差在哪、以及逐文件 / 整体撤销。

@@ -1,6 +1,6 @@
 import type { ChatImage, ChatRunMessage } from '@i-thinking/chat/ports'
 
-import { canSeeImages } from '@/features/agent/vision.ts'
+import { canSeeImages } from './vision.ts'
 
 /** 单张 data URL 上限。再大就会顶破端口 payload，不如发送前丢掉并说明 */
 const MAX_IMAGE_CHARS = 700_000

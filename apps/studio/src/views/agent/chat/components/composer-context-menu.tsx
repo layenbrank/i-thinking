@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { useActiveWorkspaceID } from '@/features/agent/workspace/client.ts'
 import { attachWorkspaceFile } from '@/features/agent/attachment.ts'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
-import { WorkspaceFilePicker } from '@/views/agent/chat/components/workspace-file-picker.tsx'
+import { WorkspaceFilePicker } from './workspace-file-picker.tsx'
 
 /**
  * 输入区左下角的 `+`：双栏 AttachMenu（对齐 client / Qoder）。
@@ -45,9 +45,9 @@ function SkillsPane(props: {
 }) {
   const [query, updateQuery] = useState('')
   const skillsQuery = useQuery({
-    queryKey: ['workspace', 'listSkills', props.workspaceID],
+    queryKey: ['workspace', 'readSkills', props.workspaceID],
     queryFn: function () {
-      return itc.workspace.listSkills({ workspaceID: props.workspaceID as string })
+      return itc.workspace.readSkills({ workspaceID: props.workspaceID as string })
     },
     enabled: props.active && Boolean(props.workspaceID)
   })

@@ -3,23 +3,23 @@ import net from 'node:net'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
 
-import type { CHANNELS } from '../../../shared/ipc/channels'
-import type { Out } from '../../../shared/ipc/specs'
-import type { DirectiveContent, ImportResult, JobView } from '../../../shared/ipc/specs/sidecar'
-import { isValidDirectiveName } from '../../../shared/ipc/specs/sidecar'
-import type { Context } from '../../framework/context'
-import type { Logger } from '../../framework/logger'
-import type { Plugin } from '../../framework/module'
+import type { CHANNELS } from '@/shared/ipc/channels'
+import type { Out } from '@/shared/ipc/specs'
+import type { DirectiveContent, ImportResult, JobView } from '@/shared/ipc/specs/sidecar'
+import { isValidDirectiveName } from '@/shared/ipc/specs/sidecar'
+import type { Context } from '@/host/framework/context'
+import type { Logger } from '@/host/framework/logger'
+import type { Plugin } from '@/host/framework/module'
 import type { DirectiveDocument, DirectiveEntry } from './directive'
 import { parseDirectiveDocument, parseDirectives, parseImportResult } from './directive'
 import {
   COREX_DATA_DIR_ENV,
   findCorexInstall,
-  hasPandoc,
   resolveAuthToken,
   type CorexInstall
 } from './install'
 import { watchJobProgress } from './job-progress'
+import { findToolPathEntries } from '@/host/capabilities/tools/install'
 
 const READY_TIMEOUT_MS = 15_000
 /** 静止多久算死：收到任何一帧（含 daemon 每两秒一帧的心跳）都重新计时 */
@@ -431,7 +431,10 @@ class CorexHost {
         ...process.env,
         // 数据目录必须两边一致：不显式指定的话 daemon 会按自己 exe 的位置猜，
         // 读出来的指令就不是编辑器里看到的那一份
-        [COREX_DATA_DIR_ENV]: install.dataDir
+        [COREX_DATA_DIR_ENV]: install.dataDir,
+        // 在线下载的工具（ffmpeg 等）不在 PATH 上：把已装目录递进去，
+        // 指令里的 `ffmpeg …` 才能跑（Studio 自己不用它，但指令要用）
+        PATH: buildDaemonPath()
       }
     })
     this.child = child
@@ -725,36 +728,38 @@ function sleep(ms: number): Promise<void> {
 
 type FindStatusR = Out<typeof CHANNELS.SIDECAR.READ>
 
+/** daemon 的 PATH：已下载的工具目录在前，其余照旧 —— 同名的以我们钉的那份为准 */
+function buildDaemonPath(): string {
+  const entries = findToolPathEntries()
+  const inherited = process.env.PATH ?? ''
+  return entries.length > 0 ? [...entries, inherited].join(path.delimiter) : inherited
+}
+
 function findStatus(corex: CorexHost): FindStatusR {
   return {
     isReady: corex.isRunning(),
     version: corex.findVersion(),
     actions: [...corex.findActions()],
     hasCorex: corex.hasInstall(),
-    hasPandoc: hasPandoc(),
     dataDir: corex.findDataDir(),
     database: corex.findDatabase(),
     isBundled: corex.isBundled()
   }
 }
 
-function buildPlugin(): Plugin {
-  let corex: CorexHost | null = null
-
+function buildPlugin(corex: CorexHost): Plugin {
   return {
     name: 'sidecar',
     register(ctx: Context) {
-      corex = ctx.corex
-
       const log = ctx.logger.child('sidecar')
-      void ctx.corex
+      void corex
         .start()
         .then(function () {
           log.info('registered', {
-            corexActionCount: ctx.corex.findActions().length,
-            hasScreenshot: ctx.corex.hasAction('capture.screenshot'),
-            version: ctx.corex.findVersion(),
-            dataDir: ctx.corex.findDataDir()
+            corexActionCount: corex.findActions().length,
+            hasScreenshot: corex.hasAction('capture.screenshot'),
+            version: corex.findVersion(),
+            dataDir: corex.findDataDir()
           })
         })
         .catch(function (error) {
@@ -762,9 +767,6 @@ function buildPlugin(): Plugin {
         })
     },
     async dispose() {
-      if (!corex) {
-        return
-      }
       await corex.stop()
     }
   }

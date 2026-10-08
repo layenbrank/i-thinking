@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import { findModifierLabel } from '@/features/window/shortcuts'
 import type { CorexRun } from '@/stores/corex'
 
-import { useNow } from '../use-now'
+import { useNow } from '@/views/directive/use-now'
 import RunChips from './run-chips'
 import RunOutput from './run-output'
 import { RUN_STATUS_STYLES, formatElapsed, isRunning } from './run-status'

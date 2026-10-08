@@ -27,7 +27,9 @@ function rgbToHex(r: number, g: number, b: number): string {
   return (
     '#' +
     [r, g, b]
-      .map((v) => v.toString(16).padStart(2, '0'))
+      .map(function (v) {
+        return v.toString(16).padStart(2, '0')
+      })
       .join('')
       .toUpperCase()
   )
@@ -54,46 +56,50 @@ export default function Magnifier({ sourceImage, visible, onClose }: MagnifierPr
   const [colorFormat, setColorFormat] = useState<ColorFormat>('hex')
   const [copied, setCopied] = useState(false)
   const rafRef = useRef(0)
+  const sourceImageRef = useRef<HTMLImageElement | null>(null)
 
-  function paint(samplePos: { x: number; y: number }) {
-    const canvas = canvasRef.current
-    if (!canvas || !sourceImage) return
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    if (!ctx) return
-    ctx.imageSmoothingEnabled = false
-    ctx.clearRect(0, 0, SIZE, SIZE)
-    const scaleX = sourceImage.naturalWidth / window.innerWidth
-    const scaleY = sourceImage.naturalHeight / window.innerHeight
-    const sx = samplePos.x * scaleX - SOURCE_SIZE / 2
-    const sy = samplePos.y * scaleY - SOURCE_SIZE / 2
-    ctx.drawImage(sourceImage, sx, sy, SOURCE_SIZE, SOURCE_SIZE, 0, 0, SIZE, SIZE)
-    try {
-      const data = ctx.getImageData(SIZE / 2, SIZE / 2, 1, 1).data
-      const next: [number, number, number] = [data[0], data[1], data[2]]
-      setRgb(function (prev) {
-        if (prev && prev[0] === next[0] && prev[1] === next[1] && prev[2] === next[2]) {
-          return prev
-        }
-        return next
-      })
-    } catch {
-      setRgb(function (prev) {
-        return prev === null ? prev : null
-      })
-    }
-  }
+  // 只跟住底图，不动位置与颜色：换底图时若清空状态，放大镜会先闪一下再回来
+  useEffect(
+    function () {
+      sourceImageRef.current = sourceImage
+    },
+    [sourceImage]
+  )
 
   useEffect(
     function () {
-      if (!visible) {
-        posRef.current = null
-        setPos(function (prev) {
-          return prev === null ? prev : null
-        })
-        setRgb(function (prev) {
-          return prev === null ? prev : null
-        })
-        return
+      if (!visible) return
+
+      // 采样只发生在鼠标移动时，所以绘制就地定义：既跟着最新的底图，也不必进依赖表
+      function paint(samplePos: { x: number; y: number }) {
+        const canvas = canvasRef.current
+        const image = sourceImageRef.current
+        if (!canvas || !image) return
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        if (!ctx) return
+        ctx.imageSmoothingEnabled = false
+        ctx.clearRect(0, 0, SIZE, SIZE)
+        const scaleX = image.naturalWidth / window.innerWidth
+        const scaleY = image.naturalHeight / window.innerHeight
+        const sx = samplePos.x * scaleX - SOURCE_SIZE / 2
+        const sy = samplePos.y * scaleY - SOURCE_SIZE / 2
+        ctx.drawImage(image, sx, sy, SOURCE_SIZE, SOURCE_SIZE, 0, 0, SIZE, SIZE)
+        try {
+          const data = ctx.getImageData(SIZE / 2, SIZE / 2, 1, 1).data
+          const next: [number, number, number] = [data[0], data[1], data[2]]
+          setRgb(function (prev) {
+            if (prev && prev[0] === next[0] && prev[1] === next[1] && prev[2] === next[2]) {
+              return prev
+            }
+            return next
+          })
+        } catch (error) {
+          // 取像素只为了显示 RGB：拿不到就不显示，不影响取色本身
+          console.warn('[magnifier] 读取像素失败', error)
+          setRgb(function (prev) {
+            return prev === null ? prev : null
+          })
+        }
       }
 
       function onMove(e: MouseEvent) {
@@ -117,11 +123,13 @@ export default function Magnifier({ sourceImage, visible, onClose }: MagnifierPr
       return function () {
         window.removeEventListener('mousemove', onMove)
         cancelAnimationFrame(rafRef.current)
+        // 收起时顺便清掉上一轮的位置与颜色：否则下次显示会先闪一下旧放大镜
+        posRef.current = null
+        setPos(null)
+        setRgb(null)
       }
     },
-    // sourceImage 仅用于 paint 闭包；可见性变化时重绑即可
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visible, sourceImage]
+    [visible]
   )
 
   useEffect(

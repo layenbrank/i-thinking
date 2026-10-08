@@ -1,8 +1,8 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { Service } from '../../capabilities/updater'
-import { type MainWindowPort } from '../../capabilities/window'
-import { type Context } from '../../framework/context'
-import { type DomainHandlers } from '../types'
+import { CHANNELS } from '@/shared/ipc/channels'
+import { Service } from '@/host/capabilities/updater'
+import { type MainWindowPort } from '@/host/capabilities/window'
+import { type Context } from '@/host/framework/context'
+import { type DomainHandlers } from '@/host/ipc/types'
 
 /** 更新事件推给主窗口 —— 宿主从主窗口端口取，与托盘/二次启动同一来源 */
 export function buildUpdaterHandlers(

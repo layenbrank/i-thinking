@@ -1,7 +1,7 @@
 import { ipcRenderer } from 'electron'
 
-import { ASSISTANT_PORT_MESSAGE } from './shared/ipc/assistant-port'
-import { CHANNELS } from './shared/ipc/channels'
+import { ASSISTANT_PORT_MESSAGE } from '@/shared/ipc/assistant-port'
+import { CHANNELS } from '@/shared/ipc/channels'
 
 /**
  * agent 运行时端口的交付：主进程收到 connect 后把端口推过来，这里接一手并**原样转交给主世界**。

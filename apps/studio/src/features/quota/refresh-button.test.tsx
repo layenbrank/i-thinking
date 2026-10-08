@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { RefreshButton } from '@/features/quota/refresh-button.tsx'
+import { RefreshButton } from './refresh-button.tsx'
 
 afterEach(cleanup)
 

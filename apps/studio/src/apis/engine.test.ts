@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildSuggestionQuery } from '@/apis/engine.ts'
+import { buildSuggestionQuery } from './engine.ts'
 
 describe('buildSuggestionQuery', function () {
   it('matches the overview-prefix suggestion query', function () {

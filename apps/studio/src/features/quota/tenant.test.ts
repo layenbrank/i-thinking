@@ -7,7 +7,7 @@ import {
   findActiveTenantID,
   findPersonalTenant,
   syncActiveTenant
-} from '@/features/quota/tenant.ts'
+} from './tenant.ts'
 
 const api = vi.hoisted(function () {
   return {

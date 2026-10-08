@@ -54,7 +54,10 @@
 
     "rootDir": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      // src 之外的构建期产物：路径太长，别让调用方数 '../'
+      "@schema": ["./drizzle/schema"],
+      "@manifest": ["./sidecar/manifest.json"]
     }
   },
   "include": ["src"],

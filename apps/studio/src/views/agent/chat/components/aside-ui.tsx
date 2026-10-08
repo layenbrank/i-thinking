@@ -3,7 +3,7 @@ import { Button } from '@i-thinking/design/components/button'
 import { useCopyToClipboard } from '@i-thinking/design/hooks/use-copy-to-clipboard'
 import type { ReactNode } from 'react'
 
-import type { AsideSection } from '@/views/agent/chat/components/use-aside-panel.ts'
+import type { AsideSection } from './use-aside-panel.ts'
 
 /**
  * 右栏的版式基件。

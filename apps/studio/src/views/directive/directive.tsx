@@ -17,7 +17,7 @@ import {
   alignRunLayout,
   findSplitterState,
   writeSplitterLayout
-} from '@/views/directive/splitter'
+} from './splitter'
 
 /**
  * 指令页的正脸：卡片墙 + 底部运行台。进来先看到所有指令与它们最近跑成什么样，

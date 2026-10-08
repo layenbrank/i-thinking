@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHANNELS } from '../channels'
+import { CHANNELS } from '@/shared/ipc/channels'
 import { INVOKE_SPECS } from './index'
 
 /** assistant-ui `generateId()` 的产物形状：7 位 nanoid，不是 uuid */

@@ -23,9 +23,9 @@ import {
   findModelKey,
   findModelPref,
   readModelPrefs
-} from '@/features/chat/model-prefs.ts'
-import { ModelSettings, type ModelRow } from '@/features/chat/model-settings.tsx'
-import { findPlatformBlocker } from '@/features/chat/platform.ts'
+} from './model-prefs.ts'
+import { ModelSettings, type ModelRow } from './model-settings.tsx'
+import { findPlatformBlocker } from './platform.ts'
 import { findTargetLabel } from '@/features/chat/port/model.ts'
 import { useProviders } from '@/features/chat/provider/query.ts'
 import { collectProviderModels } from '@/features/chat/provider/row.ts'

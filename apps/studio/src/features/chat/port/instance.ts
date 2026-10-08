@@ -11,7 +11,7 @@ import {
   findTargetModel,
   findTargetProvider,
   type ModelSelection
-} from '@/features/chat/port/model.ts'
+} from './model.ts'
 
 /**
  * 模型端口的**单例**。

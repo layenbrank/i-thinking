@@ -15,7 +15,7 @@ import {
   isOrderPending,
   shouldPollOrder,
   sortChannels
-} from '@/features/payment/checkout.ts'
+} from './checkout.ts'
 
 /**
  * 收银台只排版不算钱：金额、时长、可售性都是服务端快照，所以这里验证的是「原样搬运 + 显示换算」，

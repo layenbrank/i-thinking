@@ -5,8 +5,8 @@ import type {
   Domain,
   InvokeChannel,
   PushChannel
-} from '../../shared/ipc/channels'
-import { type In, type Out } from '../../shared/ipc/specs'
+} from '@/shared/ipc/channels'
+import { type In, type Out } from '@/shared/ipc/specs'
 
 /**
  * 单个 handler。入参**已由 wrapper 解析**（类型即 `In<K>`，不是 unknown），

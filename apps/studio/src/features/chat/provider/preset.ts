@@ -2,9 +2,9 @@ import {
   DEFAULT_KIND,
   PROVIDER_KINDS,
   type ProviderKindOption
-} from '@/features/chat/provider/constants.ts'
-import { isPresetModelID } from '@/features/chat/provider/models.ts'
-import type { ProviderValues } from '@/features/chat/provider/schema.ts'
+} from './constants.ts'
+import { isPresetModelID } from './models.ts'
+import type { ProviderValues } from './schema.ts'
 
 /**
  * 供应商预设 → 表单字段。

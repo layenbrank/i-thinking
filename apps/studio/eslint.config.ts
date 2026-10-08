@@ -159,8 +159,12 @@ export default defineConfig([
         {
           patterns: [
             {
-              regex: '^@/host/(?!contract/itc$).*',
-              message: 'Renderer may only import type surface from @/host/contract/itc'
+              regex: '^@/host/',
+              message: 'Renderer must not reach into the main process; use @/types + @/shared/ipc'
+            },
+            {
+              regex: '^@/(schema|manifest)$',
+              message: 'Renderer must not import host-side data sources'
             },
             {
               group: ['electron'],
@@ -180,12 +184,17 @@ export default defineConfig([
         {
           patterns: [
             {
-              regex: '^\\./host(/.*)?$',
-              message: 'Preload must not import main-process modules'
+              regex: '^\\.\\./',
+              message: 'Preload must not escape its directory; use @/shared/**'
             },
             {
-              group: ['@/', '@/*'],
-              message: 'Preload must not use @/ UI alias'
+              regex: '^\\./(?!preload)',
+              message:
+                'Preload may only import siblings named ./preload*; otherwise use @/shared/**'
+            },
+            {
+              regex: '^@/(?!shared/)',
+              message: 'Preload may only use @/ for @/shared/**'
             }
           ]
         }
@@ -201,8 +210,12 @@ export default defineConfig([
         {
           patterns: [
             {
-              group: ['@/', '@/*'],
-              message: 'Host must not import renderer modules via @/'
+              regex: '^@/(?!shared/|host/)',
+              message: 'Host may only use @/ for @/shared/** and @/host/**'
+            },
+            {
+              regex: '^\\.\\./',
+              message: 'Host must not escape its directory; use @/ aliases'
             }
           ]
         }

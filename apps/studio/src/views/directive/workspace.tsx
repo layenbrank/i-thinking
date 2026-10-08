@@ -28,7 +28,7 @@ import {
   findSplitterState,
   writeSplitterLayout,
   writeSplitterOpen
-} from '@/views/directive/splitter'
+} from './splitter'
 
 /**
  * 编排台 `/directive/:name`：左列表、右工作区，工作区内上编辑下运行。

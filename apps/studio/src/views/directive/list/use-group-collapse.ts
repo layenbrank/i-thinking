@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import type { DirectiveGroup } from './types'
 
@@ -54,25 +54,16 @@ function useGroupCollapse(groups: readonly DirectiveGroup[], sortMode: string) {
     return { mode: sortMode, openMap: seedOpen(groups) }
   })
 
-  // HMR / 旧形态 state 没有 openMap 时当场归一；切排序也在这里重播种。
-  // 算出本轮要用的值再 setState，避免「先读坏 state 再等下一帧」的空窗。
+  // HMR / 旧形态 state 没有 openMap 时当场归一；切排序重播种；新分组并进来（保留已收起的状态）。
+  // 全部在渲染期算完再 setState：既没有「先读坏 state 再等下一帧」的空窗，也不多一轮提交。
   let current = state
   if (!isCollapseState(state) || state.mode !== sortMode) {
     current = { mode: sortMode, openMap: seedOpen(groups) }
-    updateState(current)
+  } else {
+    const openMap = mergeOpen(state.openMap, groups)
+    current = openMap === state.openMap ? state : { mode: state.mode, openMap }
   }
-
-  useEffect(
-    function () {
-      updateState(function (prev) {
-        const base = isCollapseState(prev) ? prev : { mode: sortMode, openMap: seedOpen(groups) }
-        const openMap = mergeOpen(base.openMap, groups)
-        if (openMap === base.openMap && isCollapseState(prev)) return prev
-        return { mode: base.mode, openMap }
-      })
-    },
-    [groups, sortMode]
-  )
+  if (current !== state) updateState(current)
 
   function isOpen(key: string): boolean {
     return current.openMap[key] ?? true

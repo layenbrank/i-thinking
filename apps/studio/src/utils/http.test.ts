@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { http } from '@/utils/http.ts'
+import { http } from './http.ts'
 
 /**
  * 请求拦截器的三条规矩：

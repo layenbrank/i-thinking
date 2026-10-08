@@ -1,4 +1,4 @@
-import type { PortEvent, TerminalPortEvent, Usage } from '../assistant-protocol'
+import type { PortEvent, TerminalPortEvent, Usage } from '@/host/capabilities/assistant/protocol'
 import { describePermission } from './permission'
 
 /**

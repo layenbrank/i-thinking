@@ -64,9 +64,7 @@ function startServer(
   const binary = findOpencodeBinary()
   if (!binary) {
     return Promise.reject(
-      new Error(
-        '未找到 opencode 二进制，请先执行 `pnpm sidecar stage studio` 或设置 OPENCODE_BINARY'
-      )
+      new Error('未安装 OpenCode（对话与 Agent 的运行时），请在「设置 → 工具」里下载')
     )
   }
 

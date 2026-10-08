@@ -2,19 +2,19 @@ import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 
-import { ENGINE_UI, ENGINES, findEngine } from '@/views/overview/engine/constants'
-import { EngineFragment } from '@/views/overview/engine/fragment'
-import { useSuggestionQuery, type SuggestionItem } from '@/views/overview/engine/suggestion'
-import { readEngineKey, writeEngineKey } from '@/views/overview/engine/store'
+import { ENGINE_UI, ENGINES, findEngine } from './constants'
+import { EngineFragment } from './fragment'
+import { useSuggestionQuery, type SuggestionItem } from './suggestion'
+import { readEngineKey, writeEngineKey } from './store'
 import {
   buildMatchUrl,
   findDefaultNavigation,
   findItemUrl,
   isUrlKeyword,
   parseKeywordUrl
-} from '@/views/overview/engine/url'
+} from './url'
 
-import styles from '@/views/overview/engine/engine.module.scss'
+import styles from './engine.module.scss'
 
 function EngineSearch() {
   const shellRef = useRef<HTMLDivElement>(null)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { findWallCols } from '../render/card-size'
+import { findWallCols } from '@/views/directive/render/card-size'
 
 /**
  * 墙面网格列数：跟 `sm/xl/2xl` 断点走，给分组壳估高用。

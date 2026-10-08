@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, type RefObject } from 'react'
 
 const HIT_SELECTOR = "[data-region='false']"
 
@@ -53,8 +53,6 @@ function publishRects(source: string, rects: ThroughRect[]) {
  */
 function useThrough(source: string, options: ThroughOptions) {
   const { rootRef, enabled = true } = options
-  const sourceRef = useRef(source)
-  sourceRef.current = source
 
   useEffect(
     function () {
@@ -73,7 +71,7 @@ function useThrough(source: string, options: ThroughOptions) {
         frame = requestAnimationFrame(function () {
           const el = rootRef.current
           if (!el) return
-          publishRects(sourceRef.current, findHitRects(el))
+          publishRects(source, findHitRects(el))
         })
       }
 
@@ -96,7 +94,7 @@ function useThrough(source: string, options: ThroughOptions) {
         resize.disconnect()
         mutation.disconnect()
         window.removeEventListener('resize', sync)
-        clearSource(sourceRef.current)
+        clearSource(source)
       }
     },
     [enabled, rootRef, source]

@@ -2,7 +2,7 @@ import { useResize } from '@i-thinking/hooks'
 import { clsx, type ClassValue } from 'clsx'
 import { useCallback, useMemo, useState } from 'react'
 
-import styles from '@/components/glide/glide.module.scss'
+import styles from './glide.module.scss'
 
 interface GlideProps {
   children: React.ReactNode

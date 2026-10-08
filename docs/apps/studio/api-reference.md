@@ -89,25 +89,49 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 
 ## sidecar
 
-| 方法                | Channel                    | 入参                                        | 返回                       |
-| ------------------- | -------------------------- | ------------------------------------------- | -------------------------- |
-| `toRead`            | `sidecar:toRead`           | 无                                          | `Promise<FindStatusR>`     |
-| `actions`           | `sidecar:actions`          | 无                                          | `Promise<ActionEntry[]>`   |
-| `directives`        | `sidecar:directives`       | 无                                          | `Promise<DirectiveEntry[]>` |
-| `directive`         | `sidecar:directive`        | `{ name }`                                  | `Promise<DirectiveDocument>` |
-| `saveDirective`     | `sidecar:saveDirective`    | `{ definition, original_name? }`            | `Promise<DirectiveDocument>` |
-| `deleteDirective`   | `sidecar:deleteDirective`  | `{ name }`                                  | `Promise<{ name }>`        |
-| `importDirectives`  | `sidecar:importDirectives` | `{ path, folder?, overwrite?, dry_run? }`   | `Promise<ImportResult>`    |
-| `editDirective`     | `sidecar:editDirective`    | `{ name }`                                  | `Promise<void>`（拉 `corex edit`） |
-| `invoke`            | `sidecar:invoke`           | `{ action, params?, runId }`                | `Promise<unknown>`         |
-| `run`               | `sidecar:run`              | `{ name, input?, runId }`                   | `Promise<unknown>`         |
-| `onProgress`        | `sidecar:progress`（推送） | –                                           | 订阅，帧带 `runId`         |
+| 方法               | Channel                    | 入参                                      | 返回                               |
+| ------------------ | -------------------------- | ----------------------------------------- | ---------------------------------- |
+| `toRead`           | `sidecar:toRead`           | 无                                        | `Promise<FindStatusR>`             |
+| `actions`          | `sidecar:actions`          | 无                                        | `Promise<ActionEntry[]>`           |
+| `directives`       | `sidecar:directives`       | 无                                        | `Promise<DirectiveEntry[]>`        |
+| `directive`        | `sidecar:directive`        | `{ name }`                                | `Promise<DirectiveDocument>`       |
+| `saveDirective`    | `sidecar:saveDirective`    | `{ definition, original_name? }`          | `Promise<DirectiveDocument>`       |
+| `deleteDirective`  | `sidecar:deleteDirective`  | `{ name }`                                | `Promise<{ name }>`                |
+| `importDirectives` | `sidecar:importDirectives` | `{ path, folder?, overwrite?, dry_run? }` | `Promise<ImportResult>`            |
+| `editDirective`    | `sidecar:editDirective`    | `{ name }`                                | `Promise<void>`（拉 `corex edit`） |
+| `invoke`           | `sidecar:invoke`           | `{ action, params?, runId }`              | `Promise<unknown>`                 |
+| `run`              | `sidecar:run`              | `{ name, input?, runId }`                 | `Promise<unknown>`                 |
+| `onProgress`       | `sidecar:progress`（推送） | –                                         | 订阅，帧带 `runId`                 |
 
-`FindStatusR`：`{ isReady, version, actions, hasCorex, hasPandoc, dataDir, directivesDb, isBundled }`。
+`FindStatusR`：`{ isReady, version, actions, hasCorex, dataDir, database, isBundled }`。
+
+> pandoc 是否可用不在这一条里：它已归 `tool` 域（见下节）。
 
 `DirectiveEntry`：`{ name, folder, source, updated_at_ms, bucket, summary, last_run? }`；
 `DirectiveDocument`：`{ name, folder, source, created_at_ms, updated_at_ms, yaml, definition }`。
 `definition.name` 是名字，`original_name` 与它不同即改名（daemon 原子完成）。
+
+---
+
+## tool
+
+在线工具（pandoc / ffmpeg / opencode）的状态与安装。落点 `<userData>/sidecar/<tool>/<版本>/`；
+完整版内置的那份作兜底，取用顺序是**已下载 → 随包内置**。
+
+| 方法         | Channel                 | 入参      | 返回                                              |
+| ------------ | ----------------------- | --------- | ------------------------------------------------- |
+| `toRead`     | `tool:toRead`           | 无        | `Promise<ToolStatus[]>`                           |
+| `install`    | `tool:install`          | `{ key }` | `Promise<void>`                                   |
+| `toRemove`   | `tool:toRemove`         | `{ key }` | `Promise<void>`                                   |
+| `onProgress` | `tool:progress`（推送） | –         | 订阅，帧带 `key` / `phase` / `received` / `total` |
+
+`ToolStatus`：`{ key, label, summary, version, state, bytes, path }`；
+`state`：`installed`（已下载）| `bundled`（随包内置）| `missing`（未装）| `unsupported`（当前平台无钉死版本）。
+
+下载地址与哈希都写在 `apps/studio/sidecar/manifest.json`（宿主构建期内联，`tools/catalog.ts` 只做类型与取值）：
+在线源是自建的 Cloudflare R2，**一个工具一个 bucket**，所以按「工具 × 平台」记整条直链，不拼公共前缀。
+归档是**重打包**的（可执行文件平铺在包根），因此哈希与 `tools.lock.json` 里那份 release 归档不同 ——
+那份是完整版落盘用的。下载后按 manifest 里的 sha256 校验。
 
 ---
 
@@ -117,7 +141,7 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 | --------- | ------------- | ---------- | ------------------- |
 | `convert` | `doc:convert` | `ConvertP` | `Promise<ConvertR>` |
 
-`format`：`markdown` \| `html` \| `docx` \| `pdf` \| `plain`。
+`format`：`markdown` \| `html` \| `docx` \| `pdf` \| `plain`。pandoc 未安装时回 `DOC_PANDOC_MISSING`。
 
 ---
 
@@ -179,7 +203,7 @@ DevTools 开到**调用窗口自己**（handler 用 `event.sender` 定位）—�
 | `agent.toOpen` | `window:agent.toOpen` | 无   | `Promise<void>` |
 
 Agent 子窗口**按需创建**（首次调用时建，已开则聚焦/从最小化恢复），窗口生命周期收在
-`AgentWindowPort`（`host/capabilities/agent-window.ts`）；它是主窗口的子窗口（`parent`），
+`AgentWindowPort`（`host/capabilities/window/registry.ts`）；它是主窗口的子窗口（`parent`），
 随主窗口关闭。主窗口 overview 用本频道打开 Agent 窗口，**不再在主窗口内跳转路由**。
 
 ---
@@ -199,7 +223,7 @@ Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 pri
 | `folders.toWrite`  | `workspace:folders.toWrite`  | `{ workspaceID, path, isPrimary? }` | `Promise<FolderR>`               |
 | `folders.toUpdate` | `workspace:folders.toUpdate` | `{ id, isPrimary?, sort? }`         | `Promise<FolderR>`               |
 | `folders.toRemove` | `workspace:folders.toRemove` | `{ id }`                            | `Promise<void>`                  |
-| `listDir`          | `workspace:listDir`          | `{ workspaceID, relative? }`        | `Promise<DirEntryR[]>`           |
+| `readDir`          | `workspace:readDir`          | `{ workspaceID, relative? }`        | `Promise<DirEntryR[]>`           |
 | `search`           | `workspace:search`           | `{ workspaceID, query, limit? }`    | `Promise<SearchHitR[]>`          |
 | `readFile`         | `workspace:readFile`         | `{ workspaceID, relative }`         | `Promise<FileContentR>`          |
 | `git.probe`        | `workspace:git.probe`        | `{ workspaceID }`                   | `Promise<{ isRepo, branch }>`    |
@@ -276,7 +300,7 @@ Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 pri
 （工具、压缩、快照、子任务都在 opencode 里）。provider 是「本机 BYOK」还是「平台网关」
 只影响凭据与端点，不影响这里的协议。生成过程走 **MessagePort 纯数据协议**，不是 invoke。
 
-主进程侧的落地：`capabilities/assistant.ts`（Electron 接线：密钥库、IPC、端口）+ `capabilities/opencode/`
+主进程侧的落地：`capabilities/assistant/index.ts`（Electron 接线：密钥库、IPC、端口）+ `capabilities/opencode/`
 （`server` 进程生命周期 / `config` 配置生成 / `engine` 运行与事件 / `events` 事件翻译 / `changes` 变更卡 /
 `session` 会话映射 / `permission` 审批语义 / `paths` 二进制与私有目录）。见
 [online-models.md](./online-models.md) §7.3。
@@ -289,7 +313,7 @@ Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 pri
 | `key.has`      | `assistant:key.has`            | `{ providerID }`         | `Promise<boolean>`                          |
 | `key.toRemove` | `assistant:key.toRemove`       | `{ providerID }`         | `Promise<void>`                             |
 
-**端口协议**（`src/host/capabilities/assistant-protocol.ts`，均为可结构化克隆的纯数据）：
+**端口协议**（`src/host/capabilities/assistant/protocol.ts`，均为可结构化克隆的纯数据）：
 
 | 方向            | 消息                                                                                                  |
 | --------------- | ----------------------------------------------------------------------------------------------------- |
@@ -318,7 +342,7 @@ Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 pri
 
 **引用（@ 工作区文件）走 prompt 附件，不内联文件内容**：
 
-- 渲染侧：composer 的 `@` 按钮（`views/agent/components/reference-picker.tsx`）基于 `workspace:listDir / search`
+- 渲染侧：composer 的 `@` 按钮（`views/agent/components/reference-picker.tsx`）基于 `workspace:readDir / search`
   选文件，落成 assistant-ui 的 **file 附件**（`aui.composer.addAttachment`）—— 所以引用在输入区可移除、随消息落库
 - 适配器（`@i-thinking/chat/adapters/chat-model`）把用户消息里的 file/image part 收成消息上的 `attachments: string[]`
 - 主进程清洗后（`opencode/session.ts`：只收工作区**相对**路径、拒绝对路径与 `..`、限长 1024、最多 32 条、去重）
@@ -383,12 +407,12 @@ Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 pri
 - **失败一律是 HTTP 200 + 信封**（`{ code, success: false, msg }`）：`300001` 未登录（令牌缺失/过期/`sub` 非 UUID）、`200003` 参数无效、`400001` 模型不存在、`400006` 配额已用尽、`600005` 上游不可用（供应商地址不通）。
   请求现在由 opencode 发出，所以 `msg` 的挖掘分两层：`host/capabilities/opencode/events.ts` 的
   `describeOpencodeError` 从错误报文里截出 JSON 信封取 `msg`（opencode 会把整段信封塞进错误消息），
-  `assistant-protocol.ts`（`src/host/capabilities/`）的 `findErrorMessage` 再补一句可操作的提示
+  `assistant/protocol.ts`（`src/host/capabilities/`）的 `findErrorMessage` 再补一句可操作的提示
   （如配额触顶时指向「设置 → 额度」）。
 - 网关无状态（不存服务端会话）：`reconnectToStream()` 返回 `null`。
 - **配额归属靠请求头 `X-Tenant-ID`**：不带这个头时网关按用户身份兜底，**订阅档位永不生效**。studio 只在「已解析出个人租户」时写这个头，注入点有两处：
   - 渲染层 HTTP 客户端：[`utils/http.ts`](../../../apps/studio/src/utils/http.ts) 对 `/gateway/*`（`isThinkingUrl` 命中自家 API）统一补该头，值同步读自 [`utils/tenant.ts`](../../../apps/studio/src/utils/tenant.ts) 的值缓存；
-  - agent 运行链路：由 [`assistant-model.ts`](../../../apps/studio/src/host/capabilities/assistant-model.ts) 的 `resolveConnection` 写进 opencode 的 provider headers。
+  - agent 运行链路：由 [`assistant/model.ts`](../../../apps/studio/src/host/capabilities/assistant/model.ts) 的 `resolveConnection` 写进 opencode 的 provider headers。
     缓存 5 分钟 + 登录令牌指纹（[`features/quota/tenant.ts`](../../../apps/studio/src/features/quota/tenant.ts)），本机 BYOK provider 与第三方域名都不写。
 
 配额 / 订阅 / 支付（业务 API，与网关分开）：客户端在 [`apis/gateway.ts`](../../../apps/studio/src/apis/gateway.ts)（自助配额、档位目录）、
@@ -456,6 +480,10 @@ Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 pri
 | `DOC_INPUT_NOT_FOUND`            | doc        |
 | `DOC_CONVERT_FAILED`             | doc        |
 | `DOC_TIMEOUT`                    | doc        |
+| `TOOL_UNSUPPORTED`               | tool       |
+| `TOOL_DOWNLOAD_FAILED`           | tool       |
+| `TOOL_CHECKSUM_MISMATCH`         | tool       |
+| `TOOL_EXTRACT_FAILED`            | tool       |
 | `SCREENSHOT_ACTION_UNAVAILABLE`  | screenshot |
 | `SCREENSHOT_NO_FILE`             | screenshot |
 | `SCREENSHOT_BAD_PAYLOAD`         | screenshot |

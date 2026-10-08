@@ -15,12 +15,12 @@ import {
   MODE,
   type AuthMode,
   type ForgotValues
-} from '@/features/signin/constants.ts'
-import { CaptchaField } from '@/features/signin/captcha-field.tsx'
-import { AuthField } from '@/features/signin/field.tsx'
-import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
-import styles from '@/features/signin/signin.module.scss'
-import { useSlideProof } from '@/features/signin/slide.tsx'
+} from './constants.ts'
+import { CaptchaField } from './captcha-field.tsx'
+import { AuthField } from './field.tsx'
+import { FormStagger, MotionField } from './form-motion.tsx'
+import styles from './signin.module.scss'
+import { useSlideProof } from './slide.tsx'
 import { HttpError } from '@/utils/http.errors.ts'
 
 type ForgotFormProps = {

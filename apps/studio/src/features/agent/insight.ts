@@ -8,7 +8,7 @@
 
 import type { ThreadMessage } from '@assistant-ui/react'
 
-import { isFailedToolPart } from '@/features/agent/tool-stats.ts'
+import { isFailedToolPart } from './tool-stats.ts'
 import { toAgentToolLabel } from '@/shared/agent-tools.ts'
 
 /**

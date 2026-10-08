@@ -1,8 +1,8 @@
 import { TooltipProvider } from '@i-thinking/design/components/tooltip'
 
-import { ComposerClip } from '@/views/agent/chat/components/composer-clip.tsx'
-import { ComposerContextMenu } from '@/views/agent/chat/components/composer-context-menu.tsx'
-import { ComposerInbound } from '@/views/agent/chat/components/composer-inbound.tsx'
+import { ComposerClip } from './composer-clip.tsx'
+import { ComposerContextMenu } from './composer-context-menu.tsx'
+import { ComposerInbound } from './composer-inbound.tsx'
 
 /**
  * 输入区左下角：`+` 加上下文，回形针加附件。

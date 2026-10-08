@@ -8,13 +8,13 @@ import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 
-import { auth } from '../../../drizzle/schema'
-import { type Context } from '../framework/context'
-import { type Plugin } from '../framework/module'
-import type { CHANNELS } from '../../shared/ipc/channels'
-import { IpcError } from '../../shared/ipc/error'
-import { type In, type Out } from '../../shared/ipc/specs'
-import { findAppRoot } from '../framework/paths'
+import { auth } from '@schema'
+import { type Context } from '@/host/framework/context'
+import { type Plugin } from '@/host/framework/module'
+import type { CHANNELS } from '@/shared/ipc/channels'
+import { IpcError } from '@/shared/ipc/error'
+import { type In, type Out } from '@/shared/ipc/specs'
+import { findAppRoot } from '@/host/framework/paths'
 
 type ReadR = Out<typeof CHANNELS.USER.READ>[number]
 type WriteP = In<typeof CHANNELS.USER.WRITE>
@@ -180,4 +180,4 @@ function buildPlugin(): Plugin {
 export type { WriteP, UpdateP, RemoveP, ReadR, WriteR, UpdateR, RemoveR }
 export { Repository, buildPlugin, findClient, findSharedDataDir }
 // 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
-export { WriteSchema, UpdateSchema, RemoveSchema } from '../../shared/ipc/specs/user'
+export { WriteSchema, UpdateSchema, RemoveSchema } from '@/shared/ipc/specs/user'

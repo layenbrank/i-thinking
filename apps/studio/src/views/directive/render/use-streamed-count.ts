@@ -66,22 +66,22 @@ function useStreamedCount(
     function () {
       const step = Math.max(chunkSize, 1)
       let next = Math.min(step, safeTotal)
-      updateCount(next)
-
-      if (next >= safeTotal) return
-
       let cancelSchedule: (() => void) | null = null
       let isAlive = true
 
+      /*
+       * 分批补上计数。首帧不再同步 setState —— 那会多一轮提交，还把首帧与后面的空闲分批
+       * 拆成两种节奏；统一走 startTransition + scheduleIdle。渲染期已经给过 first，
+       * 用户看不到 0，所以首帧晚一个空闲回调没有视觉差。
+       */
       function pump() {
         if (!isAlive) return
-        next = Math.min(next + step, safeTotal)
         startTransition(function () {
           updateCount(next)
         })
-        if (next < safeTotal) {
-          cancelSchedule = scheduleIdle(pump)
-        }
+        if (next >= safeTotal) return
+        next = Math.min(next + step, safeTotal)
+        cancelSchedule = scheduleIdle(pump)
       }
 
       cancelSchedule = scheduleIdle(pump)

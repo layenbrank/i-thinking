@@ -8,8 +8,8 @@ import type {
   ImportEntry,
   ImportStatus,
   ImportResult
-} from '../../../shared/ipc/specs/sidecar'
-import { BucketSchema, ImportStatusSchema } from '../../../shared/ipc/specs/sidecar'
+} from '@/shared/ipc/specs/sidecar'
+import { BucketSchema, ImportStatusSchema } from '@/shared/ipc/specs/sidecar'
 
 /**
  * 指令的库内形状（corex daemon 的 `directives` / `read_directive` / `save_directive`

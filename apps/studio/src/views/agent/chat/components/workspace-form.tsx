@@ -11,7 +11,7 @@ import {
 } from '@i-thinking/design/components/dialog'
 import { Input } from '@i-thinking/design/components/input'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useWorkspaces, type Workspace } from '@/features/agent/workspace/client.ts'
@@ -63,7 +63,7 @@ function WorkspaceForm(props: WorkspaceFormProps) {
   const client = useQueryClient()
   const workspaces = useWorkspaces()
   const editing: Workspace | null =
-    props.workspaceID == null
+    props.workspaceID === null || props.workspaceID === undefined
       ? null
       : (workspaces.data?.find(function (item) {
           return item.id === props.workspaceID
@@ -76,31 +76,33 @@ function WorkspaceForm(props: WorkspaceFormProps) {
   const [folders, updateFolders] = useState<FolderDraft[]>([])
   const [saving, updateSaving] = useState(false)
 
-  useEffect(
-    function () {
-      if (!props.open) return
-      if (editing) {
-        updateTitle(editing.title)
-        updateIcon(editing.icon || WORKSPACE_ICON)
-        updateColor(editing.color || WORKSPACE_COLOR)
-        updateFolders(
-          editing.folders.map(function (folder) {
-            return {
-              id: folder.id,
-              path: folder.path,
-              isPrimary: folder.isPrimary
-            }
-          })
-        )
-        return
-      }
-      updateTitle('')
-      updateIcon(WORKSPACE_ICON)
-      updateColor(WORKSPACE_COLOR)
-      updateFolders([])
-    },
-    [props.open, editing]
-  )
+  /**
+   * 打开时用目标工作区重置草稿。
+   *
+   * 在渲染期调整（React 官方对「prop 变了要重置 state」的首选是 key，其次就是这个），
+   * 而不是放进 effect：effect 里 setState 会多一整轮提交，且每轮 refetch 生成新对象
+   * 都会把用户正在输入的内容冲掉。
+   */
+  const seedKey = props.open ? (editing?.id ?? 'new') : null
+  const [seededKey, updateSeededKey] = useState<string | null>(null)
+  if (seedKey === null) {
+    // 关闭时只复位「播种标记」，下次打开重新取数；不动草稿，否则关闭动画里字段会先空掉
+    if (seededKey !== null) updateSeededKey(null)
+  } else if (seedKey !== seededKey) {
+    updateSeededKey(seedKey)
+    updateTitle(editing?.title ?? '')
+    updateIcon(editing?.icon || WORKSPACE_ICON)
+    updateColor(editing?.color || WORKSPACE_COLOR)
+    updateFolders(
+      (editing?.folders ?? []).map(function (folder) {
+        return {
+          id: folder.id,
+          path: folder.path,
+          isPrimary: folder.isPrimary
+        }
+      })
+    )
+  }
 
   async function handleAddFolder() {
     const picked = await itc.dialog.open({ directory: true })
