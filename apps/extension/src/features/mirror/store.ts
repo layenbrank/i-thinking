@@ -2,7 +2,7 @@ import { liveQuery } from 'dexie'
 import { create } from 'zustand'
 
 import { database } from '@/database/database.ts'
-import { seedIfEmpty } from '@/features/mirror/seed.ts'
+import { seedIfEmpty } from './seed.ts'
 
 /**
  * 镜像 / 磁贴的 React 状态源（替换原 Pinia 的 `stores/mirror.ts`）。

@@ -9,8 +9,8 @@ import {
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
-import { findGridSpan } from '@/features/magnetic-tile/layout.ts'
-import { buildTileStyle } from '@/features/magnetic-tile/style.ts'
+import { findGridSpan } from './layout.ts'
+import { buildTileStyle } from './style.ts'
 
 /**
  * 导航磁贴（shadcn 重写）：点击打开链接，悬停出现操作菜单。
