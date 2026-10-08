@@ -1,6 +1,6 @@
 /**
  * 打包产物冒烟：启动 packager 目录里的 exe，断言没有立刻退出。
- * 不要跑 Setup.exe（那是 Squirrel 安装器）。
+ * 不要跑 NSIS Setup.exe（那是安装向导，不是可执行应用目录）。
  */
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'

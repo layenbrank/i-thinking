@@ -7,7 +7,7 @@ const TRUE = /^(1|true|yes|on)$/i
  * - `lite`（默认）：pandoc / ffmpeg / opencode 不进安装包，由 Studio 运行时从在线源下载；
  * - `full`：全部侧车内置，离线可用。
  *
- * 用 `apps/studio/scripts/run-forge.mjs` 跑打包（`pnpm --filter @i-thinking/studio make:full`）。
+ * 用 `apps/studio/scripts/run-forge.ts` 跑打包（`pnpm --filter @i-thinking/studio make:full`）。
  */
 type SidecarVariant = 'lite' | 'full'
 
@@ -55,7 +55,7 @@ const APPLE_ID_PASSWORD = findEnv('APPLE_APP_SPECIFIC_PASSWORD') ?? findEnv('APP
 const APPLE_TEAM_ID = findEnv('APPLE_TEAM_ID')
 const OSX_NOTARIZE = Boolean(APPLE_ID && APPLE_ID_PASSWORD && APPLE_TEAM_ID)
 
-/** 自动更新 feed：STUDIO_UPDATE_URL 或 STUDIO_S3_UPDATE_BASE（make 时写入 STUDIO_UPDATE_FEED_URL） */
+/** electron-updater generic feed：STUDIO_UPDATE_URL 或 STUDIO_S3_UPDATE_BASE（make 时写入 STUDIO_UPDATE_FEED_URL） */
 const UPDATE_URL = findEnv('STUDIO_UPDATE_URL')
 
 const MSIX_PUBLISHER = findEnv('STUDIO_MSIX_PUBLISHER') ?? 'CN=i-thinking'

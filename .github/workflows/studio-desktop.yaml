@@ -167,25 +167,25 @@ jobs:
             out/studio/**
           if-no-files-found: warn
 
-      - name: Upload Squirrel feed files
+      - name: Upload NSIS / electron-updater feed files
         if: startsWith(github.ref, 'refs/tags/studio-v')
         uses: actions/upload-artifact@v6
         with:
-          name: studio-squirrel-feed
+          name: studio-nsis-feed
           retention-days: 30
           path: |
             out/studio/make/**/*.exe
-            out/studio/make/**/*.nupkg
-            out/studio/make/**/RELEASES
+            out/studio/make/**/latest.yml
+            out/studio/make/**/*.blockmap
           if-no-files-found: warn
 
-      - name: GitHub draft Release (human download, not autoUpdater feed)
+      - name: GitHub draft Release (human download; feed 需另挂 HTTP 目录)
         if: startsWith(github.ref, 'refs/tags/studio-v')
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: |
             out/studio/make/**/*.exe
-            out/studio/make/**/*.nupkg
-            out/studio/make/**/RELEASES
+            out/studio/make/**/latest.yml
+            out/studio/make/**/*.blockmap
           fail_on_unmatched_files: false

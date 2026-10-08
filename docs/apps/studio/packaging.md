@@ -2,16 +2,18 @@
 
 ## 1. 构建工具
 
-- **Electron Forge** + `@electron-forge/plugin-vite`（**不**使用 electron-builder）
+- **Electron Forge** + `@electron-forge/plugin-vite`
+- Windows 安装程序走社区 NSIS maker（`@felixrieseberg/electron-forge-maker-nsis`，兼容 Forge 7.x）；其内部用 `app-builder-lib` 打 NSIS，**不是**把整个工程切到 electron-builder
 - 配置入口：[forge.config.ts](../../../apps/studio/forge.config.ts)（组装 [forge/](../../../apps/studio/forge/) 模块）
-  - `forge/constants.ts` — appId / 名称 / 版本
+  - `forge/constants.ts` — appId / AUMID / 名称 / 版本
   - `forge/env.ts` — 签名 / 可选 makers / 发布 / 更新相关环境变量
   - `forge/packager.ts` — asar、ignore、afterCopy、Windows/macOS 签名
-  - `forge/makers.ts` — 默认 + 可选 makers
+  - `forge/makers.ts` — 默认 NSIS + ZIP；可选 WiX / MSIX / Flatpak
   - `forge/publishers.ts` — GitHub Releases / S3（默认关闭）
   - `forge/plugins.ts` — Vite / Fuses / AutoUnpackNatives
   - `forge/hooks/external-deps.ts` — Vite external（better-sqlite3）及依赖闭包复制
-  - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验
+  - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验（lite/`onDemand`）
+  - `nsis/installer-hooks.nsh` — 安装前/卸载前杀 `corex-daemon.exe`
 
 构建产物目录：**仅** `out/studio/`（仓库根目录下）。
 
@@ -21,7 +23,7 @@
 | Preload  | `src/preload.ts`                   | `.vite/build/preload.js`（CJS，sandbox） |
 | Renderer | `src/renderer.tsx`（`index.html`） | Forge `main_window`                      |
 
-`appId`：`com.i-thinking.studio`。
+`appId` / AUMID：`com.i-thinking.studio`。
 
 ## 2. 常用命令
 
@@ -30,33 +32,124 @@ pnpm --filter @i-thinking/studio dev
 pnpm command sidecar bootstrap studio            # 全量落盘（档位不在这里决定）
 pnpm --filter @i-thinking/studio package
 pnpm --filter @i-thinking/studio package:full
-pnpm --filter @i-thinking/studio make
+pnpm --filter @i-thinking/studio make            # 默认：NSIS Setup.exe + ZIP（lite）
+pnpm --filter @i-thinking/studio make:nsis       # 同 make:win，显式 NSIS
 pnpm --filter @i-thinking/studio make:full
+# Windows MSI / MSIX（在默认 NSIS+ZIP 之外额外产出；需本机工具链）
+pnpm --filter @i-thinking/studio make:msi
+pnpm --filter @i-thinking/studio make:msix
 # 发版（需开启 publishers 环境变量）
 pnpm --filter @i-thinking/studio publish
 ```
 
+**默认 Windows 产物路径：**
+
+| 产物 | 路径 |
+| ---- | ---- |
+| NSIS Setup | `out/studio/make/nsis/x64/*Setup*.exe` |
+| `latest.yml`（electron-updater） | `out/studio/make/nsis/x64/latest.yml` |
+| 便携 ZIP | `out/studio/make/zip/win32/x64/*.zip` |
+| 未打包目录 | `out/studio/i-thinking-win32-x64/` |
+| MSI（可选） | `out/studio/make/wix/x64/*.msi` |
+
 **两档产物：** `package` / `make` / `publish` 默认 **精简版（lite）** —— pandoc / ffmpeg / opencode
 不进安装包，由 Studio 运行时在线下载（见 [development.md](./development.md#两档产物精简版--完整版)）；
-`*:full` 内置全部侧车。**档位只有这一个决策点**（`apps/studio/scripts/run-forge.mjs` 把它作为
+`*:full` 内置全部侧车。**档位只有这一个决策点**（`apps/studio/scripts/run-forge.ts` 把它作为
 `STUDIO_SIDECAR_VARIANT` 传入 `forge/env.ts`，过滤发生在 `forge/hooks/sidecar.ts`，依据是 staging 的
 `checksums.json.onDemand`）；落盘那一步一律全量，所以切档不用重跑 bootstrap。
 
-**Windows：** 打包配置 `tmpdir: false`，直接在 `out/studio/` 构建，不经过临时目录中转。`@electron/packager` 已通过 pnpm patch 将内部 `fs.rename` / `fs.move` 替换为 `fs.copy` + `fs.remove`，避免独占文件句柄，兼容火绒等第三方杀软。打包前会自动：
+**精简版却打到 500MB+？** 多半是旧的 `apps/studio/sidecar/staging/<platform>/checksums.json`
+**没有 `onDemand` 字段**（forge 无法排除按需工具），或 staging 里还残留 `goose.exe`（client 用，
+studio 不该带）。处理：
 
-1. 结束本仓库路径下的 `electron` / `i-thinking` 进程
-2. 清理 `out/studio`
+```bash
+pnpm command sidecar stage studio   # 重写 checksums（含 onDemand），且不落 goose
+pnpm --filter @i-thinking/studio make
+```
 
-若使用第三方杀毒（火绒 / 360 等），建议将 `out/studio` 加入排除列表以减少文件锁定。
+日志应类似：`侧车档位 lite：已复制 N 个文件，未随包：pandoc.exe, ffmpeg.exe, …`。
+
+### 和 Client（Tauri）安装包的对应关系
+
+| 形态 | Client（Tauri） | Studio（Electron Forge） |
+| ---- | --------------- | ------------------------ |
+| 默认 Windows 安装程序 | NSIS `.exe` | NSIS Setup.exe（`@felixrieseberg/electron-forge-maker-nsis` + `electron-updater`） |
+| MSI | WiX（`targets: all` / release 流水线） | `make:msi` → MakerWix（企业旁路；需 [WiX Toolset v3](https://wixtoolset.org/)） |
+| 商店包 | — | `make:msix`（需 Windows SDK / makeappx） |
+| 便携 | — | ZIP（默认随 `make` 产出） |
+
+Squirrel（`RELEASES` / `.nupkg` / `electron.autoUpdater`）已从默认路径移除，避免双栈混淆。
+
+#### Client NSIS → Studio NSIS 对齐表
+
+Client：`apps/client/src-tauri/tauri.conf.json`（`bundle.windows.nsis`）+ `nsis/installer-hooks.nsh`。
+Studio：`apps/studio/forge/makers.ts` + `nsis/installer-hooks.nsh`（经 maker 的 `getAppBuilderConfig().nsis` 交给 app-builder-lib）。
+
+| Client（NSIS） | Studio NSIS | 对齐？ |
+| -------------- | ----------- | ------ |
+| `languages: SimpChinese, English` | `installerLanguages: ['zh_CN', 'en_US']`，`displayLanguageSelector: false` | ✅ |
+| `installMode: currentUser` | `perMachine: false` + `customInstallMode` 强制当前用户 | ✅ |
+| `startMenuFolder: i thinking` | `menuCategory` / `shortcutName` | ✅ |
+| `installerIcon` | `installerIcon` ← `resources/icon.ico` | ✅ |
+| `installerHooks` 杀 `corex-daemon` | `customInit` / `customUnInit` 用 `taskkill`（无 Tauri 插件） | ✅（实现不同） |
+| `compression: lzma` | app-builder-lib 默认 | 部分（未单独钉死） |
+| 升级签名 / WebView2 等 | Electron 自带运行时，无 WebView2 bootstrap | ❌（平台差异） |
+
+#### Client / Studio → MakerWix（可选 MSI）对齐表
+
+| Client（NSIS / WiX） | Studio MakerWix | 说明 |
+| -------------------- | --------------- | ---- |
+| `publisher: layen` | `manufacturer: layen`（`APP_PUBLISHER`） | 产品名与发布者 |
+| `wix.language: zh-CN, en-US` | `language: 2052` + `cultures: zh-CN;en-US` | Product 语言以简中为主 |
+| `nsis.installMode: currentUser` | `defaultInstallMode: perUser` | 默认装当前用户（无需管理员） |
+| `nsis.startMenuFolder: i thinking` | `shortcutFolderName` / `shortcutName` | 开始菜单文件夹 |
+| `nsis.installerIcon` | `icon` ← `resources/icon.ico` | 与 Client 同源 |
+| AUMID | `appUserModelId` = `com.i-thinking.studio` | 与 `main.ts` 一致 |
+| （升级身份） | **固定** `upgradeCode`（`WIX_UPGRADE_CODE`） | 必须钉死才能覆盖升级 |
+| `nsis.installerHooks` | — | MSI **无** NSIS hooks；升级前请先退出 Studio / 停侧车 |
+| — | `features.autoUpdate/autoLaunch: false` | 更新走 NSIS + electron-updater |
+
+#### 安装 WiX Toolset v3（打 MSI 必装）
+
+Forge 的 MakerWix / `electron-wix-msi` 依赖 WiX **v3** 的 `candle.exe` 与 `light.exe`（**不要**装 WiX v4/v5）。
+
+```powershell
+choco install wixtoolset --version=3.14.0 -y
+# 新开终端后：
+candle -?
+light -?
+```
+
+```powershell
+# 精简版 MSI；完整版用 make:msi:full
+pnpm --filter @i-thinking/studio make:msi
+# 产物：out/studio/make/wix/x64/*.msi（同一次 make 仍会打 NSIS + ZIP）
+```
+
+也可用 runner 开关：`node apps/studio/scripts/run-forge.ts make lite --wix`。
+
+#### `make:msi` 常见失败（已踩坑）
+
+| 现象 | 原因 | 处理 |
+| ---- | ---- | ---- |
+| `Could not find light.exe or candle.exe` | 未装 WiX v3，或当前进程 PATH 没有其 bin | 见上文；`make:msi` 会经 `run-forge.ts` 尝试注入常见 WiX bin |
+| Making nsis / zip / wix 一并 ✖ | Forge 并行 maker，WiX 失败打断整次 `make` | 先修好 WiX；不需要 MSI 时用 `make` |
+| `[sass] JSONError … package.json … trailing comma` | `package.json` 尾逗号 | 去掉尾逗号后再 `make` |
+
+**Windows：** 打包配置 `tmpdir: false`，直接在 `out/studio/` 构建。打包前会结束本仓库路径下的 `electron` / `i-thinking` 进程并清理 `out/studio`。第三方杀毒建议将 `out/studio` 加入排除列表。
+
+NSIS 工具链（`nsis-*.7z`）由 app-builder 下载：`run-forge.ts` 在未设置时默认
+`ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/`
+（见 [pnpm-and-native-mirrors.md](../../ops/pnpm-and-native-mirrors.md)）。直连 GitHub 超时可显式设该变量。
 
 ## 3. 全平台 Makers
 
 | 平台    | Maker           | 默认                               | 说明                                  |
 | ------- | --------------- | ---------------------------------- | ------------------------------------- |
-| Windows | Squirrel        | ✅                                 | 安装程序 + 可选 `remoteReleases` 增量 |
+| Windows | NSIS            | ✅                                 | Setup.exe + `latest.yml`（electron-updater） |
 | Windows | ZIP             | ✅                                 | 便携包                                |
 | Windows | MSIX            | `STUDIO_MAKE_MSIX=1`               | 需 Windows SDK                        |
-| Windows | WiX MSI         | `STUDIO_MAKE_WIX=1`                | 需 WiX Toolset                        |
+| Windows | WiX MSI         | `STUDIO_MAKE_WIX=1` / `make:msi`   | 需 WiX Toolset **v3**（企业旁路）     |
 | macOS   | DMG             | ✅                                 | 安装镜像                              |
 | macOS   | ZIP             | ✅                                 | 归档 / Sparkle 兼容 feed              |
 | macOS   | PKG             | ✅（`STUDIO_MAKE_PKG_OFF=1` 关闭） | 企业安装包                            |
@@ -65,11 +158,9 @@ pnpm --filter @i-thinking/studio publish
 
 ## 4. 代码签名 / 公证
 
-通过环境变量启用（未设置则跳过，本地开发不受影响）：
-
 | 变量                                                         | 用途                              |
 | ------------------------------------------------------------ | --------------------------------- |
-| `WINDOWS_CERTIFICATE_FILE` + `WINDOWS_CERTIFICATE_PASSWORD`  | Authenticode（PFX）               |
+| `WINDOWS_CERTIFICATE_FILE` + `WINDOWS_CERTIFICATE_PASSWORD`  | Authenticode（PFX；亦传给 NSIS maker） |
 | `WINDOWS_CERTIFICATE_SUBJECT`                                | 证书存储按主题名（`signtool /n`） |
 | `STUDIO_OSX_SIGN=1` 或 `APPLE_IDENTITY`                      | macOS `osxSign`                   |
 | `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` | Notarize                          |
@@ -82,34 +173,39 @@ pnpm --filter @i-thinking/studio publish
 | `STUDIO_GITHUB_OWNER` / `STUDIO_GITHUB_REPO`                 | 仓库（默认 `layenbrank/i-thinking`）          |
 | `STUDIO_PUBLISH_S3=1` + `STUDIO_S3_BUCKET`                   | S3 发布（**自动更新 feed 走这里**）           |
 | `STUDIO_S3_REGION` / `STUDIO_S3_FOLDER` / `STUDIO_S3_PUBLIC` | S3 可选                                       |
-| `STUDIO_S3_UPDATE_BASE`                                      | 客户端 feed 与 Squirrel `remoteReleases` 前缀 |
+| `STUDIO_S3_UPDATE_BASE`                                      | 客户端 generic feed 前缀（拼 `{base}/win32/x64`） |
 
-`studio-v*` tag 会把 `Setup.exe` / `.nupkg` / `RELEASES` 传到 CI artifact，并打一份 **draft GitHub Release 给人下载**。那份 Release **不是** Squirrel feed：`autoUpdater.setFeedURL` 要的是 HTTP 目录里并排的 `RELEASES` + `.nupkg`（配 `STUDIO_S3_UPDATE_BASE` / `STUDIO_UPDATE_URL`，或日后签名后的 update.electronjs.org）。Maker 的 `remoteReleases` 只用于打增量包时拉旧 `RELEASES`，不能代替客户端 `setFeedURL`。
+`studio-v*` tag 会把 NSIS `Setup.exe` / `latest.yml` / `.blockmap` 传到 CI artifact，并打一份 **draft GitHub Release 给人下载**。那份 Release **不是**完整的 auto-update host：`electron-updater` 要的是 HTTP 目录里并排的 `latest.yml` + 安装包（配 `STUDIO_S3_UPDATE_BASE` / `STUDIO_UPDATE_URL`）。
 
 避开 Tauri Client 的 `v*` tag，Studio 只用 **`studio-v*`**。发版只 bump `apps/studio/package.json` 的 `version`。
 
-## 6. 自动更新（`electron.autoUpdater`）
+## 6. 自动更新（`electron-updater`）
 
-内置 Squirrel：`checkForUpdates()` **发现更新即下载**，没有百分比进度，也没有「只检查不下载」。Renderer：`itc.updater.check` / `download`（download 是 check 的别名）/ `install`。
+Windows 使用 **generic** provider：`latest.yml` + NSIS Setup.exe。Renderer API 仍为 `itc.updater.check` / `download` / `install` / `toRead`（`toRead().progress` 现可有下载百分比）。
 
 | 变量                    | 用途                                      |
 | ----------------------- | ----------------------------------------- |
-| `STUDIO_UPDATE_URL`     | feed 目录 URL（含 `RELEASES`）            |
+| `STUDIO_UPDATE_URL`     | feed 目录 URL（含 `latest.yml`）          |
 | `STUDIO_S3_UPDATE_BASE` | 未设 URL 时拼 `{base}/win32/x64`          |
 
-`make` 时 Vite 把 feed 编译进 `STUDIO_UPDATE_FEED_URL`。开发态 / 未 packaged / 未配置 → `toRead().enabled === false`。`--squirrel-firstrun` 时不检查。
+`make` 时：
 
-Windows AUMID：`com.squirrel.i-thinking.i-thinking`（与 Maker `name` / exe 一致）。
+1. Vite 把 feed 编译进 `STUDIO_UPDATE_FEED_URL`
+2. NSIS maker（若配置了 feed）写入包内 `resources/app-update.yml`，并在输出目录生成 `latest.yml`
 
-不要用 electron-updater 的 `latest.yml` / `provider: github`，也不要 `update-electron-app` 系统弹窗。
+开发态 / 未 packaged / 未配置 → `toRead().enabled === false`。未签名包默认 `verifyUpdateCodeSignature = false`，便于本地/CI 测 feed。
+
+Windows AUMID：`com.i-thinking.studio`（与 `appId` 一致；已离开旧 `com.squirrel.*`）。
+
+不要用 `electron.autoUpdater`（Squirrel）或 `update-electron-app` 系统弹窗。
 
 ## 7. asar / Sidecar / Fuses / CI / 图标
 
-- asar 保留 `.vite` / `package.json` / `drizzle` / `node_modules`（排除 `@i-thinking/*`）；Vite external 仅 **better-sqlite3** 闭包由 `forge/hooks/external-deps.ts` 复制（排除 src/docs/test/.map）；**禁止 asar 热更**（Fuses `EnableEmbeddedAsarIntegrityValidation` + `OnlyLoadAppFromAsar`）。打包态页面走 `file://`，不要关 `GrantFileProtocolExtraPrivileges`。
-- 图标：品牌源 `apps/studio/resources/icon.svg` → `pnpm --filter @i-thinking/studio icons` 生成 1024 PNG 与 256 ICO（icns 仅 macOS `iconutil`）；`extraResource` 只收录存在的文件。开发态从 `public/` 或 `resources/` 取。
+- asar 保留 `.vite` / `package.json` / `drizzle` / `node_modules`（排除 `@i-thinking/*`）；Vite external 仅 **better-sqlite3** 闭包由 `forge/hooks/external-deps.ts` 复制；**禁止 asar 热更**（Fuses `EnableEmbeddedAsarIntegrityValidation` + `OnlyLoadAppFromAsar`）。
+- 图标：与 Client 共用品牌源 `apps/client/src-tauri/icons/`。`pnpm --filter @i-thinking/studio icons` 同步到 `resources/` 与 `public/`。
 - 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
-- 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；corex sidecar **目前仅 win32-x64**，CI 不扩 mac/linux
-- **corex 始终随包**（lock 里**不标** `onDemand`，精简版/完整版都带）：它是自研 sidecar，直链走自建 R2 镜像（corex 自己发布在 [layenbrank/corex](https://github.com/layenbrank/corex)，仓库侧只钉版本与 sha256）；同一个归档里取 `corex-daemon`、`corex` 与 `corex-mcp`（后者供 opencode 等按名字拉起）
+- 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；corex sidecar **目前仅 win32-x64**
+- **corex 始终随包**（lock 里**不标** `onDemand`）
 - 开发：`pnpm command sidecar bootstrap studio`
 - 冒烟：`pnpm --filter @i-thinking/studio test:pack` 启动 `out/studio/i-thinking-win32-x64/i-thinking.exe`（**不要**跑 Setup.exe）
 - Fuses 见 [security.md](./security.md)；CI：[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)

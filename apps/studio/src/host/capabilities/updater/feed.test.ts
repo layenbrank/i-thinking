@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { findFeedUrl, hasSquirrelFirstRun } from './feed'
+import { findFeedUrl } from './feed'
 
 const KEYS = ['STUDIO_UPDATE_FEED_URL', 'STUDIO_UPDATE_URL', 'STUDIO_S3_UPDATE_BASE'] as const
 
@@ -29,12 +29,5 @@ describe('findFeedUrl', function () {
 
   it('returns undefined when unset', function () {
     expect(findFeedUrl()).toBeUndefined()
-  })
-})
-
-describe('hasSquirrelFirstRun', function () {
-  it('detects the installer first-run flag', function () {
-    expect(hasSquirrelFirstRun(['i-thinking.exe', '--squirrel-firstrun'])).toBe(true)
-    expect(hasSquirrelFirstRun(['i-thinking.exe'])).toBe(false)
   })
 })

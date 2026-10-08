@@ -1,5 +1,4 @@
 import { app, type BrowserWindow } from 'electron'
-import started from 'electron-squirrel-startup'
 import path from 'node:path'
 
 import { disposeEngine } from '@/host/capabilities/assistant'
@@ -40,15 +39,14 @@ export async function bootstrap(): Promise<void> {
   const detachFileLog = dataDir ? attachFileLog(dataDir) : function () {}
   if (dataDir) log.info('日志文件', { dir: path.join(dataDir, 'logs') })
 
-  if (started) return app.quit()
-
   if (!acquireSingleInstanceLock(app)) {
     log.info('another instance holds the lock; quitting')
 
     return app.quit()
   }
 
-  if (process.platform === 'win32') app.setAppUserModelId('com.squirrel.i-thinking.i-thinking')
+  // 与 forge/constants APP_AUMID / appId 一致（已离开 com.squirrel.*）
+  if (process.platform === 'win32') app.setAppUserModelId('com.i-thinking.studio')
 
   process.on('uncaughtException', function (err) {
     log.error('uncaughtException', err)

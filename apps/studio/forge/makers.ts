@@ -1,20 +1,34 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+
 import { MakerDeb } from '@electron-forge/maker-deb'
 import { MakerDMG } from '@electron-forge/maker-dmg'
 import { MakerFlatpak } from '@electron-forge/maker-flatpak'
 import { MakerMSIX } from '@electron-forge/maker-msix'
 import { MakerPKG } from '@electron-forge/maker-pkg'
 import { MakerRpm } from '@electron-forge/maker-rpm'
-import { MakerSquirrel } from '@electron-forge/maker-squirrel'
 import { MakerWix } from '@electron-forge/maker-wix'
 import { MakerZIP } from '@electron-forge/maker-zip'
+import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis'
 import type { ForgeConfig } from '@electron-forge/shared-types'
 
+const require = createRequire(import.meta.url)
+
 import {
+  APP_AUMID,
   APP_AUTHORS,
   APP_DESCRIPTION,
+  APP_EXECUTABLE,
   APP_ID,
   APP_NAME,
-  PRODUCT_NAME
+  APP_PUBLISHER,
+  PACKAGE_ROOT,
+  PRODUCT_NAME,
+  START_MENU_FOLDER,
+  WIX_CULTURES,
+  WIX_LANGUAGE,
+  WIX_UPGRADE_CODE
 } from './constants'
 import {
   MAKE_FLATPAK,
@@ -24,27 +38,104 @@ import {
   MSIX_IDENTITY,
   MSIX_PUBLISHER,
   S3_UPDATE_BASE,
+  UPDATE_URL,
   WINDOWS_CERTIFICATE_FILE,
   WINDOWS_CERTIFICATE_PASSWORD
 } from './env'
 
+function findSetupIcon(): string | undefined {
+  const ico = path.join(PACKAGE_ROOT, 'resources', 'icon.ico')
+  return existsSync(ico) ? ico : undefined
+}
+
+function findNsisHooks(): string {
+  return path.join(PACKAGE_ROOT, 'nsis', 'installer-hooks.nsh')
+}
+
+/**
+ * 打包进 Forge 产物的 package.json 仍写着 pnpm `catalog:`；
+ * app-builder-lib 无法从中解析 electron 版本，需显式注入。
+ */
+function findElectronVersion(): string {
+  try {
+    const pkgPath = require.resolve('electron/package.json')
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string }
+    if (pkg.version) return pkg.version
+  } catch {
+    // fall through
+  }
+  throw new Error('[forge] 无法解析已安装的 electron 版本（NSIS maker 需要）')
+}
+
+/** generic feed 目录：与运行时 findFeedUrl / Vite 注入一致 */
+function findUpdaterFeedUrl(): string | undefined {
+  if (UPDATE_URL) return UPDATE_URL.replace(/\/$/, '')
+  if (!S3_UPDATE_BASE) return undefined
+  return `${S3_UPDATE_BASE.replace(/\/$/, '')}/win32/x64`
+}
+
 function buildMakers(): NonNullable<ForgeConfig['makers']> {
+  const setupIcon = findSetupIcon()
+  const displayName = PRODUCT_NAME || APP_NAME
+  const feedUrl = findUpdaterFeedUrl()
   const makers: NonNullable<ForgeConfig['makers']> = [
-    new MakerSquirrel({
-      title: PRODUCT_NAME || APP_NAME,
-      name: APP_NAME,
-      description: APP_DESCRIPTION,
-      authors: APP_AUTHORS,
-      // 增量更新：指向已发布的 Squirrel feed（可选）
-      ...(S3_UPDATE_BASE
+    // Windows 默认：NSIS Setup.exe（对齐 Client Tauri NSIS 向导体验）+ ZIP 便携
+    new MakerNSIS({
+      ...(WINDOWS_CERTIFICATE_FILE
         ? {
-            remoteReleases: `${S3_UPDATE_BASE}/win32/x64`
+            codesign: {
+              certificateFile: WINDOWS_CERTIFICATE_FILE,
+              certificatePassword: WINDOWS_CERTIFICATE_PASSWORD
+            }
           }
-        : {})
+        : {}),
+      ...(feedUrl
+        ? {
+            updater: {
+              url: feedUrl,
+              channel: 'latest',
+              updaterCacheDirName: `${APP_NAME}-updater`
+            }
+          }
+        : {}),
+      async getAppBuilderConfig() {
+        return {
+          appId: APP_ID,
+          productName: displayName,
+          copyright: `Copyright © ${APP_PUBLISHER}`,
+          electronVersion: findElectronVersion(),
+          nsis: {
+            oneClick: false,
+            perMachine: false,
+            // 对齐 Client installMode: currentUser（不弹出 per-machine 选择页）
+            // 由 include 里的 customInstallMode 强制当前用户
+            allowToChangeInstallationDirectory: true,
+            allowElevation: false,
+            createDesktopShortcut: true,
+            createStartMenuShortcut: true,
+            menuCategory: START_MENU_FOLDER,
+            shortcutName: displayName,
+            installerLanguages: ['zh_CN', 'en_US'],
+            displayLanguageSelector: false,
+            include: findNsisHooks(),
+            ...(setupIcon
+              ? {
+                  installerIcon: setupIcon,
+                  uninstallerIcon: setupIcon,
+                  installerHeaderIcon: setupIcon
+                }
+              : {})
+          },
+          win: {
+            executableName: APP_EXECUTABLE,
+            ...(setupIcon ? { icon: setupIcon } : {})
+          }
+        }
+      }
     }),
     new MakerZIP({}, ['win32']),
     new MakerDMG({
-      name: PRODUCT_NAME || APP_NAME,
+      name: displayName,
       format: 'ULFO'
     }),
     new MakerZIP(
@@ -58,8 +149,8 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
     new MakerDeb({
       options: {
         name: APP_NAME,
-        productName: PRODUCT_NAME || APP_NAME,
-        genericName: PRODUCT_NAME || APP_NAME,
+        productName: displayName,
+        genericName: displayName,
         description: APP_DESCRIPTION,
         maintainer: APP_AUTHORS,
         categories: ['Development']
@@ -68,8 +159,8 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
     new MakerRpm({
       options: {
         name: APP_NAME,
-        productName: PRODUCT_NAME || APP_NAME,
-        genericName: PRODUCT_NAME || APP_NAME,
+        productName: displayName,
+        genericName: displayName,
         description: APP_DESCRIPTION,
         categories: ['Development']
       }
@@ -81,7 +172,7 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
   if (MAKE_PKG) {
     makers.push(
       new MakerPKG({
-        name: PRODUCT_NAME || APP_NAME,
+        name: displayName,
         identity: process.env.APPLE_IDENTITY
       })
     )
@@ -107,17 +198,42 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
     )
   }
 
-  // Windows MSI（需 WiX Toolset；STUDIO_MAKE_WIX=1）
+  // Windows MSI（需 WiX Toolset；STUDIO_MAKE_WIX=1）— 企业旁路，默认不跑
+  // 选项对齐 Client NSIS/WiX（见 docs/apps/studio/packaging.md）
   if (MAKE_WIX) {
     makers.push(
       new MakerWix({
-        name: PRODUCT_NAME || APP_NAME,
+        name: displayName,
         description: APP_DESCRIPTION,
-        manufacturer: APP_AUTHORS,
-        appUserModelId: APP_ID,
+        manufacturer: APP_PUBLISHER,
+        exe: APP_EXECUTABLE,
+        shortName: APP_NAME,
+        appUserModelId: APP_AUMID,
+        programFilesFolderName: displayName,
+        shortcutFolderName: START_MENU_FOLDER,
+        shortcutName: displayName,
+        upgradeCode: WIX_UPGRADE_CODE,
+        language: WIX_LANGUAGE,
+        cultures: WIX_CULTURES,
+        // 对齐 Client NSIS installMode: currentUser
+        defaultInstallMode: 'perUser',
+        // Electron / corex 侧车仅 win32-x64；库默认 x86 会打错架构
+        arch: 'x64',
+        // 自动更新走 NSIS + electron-updater，不在 MSI 嵌 Update.exe
+        features: {
+          autoUpdate: false,
+          autoLaunch: false
+        },
+        ...(setupIcon ? { icon: setupIcon } : {}),
         ui: {
           chooseDirectory: true
-        }
+        },
+        ...(WINDOWS_CERTIFICATE_FILE
+          ? {
+              certificateFile: WINDOWS_CERTIFICATE_FILE,
+              certificatePassword: WINDOWS_CERTIFICATE_PASSWORD
+            }
+          : {})
       })
     )
   }
@@ -128,8 +244,8 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
       new MakerFlatpak({
         options: {
           id: APP_ID,
-          productName: PRODUCT_NAME || APP_NAME,
-          genericName: PRODUCT_NAME || APP_NAME,
+          productName: displayName,
+          genericName: displayName,
           description: APP_DESCRIPTION,
           categories: ['Development'],
           runtime: 'org.freedesktop.Platform',

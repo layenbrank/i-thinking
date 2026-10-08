@@ -7,11 +7,42 @@ import { SIDECAR_VARIANT } from '../env'
 
 const CHECKSUMS_FILE = 'checksums.json'
 
+/**
+ * Studio 安装包里永远不带的文件（即便误进了 staging）。
+ * goose 是 client ACP 侧车；agent 走 opencode。
+ */
+const NEVER_BUNDLE = new Set(['goose.exe', 'goose'])
+
+/**
+ * 旧版 staging 的 checksums.json 可能没写 `onDemand`：精简版会误把整包打进去（500MB+）。
+ * 按文件名兜底，与 tools.lock 里标 onDemand 的工具对齐。
+ */
+const ON_DEMAND_NAME_HINT =
+  /^(pandoc|ffmpeg|ffprobe|ffplay|opencode)(\.exe)?$/i
+
 interface StagingChecksums {
   platform: string
   /** 按需工具文件（由 `pnpm command sidecar stage` 按 tools.lock 写出）：精简版不带它们 */
   onDemand?: string[]
   files: Record<string, string>
+}
+
+function findOnDemandFiles(expected: StagingChecksums): Set<string> {
+  const listed = expected.onDemand ?? []
+  if (listed.length > 0) {
+    return new Set(listed)
+  }
+  const inferred = Object.keys(expected.files).filter(function (name) {
+    return ON_DEMAND_NAME_HINT.test(name)
+  })
+  if (inferred.length > 0) {
+    console.warn(
+      '[forge] checksums.json 缺少 onDemand，已按文件名兜底排除（请重跑 ' +
+        '`pnpm command sidecar stage studio` 写出正式字段）：' +
+        inferred.join(', ')
+    )
+  }
+  return new Set(inferred)
 }
 
 function findPlatformKey(platform: string = process.platform, arch: string = process.arch): string {
@@ -64,7 +95,7 @@ function copyAndVerifySidecars(
     }
 
     const expected = parseStagingChecksums(key)
-    const onDemand = new Set(expected.onDemand ?? [])
+    const onDemand = findOnDemandFiles(expected)
     const destDir = path.join(buildPath, '..', 'sidecar')
     mkdirSync(destDir, { recursive: true })
 
@@ -86,7 +117,7 @@ function copyAndVerifySidecars(
 
     const skipped: string[] = []
     for (const [fileName, digest] of files) {
-      if (SIDECAR_VARIANT === 'lite' && onDemand.has(fileName)) {
+      if (NEVER_BUNDLE.has(fileName) || (SIDECAR_VARIANT === 'lite' && onDemand.has(fileName))) {
         skipped.push(fileName)
         continue
       }
@@ -107,7 +138,7 @@ function copyAndVerifySidecars(
 
     console.log(
       `[forge] 侧车档位 ${SIDECAR_VARIANT}：已复制 ${files.length - skipped.length} 个文件` +
-        (skipped.length > 0 ? `，按需工具不随包：${skipped.join(', ')}` : '')
+        (skipped.length > 0 ? `，未随包：${skipped.join(', ')}` : '')
     )
     done()
   } catch (error) {

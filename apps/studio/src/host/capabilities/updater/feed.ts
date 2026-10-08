@@ -1,5 +1,7 @@
-const SQUIRREL_FIRST_RUN = '--squirrel-firstrun'
-
+/**
+ * generic feed：目录内需有 `latest.yml` + Setup.exe（由 NSIS maker 产出）。
+ * 优先 Vite 编译期注入的 STUDIO_UPDATE_FEED_URL，再回落环境变量。
+ */
 function findFeedUrl(): string | undefined {
   const injected = process.env.STUDIO_UPDATE_FEED_URL?.trim()
   if (injected) return injected.replace(/\/$/, '')
@@ -10,8 +12,4 @@ function findFeedUrl(): string | undefined {
   return `${base.replace(/\/$/, '')}/win32/x64`
 }
 
-function hasSquirrelFirstRun(argv: readonly string[] = process.argv): boolean {
-  return argv.includes(SQUIRREL_FIRST_RUN)
-}
-
-export { SQUIRREL_FIRST_RUN, findFeedUrl, hasSquirrelFirstRun }
+export { findFeedUrl }

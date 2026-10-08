@@ -40,7 +40,7 @@
 | sidecar    | `capabilities/sidecar/`（`install` / `index` / `job-progress`）                                                                             | corex-daemon 宿主 + findStatus；**只认自带那份与用户自己装的那份**，落点事实问 framework                              |
 | tools      | `capabilities/tools/`（`catalog` / `install` / `download` / `archive` / `service`）+ `apps/studio/sidecar/manifest.json`                    | 在线工具（pandoc / ffmpeg / opencode）：按 manifest 的直链下载 → sha256 校验 → 落 `<userData>/sidecar`                  |
 | doc        | `capabilities/doc.ts`                                                                                                                      | pandoc 转换（二进制由 tools 域提供）                                                                                   |
-| updater    | `capabilities/updater/`（`index` / `feed`）                                                                                                | `electron.autoUpdater`（Squirrel feed）                                                                                |
+| updater    | `capabilities/updater/`（`index` / `feed`）                                                                                                | `electron-updater`（generic / `latest.yml`）                                                                             |
 | devtools   | `capabilities/devtools.ts`                                                                                                                 | 开发态 DevTools                                                                                                        |
 
 路径省略了 `src/host/` 前缀。**一个域多个文件就建目录**（目录名即域，内部用短名，对外的那个文件叫 `index.ts`）；单文件域直接平铺在 `capabilities/` 下。

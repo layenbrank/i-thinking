@@ -37,12 +37,14 @@ pnpm install
 | `pnpm --filter @i-thinking/studio package`   | 打出可运行目录到 `out/`（需先 bootstrap）        |
 | `pnpm --filter @i-thinking/studio package:full` | 同上，但带上按需工具（staging 里已经都在） |
 | `pnpm --filter @i-thinking/studio build`     | 同 `package`（供 turbo / PR CI）                 |
-| `pnpm --filter @i-thinking/studio make`      | `electron-forge make` → `out/make`（精简版）     |
-| `pnpm --filter @i-thinking/studio make:full` | 同上，完整版（内置 pandoc / ffmpeg / opencode）  |
+| `pnpm --filter @i-thinking/studio make`      | `electron-forge make` → `out/studio/make`（精简版；Win 默认 NSIS+ZIP） |
+| `pnpm --filter @i-thinking/studio make:nsis` | 同 `make:win`，显式打 NSIS Setup.exe                                  |
+| `pnpm --filter @i-thinking/studio make:full` | 同上，完整版（内置 pandoc / ffmpeg / opencode）                       |
+| `pnpm --filter @i-thinking/studio make:msi`  | 额外打 WiX MSI（需本机 WiX Toolset；见 packaging.md）                 |
 
 ### 两档产物：精简版 / 完整版
 
-`apps/studio/scripts/run-forge.mjs` 把档位以 `STUDIO_SIDECAR_VARIANT` 传给 forge（Windows 的
+`apps/studio/scripts/run-forge.ts` 把档位以 `STUDIO_SIDECAR_VARIANT` 传给 forge（Windows 的
 cmd/pwsh 没有 `VAR=值 命令` 这种写法，故用一个极小的 runner，不引 cross-env）。
 
 **档位只在这一个地方决定** —— 落盘那一步不管档位（`bootstrap` 一律全量落盘，只把按需工具的名字
@@ -82,7 +84,7 @@ cmd/pwsh 没有 `VAR=值 命令` 这种写法，故用一个极小的 runner，�
   它不在「找二进制」的候选里。二进制装到 `%LOCALAPPDATA%\corex\bin`（`install.ps1` 的默认值）。
 - **自带那份的数据目录绝不用 exe 旁边**：corex 的数据目录解析顺序里「可写的 exe 目录」排第二，
   不钉住就会把指令库写进 staging（仓库里）或 `resources/sidecar`（应用目录里）。
-  所以自带那份显式用私有数据目录 + 私有端点 `\\.\pipe\corex-studio`。
+  所以自带那份显式用私有数据目录；端点与 corex 平台默认一致（Windows `\\.\pipe\corex`）。
 - **开发态想让自带那份读真实数据**（调编辑器时看到自己的指令）：设 `COREX_DATA_DIR` 指向它即可
   （自带那份的 `token` 也跟着数据目录走）。注意 corex 的 `corex.lock` 是**每个数据目录一份**的单例锁
   —— 若你全局那个 daemon 正在跑，先停掉，否则 dev 自起的这个抢不到锁。

@@ -1,57 +1,30 @@
-import { type BrowserWindow, autoUpdater } from 'electron'
+import { type BrowserWindow } from 'electron'
+import { autoUpdater, type NsisUpdater, type UpdateInfo } from 'electron-updater'
 
 import { CHANNELS } from '@/shared/ipc/channels'
 import { IpcError } from '@/shared/ipc/error'
 import { type Out, type PushOut } from '@/shared/ipc/specs'
 import { type Context } from '@/host/framework/context'
 
+import { findFeedUrl } from './feed'
+
 type FindStatusR = Out<typeof CHANNELS.UPDATER.READ>
 type CheckR = Out<typeof CHANNELS.UPDATER.CHECK>
 type UpdaterEvent = PushOut<typeof CHANNELS.UPDATER.EVENT>
 
-import { findFeedUrl, hasSquirrelFirstRun } from './feed'
-
-function waitForCheck(): Promise<CheckR> {
-  return new Promise(function (resolve, reject) {
-    function finish(next: () => void) {
-      autoUpdater.removeListener('update-available', onAvailable)
-      autoUpdater.removeListener('update-not-available', onNotAvailable)
-      autoUpdater.removeListener('error', onError)
-      next()
-    }
-
-    function onAvailable() {
-      finish(function () {
-        resolve({
-          available: true,
-          version: null,
-          releaseNotes: null
-        })
+function parseReleaseNotes(info: UpdateInfo): string | null {
+  const notes = info.releaseNotes
+  if (!notes) return null
+  if (typeof notes === 'string') return notes
+  if (Array.isArray(notes)) {
+    return notes
+      .map(function (entry) {
+        return typeof entry === 'string' ? entry : entry.note
       })
-    }
-
-    function onNotAvailable() {
-      finish(function () {
-        resolve({
-          available: false,
-          version: null,
-          releaseNotes: null,
-          reason: 'latest'
-        })
-      })
-    }
-
-    function onError(error: Error) {
-      finish(function () {
-        reject(error)
-      })
-    }
-
-    autoUpdater.once('update-available', onAvailable)
-    autoUpdater.once('update-not-available', onNotAvailable)
-    autoUpdater.once('error', onError)
-    autoUpdater.checkForUpdates()
-  })
+      .filter(Boolean)
+      .join('\n')
+  }
+  return null
 }
 
 class Service {
@@ -60,7 +33,9 @@ class Service {
   private checking = false
   private downloading = false
   private downloaded = false
+  private progress: number | null = null
   private version: string | null = null
+  private releaseNotes: string | null = null
   private error: string | null = null
   private enabled = false
   private wired = false
@@ -85,7 +60,18 @@ class Service {
       return
     }
 
-    autoUpdater.setFeedURL({ url: feedUrl })
+    autoUpdater.autoDownload = false
+    autoUpdater.autoInstallOnAppQuit = false
+    // 未签名包跳过 Authenticode（本地 / CI 无证书时仍可测 feed）
+    if (process.platform === 'win32') {
+      ;(autoUpdater as NsisUpdater).verifyUpdateCodeSignature = async function () {
+        return null
+      }
+    }
+    autoUpdater.setFeedURL({
+      provider: 'generic',
+      url: feedUrl
+    })
     this.enabled = true
     this.wireEvents()
   }
@@ -96,7 +82,7 @@ class Service {
       checking: this.checking,
       downloading: this.downloading,
       downloaded: this.downloaded,
-      progress: null,
+      progress: this.progress,
       version: this.version,
       error: this.error
     }
@@ -112,42 +98,98 @@ class Service {
       }
     }
 
-    if (hasSquirrelFirstRun()) {
-      return {
-        available: false,
-        version: null,
-        releaseNotes: null,
-        reason: 'squirrel-firstrun'
-      }
-    }
-
     const service = this
     this.checking = true
     this.error = null
     this.emit({ type: 'checking' })
 
-    try {
-      const result = await waitForCheck()
-      this.checking = false
-      if (result.available) {
-        this.downloading = true
-        this.emit({ type: 'available', version: result.version ?? '', releaseNotes: null })
-      } else {
-        this.emit({ type: 'not-available', version: result.version ?? '' })
+    return new Promise(function (resolve, reject) {
+      let settled = false
+
+      function finish(next: () => void) {
+        if (settled) return
+        settled = true
+        autoUpdater.removeListener('update-available', onAvailable)
+        autoUpdater.removeListener('update-not-available', onNotAvailable)
+        autoUpdater.removeListener('error', onError)
+        service.checking = false
+        next()
       }
-      return result
-    } catch (error) {
-      service.checking = false
-      service.downloading = false
-      const message = error instanceof Error ? error.message : String(error)
-      service.error = message
-      service.emit({ type: 'error', message })
-      throw new IpcError('UPDATER_CHECK_FAILED', message)
-    }
+
+      function onAvailable(info: UpdateInfo) {
+        finish(function () {
+          service.version = info.version
+          service.releaseNotes = parseReleaseNotes(info)
+          service.emit({
+            type: 'available',
+            version: info.version,
+            releaseNotes: service.releaseNotes
+          })
+          resolve({
+            available: true,
+            version: info.version,
+            releaseNotes: service.releaseNotes
+          })
+        })
+      }
+
+      function onNotAvailable(info: UpdateInfo) {
+        finish(function () {
+          service.version = info.version
+          service.emit({ type: 'not-available', version: info.version })
+          resolve({
+            available: false,
+            version: info.version,
+            releaseNotes: parseReleaseNotes(info),
+            reason: 'latest'
+          })
+        })
+      }
+
+      function onError(error: Error) {
+        finish(function () {
+          const message = error instanceof Error ? error.message : String(error)
+          service.error = message
+          service.emit({ type: 'error', message })
+          reject(new IpcError('UPDATER_CHECK_FAILED', message))
+        })
+      }
+
+      autoUpdater.once('update-available', onAvailable)
+      autoUpdater.once('update-not-available', onNotAvailable)
+      autoUpdater.once('error', onError)
+      void autoUpdater.checkForUpdates().catch(function (error: unknown) {
+        // checkForUpdates 自身 reject 时不一定再发 error 事件
+        onError(error instanceof Error ? error : new Error(String(error)))
+      })
+    })
   }
 
   async download(): Promise<void> {
-    await this.check()
+    if (!this.enabled) {
+      throw new IpcError('UPDATER_NOT_CONFIGURED', 'Updater is not configured')
+    }
+
+    // 兼容旧语义：尚未 check 时先检查；有更新再拉包
+    if (!this.version) {
+      const checked = await this.check()
+      if (!checked.available) return
+    }
+
+    this.downloading = true
+    this.progress = 0
+    this.error = null
+
+    try {
+      await autoUpdater.downloadUpdate()
+    } catch (error) {
+      this.downloading = false
+      this.progress = null
+      const message = error instanceof Error ? error.message : String(error)
+      this.error = message
+      this.emit({ type: 'error', message })
+      throw new IpcError('UPDATER_DOWNLOAD_FAILED', message)
+    }
   }
 
   install(): void {
@@ -157,7 +199,8 @@ class Service {
     if (!this.downloaded) {
       throw new IpcError('UPDATER_NO_UPDATE_DOWNLOADED', 'No update downloaded')
     }
-    autoUpdater.quitAndInstall()
+    // isSilent=false：NSIS 向导；isForceRunAfter=true：装完拉起
+    autoUpdater.quitAndInstall(false, true)
   }
 
   private wireEvents(): void {
@@ -165,19 +208,17 @@ class Service {
     this.wired = true
     const service = this
 
-    autoUpdater.on('checking-for-update', function () {
-      service.checking = true
-    })
-
-    autoUpdater.on('update-available', function () {
+    autoUpdater.on('download-progress', function (progress) {
       service.downloading = true
+      service.progress = Math.round(progress.percent)
     })
 
-    autoUpdater.on('update-downloaded', function (_event, _notes, releaseName) {
+    autoUpdater.on('update-downloaded', function (info) {
       service.checking = false
       service.downloading = false
       service.downloaded = true
-      service.version = releaseName || service.version
+      service.progress = 100
+      service.version = info.version || service.version
       service.emit({ type: 'downloaded', version: service.version ?? '' })
     })
 

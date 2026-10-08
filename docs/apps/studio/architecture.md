@@ -78,7 +78,7 @@ apps/studio/
     │   │   ├── assistant/   # 端口装配、协议、密钥、审批（Electron 侧接线）
     │   │   ├── capture/     # 截屏服务、结果解析、落盘路径
     │   │   ├── overlay/     # 浮层窗口 + 点击穿透
-    │   │   ├── updater/     # 自动更新（Squirrel feed）
+    │   │   ├── updater/     # 自动更新（electron-updater / latest.yml）
     │   │   ├── window/      # 建窗 / 端口规格表 / 托盘
     │   │   ├── workspace/   # 工作区、路径沙箱、git、技能扫描
     │   │   ├── opencode/    # agent 运行时：spawn + 配置 + 事件 + 变更卡
