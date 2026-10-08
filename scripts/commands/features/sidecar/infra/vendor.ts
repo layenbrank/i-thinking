@@ -34,9 +34,26 @@ function findVendorVersion(vendorDir: string): string | null {
   }
 }
 
-/** 这份缓存认不认：版本对得上、主二进制还在。 */
-function isVendorReady(vendorDir: string, version: string, binary: string): boolean {
-  return findVendorVersion(vendorDir) === version && existsSync(binary)
+/** 这份缓存认不认：版本对得上，且**要用的文件都在**。
+ *
+ * 文件传数组是有意的：包里新增一个伴随二进制（如 corex 的 `corex-mcp`）时，只认主二进制就会在
+ * 已有缓存的机器上「命中」旧目录，新文件怎么也拿不到。
+ */
+function isVendorReady(
+  vendorDir: string,
+  version: string,
+  binaries: string | readonly string[]
+): boolean {
+  if (findVendorVersion(vendorDir) !== version) {
+    return false
+  }
+  return toBinaryList(binaries).every(function (binary) {
+    return existsSync(binary)
+  })
+}
+
+function toBinaryList(binaries: string | readonly string[]): readonly string[] {
+  return typeof binaries === 'string' ? [binaries] : binaries
 }
 
 function writeVendorVersion(vendorDir: string, version: string): void {

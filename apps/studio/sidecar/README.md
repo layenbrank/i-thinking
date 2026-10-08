@@ -15,6 +15,7 @@ pnpm command sidecar bootstrap studio   # 全量落盘（含按需工具；档�
 所以切档不用重跑 bootstrap。精简版里这三个由 Studio 运行时下载到 `<userData>/sidecar/<tool>/<版本>/`。
 
 **corex 不参与按需下载**：它是自研 sidecar，必须随包（档位无关），版本与直链钉在 `tools.lock.json`（直链是自建 R2 镜像）。
+落盘时从同一个归档里取三样：`corex-daemon`、`corex` 与 **`corex-mcp`**（opencode 等按名字拉起的侧车）。
 
 **`manifest.json`** 是这三个工具的**在线包清单**（R2 直链 + sha256 + 解压后要留的文件名），
 宿主构建期内联它、CLI 也能读它核对：

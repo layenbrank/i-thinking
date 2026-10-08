@@ -12,6 +12,8 @@ const CHECKSUMS_FILE = 'checksums.json'
 
 const COREX_CLI = 'corex'
 const COREX_DAEMON = 'corex-daemon'
+/** MCP 侧车（供 opencode 等按名字拉起） */
+const COREX_MCP = 'corex-mcp'
 const GOOSE_BINARY = 'goose'
 const PANDOC_BINARY = 'pandoc'
 const FFMPEG_BINARY = 'ffmpeg'
@@ -21,6 +23,7 @@ export {
   CHECKSUMS_FILE,
   COREX_CLI,
   COREX_DAEMON,
+  COREX_MCP,
   FFMPEG_BINARY,
   GOOSE_BINARY,
   OPENCODE_BINARY,

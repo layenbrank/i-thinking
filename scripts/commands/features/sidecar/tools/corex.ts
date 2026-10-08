@@ -1,7 +1,7 @@
 import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
-import { COREX_CLI, COREX_DAEMON, VENDOR_DIR } from '../infra/constants.ts'
+import { COREX_CLI, COREX_DAEMON, COREX_MCP, VENDOR_DIR } from '../infra/constants.ts'
 import { fetchVerified } from '../infra/download.ts'
 import { extractArchive, findFileInTree } from '../infra/extract.ts'
 import { findToolPin, parseToolsLock } from '../infra/lock.ts'
@@ -22,19 +22,24 @@ function findDaemonBinary(key = findPlatformKey()): string {
   return path.join(findCorexBinDir(key), findBinaryName(COREX_DAEMON))
 }
 
+/** MCP 侧车：opencode 等按名字拉起它，所以得跟着 corex 一起随包 */
+function findMcpBinary(key = findPlatformKey()): string {
+  return path.join(findCorexBinDir(key), findBinaryName(COREX_MCP))
+}
+
 /**
  * 按 tools.lock 把 corex zip 下到缓存 corex/<platform>/bin —— 直链是自建 R2 镜像
  * （corex 是自研 sidecar，不依赖 GitHub releases）。
- * Layout: corex-daemon(.exe), corex(.exe), optional pdfium.dll / *.so
+ * Layout: corex-daemon(.exe), corex(.exe), corex-mcp(.exe), optional pdfium.dll / *.so
  *
- * 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：见 infra/vendor.ts
+ * 缓存命中不是「有文件就算」，而是「有 lock 里那个版本且该有的文件都在」：见 infra/vendor.ts
  */
 async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
   const lock = parseToolsLock()
   const pin = findToolPin(lock.corex, 'corex', key)
   const vendorDir = findCorexVendorDir(key)
   const daemonPath = findDaemonBinary(key)
-  if (isVendorReady(vendorDir, pin.version, daemonPath)) {
+  if (isVendorReady(vendorDir, pin.version, [daemonPath, findMcpBinary(key)])) {
     console.log(`[corex] 缓存命中 ${pin.version} → ${daemonPath}`)
     return daemonPath
   }
@@ -66,6 +71,15 @@ async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
     cpSync(foundCli, path.join(binDir, cliName))
   }
 
+  const mcpName = findBinaryName(COREX_MCP)
+  const foundMcp = findFileInTree(extractDir, mcpName)
+  if (foundMcp) {
+    cpSync(foundMcp, path.join(binDir, mcpName))
+  } else {
+    // 不报错也不静默：归档少它时，判定为「这份缓存没准备好」，下次会重新解压并再提醒一次
+    console.warn(`[corex] 归档里没有 ${mcpName}：opencode 侧要用它时会找不到`)
+  }
+
   const daemonSrcDir = path.dirname(foundDaemon)
   for (const entry of readdirSync(daemonSrcDir)) {
     const lower = entry.toLowerCase()
@@ -81,8 +95,11 @@ async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
 
   if (process.platform !== 'win32') {
     chmodSync(path.join(binDir, daemonName), 0o755)
-    if (foundCli) {
-      chmodSync(path.join(binDir, cliName), 0o755)
+    for (const name of [cliName, mcpName]) {
+      const filePath = path.join(binDir, name)
+      if (existsSync(filePath)) {
+        chmodSync(filePath, 0o755)
+      }
     }
   }
 
@@ -122,5 +139,6 @@ export {
   findCorexBinDir,
   findCorexVendorDir,
   findDaemonBinary,
+  findMcpBinary,
   findCorexRuntimeFiles
 }

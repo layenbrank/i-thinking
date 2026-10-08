@@ -109,7 +109,7 @@ Windows AUMID：`com.squirrel.i-thinking.i-thinking`（与 Maker `name` / exe �
 - 图标：品牌源 `apps/studio/resources/icon.svg` → `pnpm --filter @i-thinking/studio icons` 生成 1024 PNG 与 256 ICO（icns 仅 macOS `iconutil`）；`extraResource` 只收录存在的文件。开发态从 `public/` 或 `resources/` 取。
 - 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
 - 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；corex sidecar **目前仅 win32-x64**，CI 不扩 mac/linux
-- **corex 始终随包**（lock 里**不标** `onDemand`，精简版/完整版都带）：它是自研 sidecar，直链走自建 R2 镜像（corex 自己发布在 [layenbrank/corex](https://github.com/layenbrank/corex)，仓库侧只钉版本与 sha256）
+- **corex 始终随包**（lock 里**不标** `onDemand`，精简版/完整版都带）：它是自研 sidecar，直链走自建 R2 镜像（corex 自己发布在 [layenbrank/corex](https://github.com/layenbrank/corex)，仓库侧只钉版本与 sha256）；同一个归档里取 `corex-daemon`、`corex` 与 `corex-mcp`（后者供 opencode 等按名字拉起）
 - 开发：`pnpm command sidecar bootstrap studio`
 - 冒烟：`pnpm --filter @i-thinking/studio test:pack` 启动 `out/studio/i-thinking-win32-x64/i-thinking.exe`（**不要**跑 Setup.exe）
 - Fuses 见 [security.md](./security.md)；CI：[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)
