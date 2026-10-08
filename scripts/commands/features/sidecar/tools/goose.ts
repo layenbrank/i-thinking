@@ -157,7 +157,7 @@ function listGooseRuntimeFiles(key = findPlatformKey()): string[] {
 }
 
 const GooseTool: ToolStrategy = {
-  id: 'goose',
+  key: 'goose',
   async ensure(platformKey) {
     await ensureGooseVendor(platformKey)
   },

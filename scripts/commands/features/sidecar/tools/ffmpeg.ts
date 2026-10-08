@@ -14,6 +14,9 @@ function findFfmpegVendorDir(key = findPlatformKey()): string {
   return path.join(VENDOR_DIR, 'ffmpeg', key)
 }
 
+/** 归档里要留下的可执行文件（不带扩展名）；findFileNames 与 ensure 共用同一份 */
+const FFMPEG_BINARIES = ['ffmpeg', 'ffprobe', 'ffplay']
+
 function findFfmpegBinDir(key = findPlatformKey()): string {
   return path.join(findFfmpegVendorDir(key), 'bin')
 }
@@ -64,8 +67,11 @@ async function ensureFfmpegVendor(key = findPlatformKey()): Promise<string> {
   cpSync(found, path.join(binDir, ffmpegName))
 
   const srcDir = path.dirname(found)
-  for (const name of ['ffprobe', 'ffplay']) {
+  for (const name of FFMPEG_BINARIES) {
     const fileName = findBinaryName(name)
+    if (fileName === ffmpegName) {
+      continue
+    }
     const candidate = path.join(srcDir, fileName)
     if (existsSync(candidate)) {
       cpSync(candidate, path.join(binDir, fileName))
@@ -104,7 +110,7 @@ function listFfmpegRuntimeFiles(key = findPlatformKey()): string[] {
 }
 
 const FfmpegTool: ToolStrategy = {
-  id: 'ffmpeg',
+  key: 'ffmpeg',
   async ensure(platformKey) {
     await ensureFfmpegVendor(platformKey)
   },
@@ -114,8 +120,8 @@ const FfmpegTool: ToolStrategy = {
 }
 
 export {
-  FfmpegTool,
   ensureFfmpegVendor,
+  FfmpegTool,
   findFfmpegBinary,
   findFfmpegBinDir,
   findFfmpegVendorDir,

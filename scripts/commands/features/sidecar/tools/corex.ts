@@ -23,7 +23,8 @@ function findDaemonBinary(key = findPlatformKey()): string {
 }
 
 /**
- * 按 tools.lock 下载 layenbrank/corex release zip 到缓存 corex/<platform>/bin。
+ * 按 tools.lock 把 corex zip 下到缓存 corex/<platform>/bin —— 直链是自建 R2 镜像
+ * （corex 是自研 sidecar，不依赖 GitHub releases）。
  * Layout: corex-daemon(.exe), corex(.exe), optional pdfium.dll / *.so
  *
  * 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：见 infra/vendor.ts
@@ -91,7 +92,7 @@ async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
   return daemonPath
 }
 
-function listCorexRuntimeFiles(key = findPlatformKey()): string[] {
+function findCorexRuntimeFiles(key = findPlatformKey()): string[] {
   const binDir = findCorexBinDir(key)
   if (!existsSync(binDir)) {
     return []
@@ -106,12 +107,12 @@ function listCorexRuntimeFiles(key = findPlatformKey()): string[] {
 }
 
 const CorexTool: ToolStrategy = {
-  id: 'corex',
+  key: 'corex',
   async ensure(platformKey) {
     await ensureCorexVendor(platformKey)
   },
   findRuntimeFiles(platformKey) {
-    return listCorexRuntimeFiles(platformKey)
+    return findCorexRuntimeFiles(platformKey)
   }
 }
 
@@ -121,5 +122,5 @@ export {
   findCorexBinDir,
   findCorexVendorDir,
   findDaemonBinary,
-  listCorexRuntimeFiles
+  findCorexRuntimeFiles
 }

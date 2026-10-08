@@ -3,11 +3,14 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:f
 import path from 'node:path'
 
 import { PACKAGE_ROOT } from '../constants'
+import { SIDECAR_VARIANT } from '../env'
 
 const CHECKSUMS_FILE = 'checksums.json'
 
 interface StagingChecksums {
   platform: string
+  /** 按需工具文件（由 `pnpm command sidecar stage` 按 tools.lock 写出）：精简版不带它们 */
+  onDemand?: string[]
   files: Record<string, string>
 }
 
@@ -35,6 +38,11 @@ function parseStagingChecksums(key: string): StagingChecksums {
 
 /**
  * 将当前平台 staged 侧车复制到 resources/sidecar，并按本地 checksums.json 校验 SHA-256。
+ *
+ * 档位决定按需工具的去留（见 forge/env.ts 的 SIDECAR_VARIANT）：
+ * - lite：pandoc / ffmpeg / opencode 不复制 —— 它们由 Studio 运行时从在线源下载，
+ *   安装包里带上去只是无谓地大 800 多 MB；
+ * - full：要求它们都在，缺了直接报错（staging 不全，重跑一次 bootstrap）。
  */
 function copyAndVerifySidecars(
   buildPath: string,
@@ -56,10 +64,32 @@ function copyAndVerifySidecars(
     }
 
     const expected = parseStagingChecksums(key)
+    const onDemand = new Set(expected.onDemand ?? [])
     const destDir = path.join(buildPath, '..', 'sidecar')
     mkdirSync(destDir, { recursive: true })
 
-    for (const [fileName, digest] of Object.entries(expected.files)) {
+    const files = Object.entries(expected.files)
+    if (SIDECAR_VARIANT === 'full') {
+      const missing = [...onDemand].filter(function (fileName) {
+        return !expected.files[fileName]
+      })
+      if (missing.length > 0) {
+        done(
+          new Error(
+            `[sidecar] 完整版缺少按需工具：${missing.join(', ')}。` +
+                ' staging 不全：先跑 pnpm command sidecar bootstrap studio'
+          )
+        )
+        return
+      }
+    }
+
+    const skipped: string[] = []
+    for (const [fileName, digest] of files) {
+      if (SIDECAR_VARIANT === 'lite' && onDemand.has(fileName)) {
+        skipped.push(fileName)
+        continue
+      }
       const src = path.join(srcDir, fileName)
       if (!existsSync(src)) {
         done(new Error(`[sidecar] missing staged file: ${src}`))
@@ -75,6 +105,10 @@ function copyAndVerifySidecars(
       cpSync(src, path.join(destDir, fileName))
     }
 
+    console.log(
+      `[forge] 侧车档位 ${SIDECAR_VARIANT}：已复制 ${files.length - skipped.length} 个文件` +
+        (skipped.length > 0 ? `，按需工具不随包：${skipped.join(', ')}` : '')
+    )
     done()
   } catch (error) {
     // 交给 Forge 的 done 之前先出声：构建日志里要留痕

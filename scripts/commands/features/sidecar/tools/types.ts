@@ -1,6 +1,7 @@
 interface ToolStrategy {
-  id: string
-  /** 下载 + 校验 + 解压到缓存 <id>/<platform>/ */
+  /** 工具键（`pandoc` / `ffmpeg` / `opencode` …） */
+  key: string
+  /** 下载 + 校验 + 解压到缓存 <key>/<platform>/ */
   ensure(platformKey: string): Promise<void>
   /** Absolute paths of files that should be copied into staging */
   findRuntimeFiles(platformKey: string): string[]

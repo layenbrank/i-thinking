@@ -69,7 +69,7 @@ function listPandocRuntimeFiles(key = findPlatformKey()): string[] {
 }
 
 const PandocTool: ToolStrategy = {
-  id: 'pandoc',
+  key: 'pandoc',
   async ensure(platformKey) {
     await ensurePandocVendor(platformKey)
   },
@@ -79,9 +79,9 @@ const PandocTool: ToolStrategy = {
 }
 
 export {
-  PandocTool,
   ensurePandocVendor,
   findPandocBinary,
   findPandocVendorDir,
-  listPandocRuntimeFiles
+  listPandocRuntimeFiles,
+  PandocTool
 }

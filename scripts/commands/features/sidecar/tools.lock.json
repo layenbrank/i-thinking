@@ -3,8 +3,8 @@
   "corex": {
     "win32-x64": {
       "version": "13.2.0",
-      "url": "https://github.com/layenbrank/corex/releases/download/v13.2.0/corex-v13.2.0-windows-x64.zip",
-      "sha256": "95c35e3bc28ca8488066fb68852e5836ef14055b4d20f731e81512258138f2c0"
+      "url": "https://pub-a3d2f2e344df4d969a3fdc11157f97fd.r2.dev/corex-v13.2.0-windows-x64.zip",
+      "sha256": "2961ee655a42d675ad7f9bde5eadc21898b582cf8e0bf09a1b3ca84fcb6d7c27"
     }
   },
   "goose": {
@@ -18,51 +18,60 @@
     "win32-x64": {
       "version": "2.0.15",
       "url": "https://opencode.ai/files/bin/2.0.15/opencode-windows-x64.zip",
-      "sha256": "9c5fd842e9b1dc1cbd0bac8073cd1c7f685912bf040d313c3dc01fdbd8f371bf"
+      "sha256": "9c5fd842e9b1dc1cbd0bac8073cd1c7f685912bf040d313c3dc01fdbd8f371bf",
+      "onDemand": true
     },
     "darwin-arm64": {
       "version": "2.0.15",
       "url": "https://opencode.ai/files/bin/2.0.15/opencode-darwin-arm64.zip",
-      "sha256": "4090acfb5a854d8c1c59250b62da8aad9c17872c793e0033c0a55adc3f4739da"
+      "sha256": "4090acfb5a854d8c1c59250b62da8aad9c17872c793e0033c0a55adc3f4739da",
+      "onDemand": true
     },
     "linux-x64": {
       "version": "2.0.15",
       "url": "https://opencode.ai/files/bin/2.0.15/opencode-linux-x64.tar.gz",
-      "sha256": "115b4659141507c5a0942ac23a821e25fadc8397cb4b2770e34072a91222830e"
+      "sha256": "115b4659141507c5a0942ac23a821e25fadc8397cb4b2770e34072a91222830e",
+      "onDemand": true
     }
   },
   "ffmpeg": {
     "win32-x64": {
       "version": "autobuild-2026-09-29-13-10",
       "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-29-13-10/ffmpeg-N-126965-gd85cdd2597-win64-gpl.zip",
-      "sha256": "094eb1636ebe03d940ba2429ed8a0fbf4d0bd1dfccdc4863152c8f33e7a3d489"
+      "sha256": "094eb1636ebe03d940ba2429ed8a0fbf4d0bd1dfccdc4863152c8f33e7a3d489",
+      "onDemand": true
     },
     "linux-x64": {
       "version": "autobuild-2026-09-29-13-10",
       "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-29-13-10/ffmpeg-N-126965-gd85cdd2597-linux64-gpl.tar.xz",
-      "sha256": "25e48c5155a1a7c9b0c76b5f303504f679455ba190fcb1785ae410f6083ba16d"
+      "sha256": "25e48c5155a1a7c9b0c76b5f303504f679455ba190fcb1785ae410f6083ba16d",
+      "onDemand": true
     }
   },
   "pandoc": {
     "win32-x64": {
       "version": "3.6.4",
       "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-windows-x86_64.zip",
-      "sha256": "a9e5feb3d56d2fb0e3e765d1c33b8ee6b72e6963d7de31504edeec8cd1be34b1"
+      "sha256": "a9e5feb3d56d2fb0e3e765d1c33b8ee6b72e6963d7de31504edeec8cd1be34b1",
+      "onDemand": true
     },
     "linux-x64": {
       "version": "3.6.4",
       "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-linux-amd64.tar.gz",
-      "sha256": "5def6e1ff535e397becce292ee97767a947306150b9fb1488003b67ac3417c5e"
+      "sha256": "5def6e1ff535e397becce292ee97767a947306150b9fb1488003b67ac3417c5e",
+      "onDemand": true
     },
     "darwin-arm64": {
       "version": "3.6.4",
       "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-arm64-macOS.zip",
-      "sha256": "88af17f1885afacb25f70ce4c8c44428feb6da860b6cf690e30da77998456c7f"
+      "sha256": "88af17f1885afacb25f70ce4c8c44428feb6da860b6cf690e30da77998456c7f",
+      "onDemand": true
     },
     "darwin-x64": {
       "version": "3.6.4",
       "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-x86_64-macOS.zip",
-      "sha256": "35789fb4afc61266b954035059820dd546b10d8f05fef36a8deadffaedffc2b8"
+      "sha256": "35789fb4afc61266b954035059820dd546b10d8f05fef36a8deadffaedffc2b8",
+      "onDemand": true
     }
   }
 }

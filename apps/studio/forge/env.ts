@@ -2,6 +2,19 @@
 
 const TRUE = /^(1|true|yes|on)$/i
 
+/**
+ * 侧车档位：
+ * - `lite`（默认）：pandoc / ffmpeg / opencode 不进安装包，由 Studio 运行时从在线源下载；
+ * - `full`：全部侧车内置，离线可用。
+ *
+ * 用 `apps/studio/scripts/run-forge.mjs` 跑打包（`pnpm --filter @i-thinking/studio make:full`）。
+ */
+type SidecarVariant = 'lite' | 'full'
+
+function parseVariant(raw: string | undefined): SidecarVariant {
+  return raw?.trim().toLowerCase() === 'full' ? 'full' : 'lite'
+}
+
 function isEnabled(name: string): boolean {
   return TRUE.test(process.env[name] ?? '')
 }
@@ -38,8 +51,7 @@ const WINDOWS_CERTIFICATE_SUBJECT = findEnv('WINDOWS_CERTIFICATE_SUBJECT')
 
 const OSX_SIGN = isEnabled('STUDIO_OSX_SIGN') || Boolean(findEnv('APPLE_IDENTITY'))
 const APPLE_ID = findEnv('APPLE_ID')
-const APPLE_ID_PASSWORD =
-  findEnv('APPLE_APP_SPECIFIC_PASSWORD') ?? findEnv('APPLE_PASSWORD')
+const APPLE_ID_PASSWORD = findEnv('APPLE_APP_SPECIFIC_PASSWORD') ?? findEnv('APPLE_PASSWORD')
 const APPLE_TEAM_ID = findEnv('APPLE_TEAM_ID')
 const OSX_NOTARIZE = Boolean(APPLE_ID && APPLE_ID_PASSWORD && APPLE_TEAM_ID)
 
@@ -49,13 +61,17 @@ const UPDATE_URL = findEnv('STUDIO_UPDATE_URL')
 const MSIX_PUBLISHER = findEnv('STUDIO_MSIX_PUBLISHER') ?? 'CN=i-thinking'
 const MSIX_IDENTITY = findEnv('STUDIO_MSIX_IDENTITY') ?? 'i-thinking.studio'
 
+const SIDECAR_VARIANT = parseVariant(process.env.STUDIO_SIDECAR_VARIANT)
+
 export {
   APPLE_ID,
   APPLE_ID_PASSWORD,
   APPLE_TEAM_ID,
+  findEnv,
   GITHUB_OWNER,
   GITHUB_REPO,
   GITHUB_TOKEN,
+  isEnabled,
   MAKE_FLATPAK,
   MAKE_MSIX,
   MAKE_PKG,
@@ -71,10 +87,10 @@ export {
   S3_PUBLIC,
   S3_REGION,
   S3_UPDATE_BASE,
+  SIDECAR_VARIANT,
   UPDATE_URL,
   WINDOWS_CERTIFICATE_FILE,
   WINDOWS_CERTIFICATE_PASSWORD,
-  WINDOWS_CERTIFICATE_SUBJECT,
-  findEnv,
-  isEnabled
+  WINDOWS_CERTIFICATE_SUBJECT
 }
+export type { SidecarVariant }

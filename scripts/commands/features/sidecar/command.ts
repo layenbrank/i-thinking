@@ -1,14 +1,15 @@
 import { Command } from 'commander'
 
-import type { CommandModule } from '../../core/registry.ts'
 import { logger } from '../../core/logger.ts'
 import { hasTty, promptSelect } from '../../core/prompt.ts'
-import { TOOLS } from './tools/catalog.ts'
+import type { CommandModule } from '../../core/registry.ts'
 import { findLockPins, hasToolPin, parseToolsLock } from './infra/lock.ts'
+import { findOnlineTools, verifyOnlineTool } from './infra/manifest.ts'
 import { findPlatformKey } from './infra/platform.ts'
-import { stageVendoredTools } from './infra/stage.ts'
+import { hasTool, stageVendoredTools } from './infra/stage.ts'
 import { verifyStagedDir } from './infra/verify.ts'
 import { TARGETS, findTarget, targetKeys } from './targets/catalog.ts'
+import { TOOLS } from './tools/catalog.ts'
 
 function findAppKeysText(): string {
   return targetKeys().join('|')
@@ -38,20 +39,20 @@ async function parseApp(positional?: string, optionApp?: string): Promise<string
   )
 }
 
-async function ensureTool(toolId: string): Promise<void> {
-  const tool = TOOLS[toolId]
+async function ensureTool(toolKey: string): Promise<void> {
+  const tool = TOOLS[toolKey]
   if (!tool) {
-    throw new Error(`[sidecar] 未知工具: ${toolId}`)
+    throw new Error(`[sidecar] 未知工具: ${toolKey}`)
   }
   await tool.ensure(findPlatformKey())
 }
 
-function isRequiredTool(toolId: string, app: string): boolean {
-  if (toolId === 'corex') {
+function isRequiredTool(toolKey: string, app: string): boolean {
+  if (toolKey === 'corex') {
     return true
   }
   // client 依赖 goose ACP sidecar
-  return app === 'client' && toolId === 'goose'
+  return app === 'client' && toolKey === 'goose'
 }
 
 async function runBootstrap(app: string): Promise<void> {
@@ -60,10 +61,14 @@ async function runBootstrap(app: string): Promise<void> {
   const target = findTarget(app)
 
   for (const tool of Object.values(TOOLS)) {
-    const pins = findLockPins(lock, tool.id)
+    if (!hasTool(target, tool.key)) {
+      console.log(`[sidecar] 跳过 ${tool.key}（${app} 用不到）`)
+      continue
+    }
+    const pins = findLockPins(lock, tool.key)
     if (!pins || !hasToolPin(pins, key)) {
-      if (isRequiredTool(tool.id, app)) {
-        throw new Error(`[sidecar] 当前平台无 ${tool.id} 钉死版本: ${key}（应用=${app}）`)
+      if (isRequiredTool(tool.key, app)) {
+        throw new Error(`[sidecar] 当前平台无 ${tool.key} 钉死版本: ${key}（应用=${app}）`)
       }
       continue
     }
@@ -77,7 +82,7 @@ async function runBootstrap(app: string): Promise<void> {
 
 async function runStage(app: string): Promise<void> {
   const target = findTarget(app)
-  await stageVendoredTools(target)
+  await stageVendoredTools(target, findPlatformKey())
 }
 
 async function runVerify(app: string): Promise<void> {
@@ -114,8 +119,13 @@ const SidecarCommand: CommandModule = {
       .addHelpText(
         'after',
         `
+按需工具（tools.lock 里标 onDemand 的：pandoc / ffmpeg / opencode）一并落盘；
+「带不带进安装包」是打包侧的事（studio 的 SIDECAR_VARIANT，默认精简版），
+所以切档不用重跑 bootstrap。在线包清单见 apps/studio/sidecar/manifest.json。
+
 示例:
   pnpm command sidecar bootstrap studio
+  pnpm command sidecar manifest --verify
   pnpm command sidecar bootstrap client
   pnpm sidecar stage studio
   pnpm command sidecar verify client
@@ -129,12 +139,36 @@ const SidecarCommand: CommandModule = {
     registerAppAction(sidecar, 'stage', '将已缓存工具拷贝到应用目录', runStage)
     registerAppAction(sidecar, 'verify', '校验落盘目录校验和', runVerify)
 
-    for (const toolId of Object.keys(TOOLS)) {
+    sidecar
+      .command('manifest')
+      .description('在线包清单（studio 的 manifest.json）：打印当前平台声明，可选下载核对')
+      .option('--verify', '真的下载并核 sha256（几十 ~ 几百 MB，缓存命中时不走网络）')
+      .action(async function (opts: { verify?: boolean }) {
+        const key = findPlatformKey()
+        const tools = findOnlineTools(key)
+        if (tools.length === 0) {
+          console.log(`[manifest] ${key} 没有声明任何在线包（精简版在这台机器上无法下载工具）`)
+          return
+        }
+        for (const item of tools) {
+          console.log(`[manifest] ${item.key} ${item.tool.version} → ${item.package.url}`)
+        }
+        if (!opts.verify) {
+          console.log('[manifest] 加上 --verify 可以下载并核对 sha256')
+          return
+        }
+        for (const item of tools) {
+          await verifyOnlineTool(item.key, item.package, key)
+        }
+        logger.success(`[manifest] ${key} 的 ${tools.length} 个在线包均与 manifest 一致`)
+      })
+
+    for (const toolKey of Object.keys(TOOLS)) {
       sidecar
-        .command(toolId)
-        .description(`仅确保 ${toolId} 进入共享下载缓存`)
+        .command(toolKey)
+        .description(`仅确保 ${toolKey} 进入共享下载缓存`)
         .action(async function () {
-          await ensureTool(toolId)
+          await ensureTool(toolKey)
         })
     }
   }

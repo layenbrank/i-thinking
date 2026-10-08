@@ -7,6 +7,13 @@ interface ToolPin {
   version: string
   url: string
   sha256: string
+  /**
+   * true = **按需工具**：这份 pin 是「完整版内置」那条路的归档（GitHub release）。
+   *
+   * 落盘一律落（`stage` 不看档位）；精简版打包时由 forge 按 staging 的 `checksums.json.onDemand`
+   * 排除它们，改由 Studio 运行时从在线源下载（见 `apps/studio/sidecar/manifest.json`）。
+   */
+  onDemand?: boolean
 }
 
 interface ToolsLock {
@@ -32,25 +39,25 @@ function parseToolsLock(filePath = TOOLS_LOCK_PATH): ToolsLock {
   return parsed
 }
 
-function findLockPins(lock: ToolsLock, toolId: string): Record<string, ToolPin> | undefined {
-  const pinsById: Record<string, Record<string, ToolPin> | undefined> = {
+function findLockPins(lock: ToolsLock, toolKey: string): Record<string, ToolPin> | undefined {
+  const pinsByTool: Record<string, Record<string, ToolPin> | undefined> = {
     corex: lock.corex,
     ffmpeg: lock.ffmpeg,
     goose: lock.goose,
     opencode: lock.opencode,
     pandoc: lock.pandoc
   }
-  return pinsById[toolId]
+  return pinsByTool[toolKey]
 }
 
 function findToolPin(
   pins: Record<string, ToolPin>,
-  tool: string,
+  toolKey: string,
   key = findPlatformKey()
 ): ToolPin {
   const pin = pins[key]
   if (!pin) {
-    throw new Error(`[tools-lock] 无 ${tool} 钉死版本: ${key}`)
+    throw new Error(`[tools-lock] 无 ${toolKey} 钉死版本: ${key}`)
   }
   return pin
 }
@@ -59,5 +66,10 @@ function hasToolPin(pins: Record<string, ToolPin>, key = findPlatformKey()): boo
   return Boolean(pins[key])
 }
 
+/** 这个工具在当前平台是否「按需」（不进安装包，运行时在线下载） */
+function isOnDemandPin(pins: Record<string, ToolPin>, key = findPlatformKey()): boolean {
+  return Boolean(pins[key]?.onDemand)
+}
+
+export { findLockPins, findToolPin, hasToolPin, isOnDemandPin, parseToolsLock }
 export type { ToolPin, ToolsLock }
-export { findLockPins, findToolPin, hasToolPin, parseToolsLock }

@@ -1,5 +1,5 @@
-import { chmodSync, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { chmodSync, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import { OPENCODE_BINARY, VENDOR_DIR } from '../infra/constants.ts'
@@ -155,7 +155,7 @@ function listOpencodeRuntimeFiles(key = findPlatformKey()): string[] {
 }
 
 const OpencodeTool: ToolStrategy = {
-  id: 'opencode',
+  key: 'opencode',
   async ensure(platformKey) {
     await ensureOpencodeVendor(platformKey)
   },
@@ -165,10 +165,10 @@ const OpencodeTool: ToolStrategy = {
 }
 
 export {
-  OpencodeTool,
   ensureOpencodeVendor,
-  findOpencodeBinDir,
   findOpencodeBinary,
+  findOpencodeBinDir,
   findOpencodeVendorDir,
-  listOpencodeRuntimeFiles
+  listOpencodeRuntimeFiles,
+  OpencodeTool
 }

@@ -27,12 +27,20 @@
 
 ```bash
 pnpm --filter @i-thinking/studio dev
-pnpm command sidecar bootstrap studio
+pnpm command sidecar bootstrap studio            # 全量落盘（档位不在这里决定）
 pnpm --filter @i-thinking/studio package
+pnpm --filter @i-thinking/studio package:full
 pnpm --filter @i-thinking/studio make
+pnpm --filter @i-thinking/studio make:full
 # 发版（需开启 publishers 环境变量）
 pnpm --filter @i-thinking/studio publish
 ```
+
+**两档产物：** `package` / `make` / `publish` 默认 **精简版（lite）** —— pandoc / ffmpeg / opencode
+不进安装包，由 Studio 运行时在线下载（见 [development.md](./development.md#两档产物精简版--完整版)）；
+`*:full` 内置全部侧车。**档位只有这一个决策点**（`apps/studio/scripts/run-forge.mjs` 把它作为
+`STUDIO_SIDECAR_VARIANT` 传入 `forge/env.ts`，过滤发生在 `forge/hooks/sidecar.ts`，依据是 staging 的
+`checksums.json.onDemand`）；落盘那一步一律全量，所以切档不用重跑 bootstrap。
 
 **Windows：** 打包配置 `tmpdir: false`，直接在 `out/studio/` 构建，不经过临时目录中转。`@electron/packager` 已通过 pnpm patch 将内部 `fs.rename` / `fs.move` 替换为 `fs.copy` + `fs.remove`，避免独占文件句柄，兼容火绒等第三方杀软。打包前会自动：
 
@@ -101,7 +109,7 @@ Windows AUMID：`com.squirrel.i-thinking.i-thinking`（与 Maker `name` / exe �
 - 图标：品牌源 `apps/studio/resources/icon.svg` → `pnpm --filter @i-thinking/studio icons` 生成 1024 PNG 与 256 ICO（icns 仅 macOS `iconutil`）；`extraResource` 只收录存在的文件。开发态从 `public/` 或 `resources/` 取。
 - 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
 - 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；corex sidecar **目前仅 win32-x64**，CI 不扩 mac/linux
-- **corex** 来自 [layenbrank/corex releases](https://github.com/layenbrank/corex/releases)
+- **corex 始终随包**（lock 里**不标** `onDemand`，精简版/完整版都带）：它是自研 sidecar，直链走自建 R2 镜像（corex 自己发布在 [layenbrank/corex](https://github.com/layenbrank/corex)，仓库侧只钉版本与 sha256）
 - 开发：`pnpm command sidecar bootstrap studio`
 - 冒烟：`pnpm --filter @i-thinking/studio test:pack` 启动 `out/studio/i-thinking-win32-x64/i-thinking.exe`（**不要**跑 Setup.exe）
 - Fuses 见 [security.md](./security.md)；CI：[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)

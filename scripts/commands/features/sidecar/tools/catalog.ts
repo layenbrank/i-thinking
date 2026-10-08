@@ -15,9 +15,9 @@ const TOOLS: Record<string, ToolStrategy> = {
   pandoc: PandocTool
 }
 
-function findTool(id: string): ToolStrategy {
-  const tool = TOOLS[id]
-  if (!tool) throw new Error(`[tools] 未知工具: ${id}`)
+function findTool(key: string): ToolStrategy {
+  const tool = TOOLS[key]
+  if (!tool) throw new Error(`[tools] 未知工具: ${key}`)
 
   return tool
 }

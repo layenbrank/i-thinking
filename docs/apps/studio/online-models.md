@@ -3,7 +3,7 @@
 > **文档状态**：§1–6 是 P0 期的调研与计划记录（openCode v2 / Effect 路线，尚未落地，部分结论未采用）；
 > **已落地的事实以 §7 为准** —— 对话链路只有一条，agent 运行由 studio 内嵌的
 > [`opencode serve`](../../../apps/studio/src/host/capabilities/opencode/engine.ts) 承担
-> （主进程 [`host/capabilities/assistant.ts`](../../../apps/studio/src/host/capabilities/assistant.ts) 只做 Electron 装配），
+> （主进程 [`host/capabilities/assistant/index.ts`](../../../apps/studio/src/host/capabilities/assistant/index.ts) 只做 Electron 装配），
 > `packages/agent` 是**契约包**（类型 + 归一函数），不是运行时。
 
 > 关联实施计划：`C:\Users\MACHENIKE\.qoder-cn\plans\solemn-shore-quail.md`
@@ -99,7 +99,7 @@ Effect 在 agent 运行时里承担：依赖注入（Provider/Config 作环境�
   与目录一致就不写库；网关不可用时返回 null、不落库。设置页对它是**只读**的。
   目录请求走渲染层 HTTP 客户端，会自动带上 `X-Tenant-ID`（见 §7.4）—— 早期版本**从不发这个头**，
   服务端只能按身份兜底，团队共享的模型会整批看不见。
-- **凭据分派**：[`host/capabilities/assistant-model.ts`](../../../apps/studio/src/host/capabilities/assistant-model.ts)
+- **凭据分派**：[`host/capabilities/assistant/model.ts`](../../../apps/studio/src/host/capabilities/assistant/model.ts)
   的 `resolveConnection` 是唯一分派点 —— `kind === 'gateway'` 用当前登录令牌（渲染进程经 `host.platformToken`
   传，≤4096 字符，不进钥匙串），并附带 `X-Tenant-ID`（配额归属，见 §7.4）；其余 provider 用 safeStorage
   里按 providerID 存的 BYOK 密钥。凭据最终写进 opencode 的 `provider.<id>` 配置，经
@@ -130,7 +130,7 @@ Effect 在 agent 运行时里承担：依赖注入（Provider/Config 作环境�
   provider 请求里，所以「把 `msg` 挖出来」这一步在 studio 侧有两处兜底：
   [`opencode/events.ts`](../../../apps/studio/src/host/capabilities/opencode/events.ts) 的 `describeOpencodeError`
   从错误报文里截出 JSON 信封取 `msg`（opencode 会把整段信封塞进错误消息）；
-  [`host/capabilities/assistant-protocol.ts`](../../../apps/studio/src/host/capabilities/assistant-protocol.ts) 的
+  [`host/capabilities/assistant/protocol.ts`](../../../apps/studio/src/host/capabilities/assistant/protocol.ts) 的
   `findErrorMessage` 再补一句可操作的提示（如配额触顶时指向「设置 → 额度」）。
 
 服务端前提：`/gateway/models` 至少要有一条可路由的 `enabled` 模型（`auto` 排首位，但它本身需要候选），
@@ -171,7 +171,7 @@ sea-orm `fetch_page` 是 0 起的，之前少了 `-1`，导致 `count` 有值而
 | ---------------------------------------------- | ----------------------------------------------------------- | ------------------- |
 | 渲染层（`views/agent`、`features/chat`）       | 对话 UI、模型选择器、审批弹窗、变更卡、额度页               | 不碰任何 agent 循环 |
 | 端口（`features/chat/port/*`）                 | 把 UI 意图翻成端口消息，`MessagePort` 回传事件              | 不认识 opencode     |
-| 主进程装配（`host/capabilities/assistant.ts`） | 只做 Electron 侧接线：密钥库、IPC、MessagePort              | 不实现运行时        |
+| 主进程装配（`host/capabilities/assistant/index.ts`） | 只做 Electron 侧接线：密钥库、IPC、MessagePort              | 不实现运行时        |
 | 运行时（`host/capabilities/opencode/*`）       | 内嵌 `opencode serve` + SDK：循环、工具、压缩、快照、子任务 | 不管登录/计费       |
 
 **进程与配置**
@@ -264,7 +264,7 @@ sea-orm `fetch_page` 是 0 起的，之前少了 `-1`，导致 `count` 有值而
 
 **工作目录与多根**
 
-- 工作区与磁盘目录的解析**只有一处**：[`workspace.ts`](../../../apps/studio/src/host/capabilities/workspace.ts)
+- 工作区与磁盘目录的解析**只有一处**：[`workspace/index.ts`](../../../apps/studio/src/host/capabilities/workspace/index.ts)
   的 `resolveWorkspaceTarget` / `resolveWorkspaceID`（未归档工作区 + 第一个存在的根 = 运行目录）。
   落库（`chat.ts`）与运行（`engine.ts`）都读它，渲染层传来的 null / 悬空 id 不再直接撞数据库外键、
   也不会再被当成 opencode 的 `directory`。
@@ -318,7 +318,7 @@ sea-orm `fetch_page` 是 0 起的，之前少了 `-1`，导致 `count` 有值而
     值缓存放 `utils/` 是为了避开 `apis/* → http.ts` 的循环引用）。
   - agent 运行链路：渲染层 `syncActiveTenant()`
     → `port/model.ts` 的 `findTarget`（发送链路里唯一的异步节点）→ `port/instance.ts`
-    → `assistant-protocol` 的 `host.tenantID` → `assistant-model.resolveConnection` 产出
+    → `assistant/protocol` 的 `host.tenantID` → `assistant/model.resolveConnection` 产出
     `headers: { 'X-Tenant-ID': … }` → `opencode/config.ts` 写进 `provider.<id>.options.headers`
     → opencode 原样透传给上游（**已实测**：只打 `/chat/completions`，不打 `/models`）。
     租户头只给平台网关；本机 BYOK provider 与第三方域名都不写（`Authorization` 同样只发自家接口）。
