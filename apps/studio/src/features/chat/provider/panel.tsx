@@ -257,7 +257,7 @@ function ProviderPanel() {
         onOpenChange={function (open) {
           if (!open) closeForm()
         }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? '更新 API Key' : '添加模型'}</DialogTitle>
             <DialogDescription>

@@ -1,13 +1,11 @@
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties } from 'react'
-import { useContext } from 'react'
 
 import type { SectionProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import { MagneticTile, OverlayContext } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from './navigation.module.scss'
 
 import Marker from './marker.tsx'
-import Overlay from './overlay.tsx'
 import { useMirrorStore } from '@/stores/mirror'
 
 interface NavigationProps extends Omit<SectionProps, 'children'> {
@@ -16,11 +14,8 @@ interface NavigationProps extends Omit<SectionProps, 'children'> {
   onPrevent?: React.MouseEventHandler<HTMLDivElement>
 }
 
+/** 导航磁贴：双击经 SIDE_CHANNELS.navigation → window.open（系统浏览器）。 */
 export default function Navigation(props: NavigationProps) {
-  const { renderable } = useContext(OverlayContext)
-  const cache = props.cache ?? 'destroy'
-  const isRenderOverlay = renderable
-
   function onTrash() {
     void useMirrorStore
       .getState()
@@ -42,14 +37,6 @@ export default function Navigation(props: NavigationProps) {
         mark={props.mark}
         title={props.title}
       />
-      {isRenderOverlay ? (
-        <Overlay
-          cache={cache}
-          onAbort={props.onAbort}
-          abortTimeoutMs={props.abortTimeoutMs}
-          url={props.url}
-        />
-      ) : null}
     </MagneticTile.Section>
   )
 }

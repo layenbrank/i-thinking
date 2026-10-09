@@ -41,8 +41,9 @@
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.508 0.118 165.612);
   --success-foreground: oklch(0.985 0 0);
-  --border: oklch(0.925 0.005 214.3);
-  --input: oklch(0.925 0.005 214.3);
+  /* 略加深：浅色白底上边框可读（企业级对比），仍保持中性冷灰 */
+  --border: oklch(0.88 0.006 214.3);
+  --input: oklch(0.88 0.006 214.3);
   --ring: oklch(0.723 0.014 214.4);
   /*
    * 终端面板（命令输出 / Code Mode / diff）恒深色 —— 一块「暗色孤岛」，
@@ -243,6 +244,23 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /*
+   * 可点击控件统一手型光标（企业级默认）。
+   * 禁用态由各组件 `disabled:` / `data-disabled:` 覆盖为 not-allowed 或 pointer-events-none。
+   */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not([data-disabled]):not([aria-disabled='true']),
+  [role='option']:not([data-disabled]):not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  [role='switch']:not([data-disabled]):not([aria-disabled='true']),
+  [role='checkbox']:not([data-disabled]):not([aria-disabled='true']),
+  [role='radio']:not([data-disabled]):not([aria-disabled='true']),
+  [role='combobox']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
   }
 }
 

@@ -9,8 +9,7 @@ import Marker from './marker.tsx'
 type Props = Omit<SectionProps, 'children'>
 
 /**
- * 指令磁贴：双击经 magnetic-tile 的侧通道（`itc.window.toOpen({ key: 'directive' })`）打开
- * 独立窗口（`/directive`），不再走 Overlay 弹框。
+ * 指令磁贴：双击经侧通道 `itc.window.toOpen({ key: 'directive' })` 打开独立窗口（`/directive`）。
  */
 export default function Directive(props: Props) {
   function onTrash() {

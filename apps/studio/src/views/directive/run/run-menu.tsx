@@ -118,7 +118,6 @@ function RunMenu(props: RunMenuProps) {
     <div className="inline-flex items-stretch">
       <Button
         type="button"
-        size="sm"
         className={cn(
           'cursor-pointer rounded-full rounded-r-none px-3.5 shadow-xs',
           props.className
@@ -128,10 +127,7 @@ function RunMenu(props: RunMenuProps) {
         onClick={function () {
           void props.onOnce()
         }}>
-        <Glyph
-          icon="mdi:play"
-          className="size-4"
-        />
+        <Glyph icon="mdi:play" />
         运行
       </Button>
       <DropdownMenu
@@ -144,17 +140,13 @@ function RunMenu(props: RunMenuProps) {
           render={
             <Button
               type="button"
-              size="sm"
               disabled={isDisabled || guard.isBusy}
-              className="cursor-pointer rounded-full rounded-l-none border-l border-primary-foreground/20 px-2 shadow-xs"
+              className="cursor-pointer rounded-full rounded-l-none border-l border-primary-foreground/20 px-2.5 shadow-xs"
               aria-label="选择运行方式"
               title="选择运行方式"
             />
           }>
-          <Glyph
-            icon="mdi:chevron-down"
-            className="size-4"
-          />
+          <Glyph icon="mdi:chevron-down" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"

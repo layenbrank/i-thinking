@@ -14,7 +14,13 @@ export default function Marker(props: Props) {
       direction={props.direction}
       shape={props.shape}
       className={clsx([styles.marker, styles[`lv${props.size}`]])}>
-      <Avatar className={clsx(styles.avatar, props.shape !== 'circle' && styles.square)}>
+      <Avatar
+        className={clsx(
+          // design Avatar 默认 after 描边；磁贴只要色块/字母，不要环
+          'after:hidden',
+          styles.avatar,
+          props.shape !== 'circle' && styles.square
+        )}>
         <AvatarFallback className={styles.fallback}>{label}</AvatarFallback>
       </Avatar>
     </MagneticTile.Marker>

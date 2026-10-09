@@ -58,24 +58,26 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
-  keepMounted,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
-  /** 透传给 Portal：关闭后仍留在 DOM（iframe 这类内容不该被卸载重载） */
-  keepMounted?: boolean
 }) {
   return (
-    <DialogPortal keepMounted={keepMounted}>
+    <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          // 圆角裁切在外壳；滚动放内层，避免滚动条画出 rounded 外沿
+          'fixed top-1/2 left-1/2 z-50 flex w-full max-h-[min(85vh,40rem)] max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
           className
         )}
         {...props}>
-        {children}
+        <div
+          data-slot="dialog-body"
+          className="flex min-h-0 flex-1 flex-col gap-[inherit] overflow-y-auto">
+          {children}
+        </div>
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"

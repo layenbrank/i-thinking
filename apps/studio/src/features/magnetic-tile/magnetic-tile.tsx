@@ -2,20 +2,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/comp
 import { clsx, type ClassValue } from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
-import { Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Enter, ENTER } from './enter'
 import { useEnter } from './enter-context'
 import styles from './magnetic-tile.module.scss'
-import {
-  Overlay,
-  OverlayProvider,
-  type Cache,
-  type OverlayControlProps,
-  type OverlayMode,
-  type OverlayProps
-} from './overlay'
-import { OverlayContext } from './overlay-context'
 import { buildSurfaceStyle } from './surface-style'
 
 interface SectionProps extends MagneticTile {
@@ -26,9 +17,6 @@ interface SectionProps extends MagneticTile {
   shape: MagneticTile.Shape
   direction: MagneticTile.Direction
   onTrash?: MouseEventHandler<HTMLElement>
-  cache?: Cache
-  onAbort?: () => Promise<void>
-  abortTimeoutMs?: number
 }
 
 interface MarkerProps {
@@ -60,15 +48,15 @@ interface MagneticTileSuspenseProps extends SkeletonProps {
 
 type ActivateCtx = {
   tile: Pick<MagneticTile, 'component' | 'url'>
-  present: () => void
 }
 
 type ActivateFn = (ctx: ActivateCtx) => void | Promise<void>
 
 /**
- * 双击侧通道：未登记组件默认 present Overlay。
- * Overlay 蒙层隔离交互，不 pause Mirror 滚动景深。
- * navigation：经 window.open → 由 security 的 setWindowOpenHandler 交系统默认浏览器打开。
+ * 双击侧通道：全部磁贴走独立窗口 / 系统浏览器。
+ * - navigation → window.open（security setWindowOpenHandler → 默认浏览器）
+ * - intelligence / directive → itc.window.toOpen
+ * - capture → capture:open（截屏浮层窗）
  */
 const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
   navigation(ctx) {
@@ -81,22 +69,21 @@ const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
   async directive() {
     await itc.window.toOpen({ key: 'directive' })
   },
-  /** 截屏磁贴：双击走 capture:open（浮层截屏），不 present 配置 Overlay */
   async capture() {
     await window.itc.capture.open()
   }
 }
 
-function activateTile(tile: Pick<MagneticTile, 'component' | 'url'>, present: () => void) {
+function activateTile(tile: Pick<MagneticTile, 'component' | 'url'>) {
   const channel = SIDE_CHANNELS[tile.component]
-  if (channel) {
-    void Promise.resolve(channel({ tile, present })).catch(function (error) {
-      console.error('[magnetic-tile] 侧通道激活失败', error)
-    })
+  if (!channel) {
+    console.warn('[magnetic-tile] 未登记窗口通道，忽略双击', tile.component)
     return
   }
 
-  present()
+  void Promise.resolve(channel({ tile })).catch(function (error) {
+    console.error('[magnetic-tile] 窗口通道激活失败', error)
+  })
 }
 
 const MagneticTile = {
@@ -149,12 +136,10 @@ const MagneticTile = {
     )
   },
 
-  Overlay,
   Section(props: SectionProps) {
     const nodeRef = useRef<HTMLDivElement>(null)
     // 默认近视口，避免首屏先空 surface 再挂 Marker 闪一下
     const [isNear, setIsNear] = useState(true)
-    const { visible, onUpdateVisible } = useContext(OverlayContext)
     const enter = useEnter()
     const isReducedMotion = useReducedMotion()
     const isEnter = enter.isActive
@@ -205,13 +190,9 @@ const MagneticTile = {
       <div
         ref={nodeRef}
         onDoubleClick={function () {
-          activateTile(props, function () {
-            onUpdateVisible(true)
-          })
+          activateTile(props)
         }}
         data-id={props.id}
-        // 仅 Sortable filter 禁拖；与 Mirror 滚动景深零耦合
-        data-overlay-open={visible ? 'true' : undefined}
         className={clsx([
           'magnetic-tile',
           styles.magneticTile,
@@ -256,6 +237,6 @@ const MagneticTile = {
   }
 }
 
-export { MagneticTile, OverlayContext, OverlayProvider }
+export { MagneticTile }
 
-export type { Cache, MarkerProps, OverlayControlProps, OverlayMode, OverlayProps, SectionProps }
+export type { MarkerProps, SectionProps }

@@ -161,7 +161,9 @@ function ProviderForm(props: ProviderFormProps) {
                     form.setValue('models', patch.models)
                   }}>
                   <FormControl>
-                    <SelectTrigger aria-label="Provider">
+                    <SelectTrigger
+                      className="w-full"
+                      aria-label="Provider">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>

@@ -9,7 +9,7 @@ import { bindSortable, reorder, type SortableSession } from '@/features/controll
 import { Reflection } from './reflection.tsx'
 import { buildItems } from '@/features/magnetic-tile/layout-items'
 import { CLASS_NAMES } from '@/features/magnetic-tile/layout-menu'
-import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import { useMirrorStore } from '@/stores/mirror'
 
 interface MirrorProps {
@@ -126,9 +126,7 @@ const Controller = {
                   size={value.size}
                   shape={value.shape}
                   direction={value.direction}>
-                  <OverlayProvider magneticTileID={value.id}>
-                    <Component {...value} />
-                  </OverlayProvider>
+                  <Component {...value} />
                 </MagneticTile.Suspense>
               </MagneticTile.Enter>
             )

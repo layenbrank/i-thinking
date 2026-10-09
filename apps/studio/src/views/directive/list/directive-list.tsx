@@ -51,7 +51,7 @@ function DirectiveList(props: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col border-r bg-background">
       <header className="flex h-12 shrink-0 items-center gap-1.5 border-b px-3">
-        <h2 className="flex shrink-0 items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+        <h2 className="flex shrink-0 items-center gap-1.5 text-sm font-semibold tracking-wide text-muted-foreground">
           <Icon
             icon="mdi:file-document-multiple-outline"
             className="size-4"
@@ -66,7 +66,7 @@ function DirectiveList(props: Props) {
           <Button
             type="button"
             variant="outline"
-            size="xs"
+            size="sm"
             aria-label="新增指令"
             title="新增指令"
             onClick={function () {
@@ -87,7 +87,7 @@ function DirectiveList(props: Props) {
           <Button
             type="button"
             variant="ghost"
-            size="icon-xs"
+            size="icon-sm"
             aria-label="重新读取指令目录"
             title="重新读取指令目录"
             onClick={function () {

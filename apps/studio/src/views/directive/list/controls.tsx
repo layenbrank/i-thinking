@@ -102,7 +102,7 @@ function DirectiveMarkAllRead(props: MarkReadProps) {
     <Button
       type="button"
       variant="ghost"
-      size="icon-xs"
+      size="icon-sm"
       className={cn('text-muted-foreground hover:text-primary', props.className)}
       aria-label={`把 ${props.names.length} 条指令标为已读`}
       title={`把 ${props.names.length} 条指令标为已读`}
@@ -176,7 +176,7 @@ function DirectiveImport(props: ImportProps) {
             <Button
               type="button"
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               className={props.className}
               aria-label="导入 YAML"
               title="导入 YAML">

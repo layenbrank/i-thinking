@@ -3,7 +3,7 @@
  *
  * - delay 后 onChoose：不 pause 滚动
  * - 真实拖拽 onStart 才 pause；仅曾拖动时 onEnd 才 resume
- * - overlay / skeleton 禁拖；入场由 Motion 拥有，不与 gsap 抢 surface
+ * - skeleton 禁拖；入场由 Motion 拥有，不与 gsap 抢 surface
  */
 import Sortable from 'sortablejs'
 
@@ -33,8 +33,7 @@ type SortableSession = {
 function isDragBlocked(target: HTMLElement | null | undefined, isDisabled?: () => boolean) {
   if (isDisabled?.()) return true
   if (!target) return true
-  if (target.closest('.magnetic-tile-skeleton')) return true
-  return target.closest('[data-overlay-open="true"]') !== null
+  return target.closest('.magnetic-tile-skeleton') !== null
 }
 
 function bindSortable(container: HTMLElement, options: SortableOptions = {}): SortableSession {

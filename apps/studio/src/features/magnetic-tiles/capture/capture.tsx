@@ -9,9 +9,7 @@ import Marker from './marker.tsx'
 type Props = Omit<SectionProps, 'children'>
 
 /**
- * 截屏磁贴（主窗 Mirror）：
- * - Alt+Q / 双击 → capture:open（SIDE_CHANNELS.capture）
- * - 不 present 配置 Overlay
+ * 截屏磁贴（主窗 Mirror）：Alt+Q / 双击 → capture:open（SIDE_CHANNELS.capture）。
  */
 export default function Capture(props: Props) {
   function onTrash() {

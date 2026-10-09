@@ -166,12 +166,6 @@
   animation: skeleton-shimmer 1.2s ease-in-out infinite;
 }
 
-.overlay-skeleton {
-  width: 100%;
-  height: 100%;
-  border-radius: 8px;
-}
-
 @keyframes skeleton-shimmer {
   0% {
     transform: translateX(-100%);
@@ -185,80 +179,4 @@
   .skeleton::after {
     animation: none;
   }
-}
-
-.overlay {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--background);
-  box-shadow:
-    0 6px 16px 0 rgb(0 0 0 / 8%),
-    0 3px 6px -4px rgb(0 0 0 / 12%),
-    0 9px 28px 8px rgb(0 0 0 / 5%);
-
-  /* keepAlive：Base UI 关闭后仍挂载，这里兜住显隐 */
-  &[data-closed] {
-    display: none;
-  }
-}
-
-/* 尺寸单一源：变量 + class；JS 不重复写 max/ratio/min */
-.framed,
-.fluid,
-.fullscreen {
-  --overlay-width-min: 600px;
-  --overlay-width-max: 1280px;
-  --overlay-ratio: 16 / 9;
-  --overlay-height-fluid: 80%;
-}
-
-/** 配置弹层：封顶 + 16:9 */
-.framed {
-  min-width: var(--overlay-width-min);
-  max-width: var(--overlay-width-max);
-  aspect-ratio: var(--overlay-ratio);
-  height: auto !important;
-}
-
-/** 工作台：不封顶、不锁比例；默认视口高度占比 */
-.fluid {
-  min-width: var(--overlay-width-min);
-  max-width: none;
-  aspect-ratio: unset;
-  height: var(--overlay-height-fluid);
-}
-
-.fullscreen {
-  min-width: unset;
-  max-width: none;
-  aspect-ratio: unset;
-  height: 100% !important;
-  border-radius: 0 !important;
-}
-
-.body {
-  box-sizing: border-box;
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  background: var(--background);
-  color: var(--foreground);
-}
-
-.controls {
-  box-sizing: border-box;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 20px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--card);
 }

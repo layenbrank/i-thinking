@@ -27,7 +27,7 @@ function parseBackdropFilter(backdrop: MagneticTile.Backdrop | null | undefined)
 
 /**
  * 将磁贴 round / background / backdrop / textColor 组装为内层 surface 内联样式。
- * 主窗 MagneticTile.Section 与浮层 Overlay Tile 共用。
+ * 主窗 MagneticTile.Section 内层 surface 共用。
  */
 function buildSurfaceStyle(input: SurfaceStyleInput = {}): CSSProperties {
   const round = input.round

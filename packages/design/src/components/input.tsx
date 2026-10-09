@@ -2,13 +2,13 @@ import { Icon } from '@iconify/react/offline'
 import { cn } from 'cn'
 import * as React from 'react'
 
-import { FOCUS_INVALID, FOCUS_RING, FOCUS_WITHIN, FOCUS_WITHIN_INVALID } from '../lib/focus'
+import { FOCUS_WITHIN, FOCUS_WITHIN_INVALID } from '../lib/focus'
+import { FIELD_SHELL } from '../lib/surface'
 
 /** 单行输入的壳：文本 / 文件 / 密码等共用；number 走 InputNumber */
 const INPUT_SHELL = cn(
-  'h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30',
-  FOCUS_RING,
-  FOCUS_INVALID
+  FIELD_SHELL,
+  'h-9 w-full min-w-0 px-3 py-1 text-base selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30'
 )
 
 function parseStep(step: React.ComponentProps<'input'>['step']): number {

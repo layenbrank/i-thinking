@@ -387,7 +387,7 @@ function EdgeSelect(props: EdgeSelectProps) {
         }}>
         <SelectTrigger
           size="sm"
-          className={cn(CONTROL_CLASS, 'w-full')}>
+          className="w-full text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>
@@ -1058,25 +1058,19 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
   }, [])
 
   const header = (
-    <header className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 px-3 py-2.5 backdrop-blur-md">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 px-3 backdrop-blur-md">
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         className="cursor-pointer"
         title={isListOpen ? '收起指令列表' : '展开指令列表'}
         aria-label={isListOpen ? '收起指令列表' : '展开指令列表'}
         onClick={onToggleList}>
-        <Glyph
-          icon={isListOpen ? 'mdi:chevron-double-left' : 'mdi:chevron-double-right'}
-          className="size-4"
-        />
+        <Glyph icon={isListOpen ? 'mdi:chevron-double-left' : 'mdi:chevron-double-right'} />
       </Button>
-      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Glyph
-          icon="mdi:file-document-outline"
-          className="size-3.5"
-        />
+      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Glyph icon="mdi:file-document-outline" />
       </span>
       <span className="truncate text-sm font-semibold tracking-tight">
         {activeName || '未选择指令'}
@@ -1084,7 +1078,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
       {isDirty ? (
         <Badge
           variant="outline"
-          className="shrink-0 rounded-full border-primary/30 bg-primary/5 text-primary">
+          className="shrink-0 rounded-full border-primary/30 bg-primary/5 text-xs text-primary">
           未保存
         </Badge>
       ) : null}
@@ -1097,7 +1091,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           className="cursor-pointer text-muted-foreground"
           aria-label="查看 YAML"
           title="查看 corex 落库的那份 YAML（只读）"
@@ -1110,7 +1104,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           className="cursor-pointer text-muted-foreground"
           aria-label="用外部编辑器打开"
           title="用外部编辑器打开（corex edit）"
@@ -1126,7 +1120,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
               <Button
                 type="button"
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 className="cursor-pointer text-muted-foreground hover:text-destructive"
                 aria-label="删除指令"
                 title="删除指令"
@@ -1157,7 +1151,6 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
         <Button
           type="button"
           variant="outline"
-          size="sm"
           className="cursor-pointer rounded-full"
           title={`保存（${modifier} + S）`}
           disabled={!content || !isDirty || isSaving || nameError !== null}
@@ -1167,10 +1160,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
           {isSaving ? (
             <Spinner aria-label="保存中" />
           ) : (
-            <Glyph
-              icon="mdi:content-save-outline"
-              className="size-4"
-            />
+            <Glyph icon="mdi:content-save-outline" />
           )}
           保存
         </Button>
@@ -1281,7 +1271,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
                         }}>
                         <SelectTrigger
                           size="sm"
-                          className={cn(CONTROL_CLASS, 'w-full')}>
+                          className="w-full text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent alignItemWithTrigger={false}>

@@ -18,7 +18,10 @@ import {
   type ReactNode
 } from 'react'
 
-/** 侧栏与步骤表单共用的紧凑控件：白底前景字，避免透明叠灰底像禁用 */
+/**
+ * 侧栏与步骤表单共用的紧凑控件（Input / Textarea）。
+ * Select 默认已走 design FIELD_SHELL（白底 + shadow-xs），Trigger 只需补 text-xs / w-full。
+ */
 const CONTROL_CLASS = 'h-8 rounded-lg bg-background text-xs text-foreground shadow-xs'
 
 /**
@@ -61,12 +64,12 @@ interface GlyphProps {
   className?: string
 }
 
-/** 离线 Iconify（mdi / ant-design / lucide 已在 renderer 注册） */
+/** 离线 Iconify（mdi / ant-design / lucide 已在 renderer 注册）；默认对齐 Button 的 svg size-4 */
 function Glyph(props: GlyphProps) {
   return (
     <Icon
       icon={props.icon}
-      className={cn('size-3.5 shrink-0', props.className)}
+      className={cn('size-4 shrink-0', props.className)}
     />
   )
 }
