@@ -45,13 +45,6 @@ export const chunks: CodeSplitting[] = [
     }
   },
   {
-    name: 'radix',
-    priority: 50,
-    test(id) {
-      return /[\\/]node_modules[\\/](radix-ui|@radix-ui)[\\/]/.test(id)
-    }
-  },
-  {
     name: 'utils',
     priority: 40,
     test(id) {

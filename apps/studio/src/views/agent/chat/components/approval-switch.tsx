@@ -22,17 +22,22 @@ export function ApprovalSwitch() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-label="工具审批策略"
-          title={current?.hint}
-          className="text-muted-foreground hover:text-foreground h-7 gap-1 px-2 text-xs font-normal">
-          {current?.label ?? '询问审批'}
-          <Icon icon="lucide:chevron-down" className="size-3.5" />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label="工具审批策略"
+            title={current?.hint}
+            className="text-muted-foreground hover:text-foreground h-7 gap-1 px-2 text-xs font-normal"
+          />
+        }>
+        {current?.label ?? '询问审批'}
+        <Icon
+          icon="lucide:chevron-down"
+          className="size-3.5"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
@@ -43,14 +48,19 @@ export function ApprovalSwitch() {
             <DropdownMenuItem
               key={policy.value}
               className="items-start gap-2"
-              onSelect={function () {
+              onClick={function () {
                 void update('chat', { approval: policy.value })
               }}>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span>{policy.label}</span>
                 <span className="text-muted-foreground text-xs leading-snug">{policy.hint}</span>
               </span>
-              {isCurrent ? <Icon icon="lucide:check" className="mt-0.5 size-3.5" /> : null}
+              {isCurrent ? (
+                <Icon
+                  icon="lucide:check"
+                  className="mt-0.5 size-3.5"
+                />
+              ) : null}
             </DropdownMenuItem>
           )
         })}

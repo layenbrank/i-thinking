@@ -1,36 +1,22 @@
+'use client'
+
 import { Icon } from '@iconify/react/offline'
+import { Checkbox as CheckboxPrimitive } from '@base-ui/react/checkbox'
 import { cn } from 'cn'
-import { motion, useReducedMotion } from 'motion/react'
-import { Checkbox as CheckboxPrimitive } from 'radix-ui'
-import * as React from 'react'
 
-import { FOCUS_INVALID, FOCUS_RING } from '../lib/focus'
-import { CHECK_TRANSITION } from '../lib/motion'
-
-function Checkbox({ className, ...props }: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
-  const isReducedMotion = useReducedMotion()
-
+function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        'peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-[color,box-shadow,background-color,border-color] outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:data-[state=checked]:bg-primary',
-        FOCUS_RING,
-        FOCUS_INVALID,
+        'peer relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input transition-colors outline-none group-has-disabled/field:opacity-50 group-has-[:focus-visible]/field-label:ring-0 group-has-[:focus-visible]/field-label:not-data-checked:border-input after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-primary dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground group-has-[:focus-visible]/field-label:data-checked:border-primary dark:data-checked:bg-primary',
         className
       )}
       {...props}>
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="grid place-content-center text-current"
-        asChild>
-        <motion.span
-          initial={isReducedMotion ? false : { scale: 0.55, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={CHECK_TRANSITION}
-          className="grid place-content-center">
-          <Icon icon="lucide:check" className="size-3.5" />
-        </motion.span>
+        className="grid place-content-center text-current transition-none [&>svg]:size-3.5">
+        <Icon icon="lucide:check" />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   )

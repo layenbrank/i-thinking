@@ -185,24 +185,29 @@ export function QuotaMenu() {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground h-8 shrink-0 gap-1 rounded-md px-2"
-          aria-label="额度与用量"
-          title={findTriggerTitle(view)}>
-          <Icon icon="lucide:gauge" className="size-4" />
-          {view ? (
-            <span
-              className={
-                view.exhausted ? 'text-destructive text-2xs tabular-nums' : 'text-2xs tabular-nums'
-              }>
-              {`${view.percent}%`}
-            </span>
-          ) : null}
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground h-8 shrink-0 gap-1 rounded-md px-2"
+            aria-label="额度与用量"
+            title={findTriggerTitle(view)}
+          />
+        }>
+        <Icon
+          icon="lucide:gauge"
+          className="size-4"
+        />
+        {view ? (
+          <span
+            className={
+              view.exhausted ? 'text-destructive text-2xs tabular-nums' : 'text-2xs tabular-nums'
+            }>
+            {`${view.percent}%`}
+          </span>
+        ) : null}
       </PopoverTrigger>
       <PopoverContent
         side="top"

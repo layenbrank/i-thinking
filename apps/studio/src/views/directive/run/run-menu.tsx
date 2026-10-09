@@ -68,8 +68,8 @@ function StopGuardDialog(props: StopDialogProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>停止 {label} 守护？</AlertDialogTitle>
           <AlertDialogDescription>
-            「{props.name}」当前有一次触发任务在跑。可等它跑完再停，或立刻连同任务一起终止（与
-            CLI 的 stop / stop --force 一致）。
+            「{props.name}」当前有一次触发任务在跑。可等它跑完再停，或立刻连同任务一起终止（与 CLI
+            的 stop / stop --force 一致）。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
@@ -140,19 +140,21 @@ function RunMenu(props: RunMenuProps) {
           updateOpen(next)
           if (next) void guard.refreshAlive()
         }}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isDisabled || guard.isBusy}
-            className="cursor-pointer rounded-full rounded-l-none border-l border-primary-foreground/20 px-2 shadow-xs"
-            aria-label="选择运行方式"
-            title="选择运行方式">
-            <Glyph
-              icon="mdi:chevron-down"
-              className="size-4"
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              size="sm"
+              disabled={isDisabled || guard.isBusy}
+              className="cursor-pointer rounded-full rounded-l-none border-l border-primary-foreground/20 px-2 shadow-xs"
+              aria-label="选择运行方式"
+              title="选择运行方式"
             />
-          </Button>
+          }>
+          <Glyph
+            icon="mdi:chevron-down"
+            className="size-4"
+          />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
@@ -397,27 +399,29 @@ interface ActionIconProps {
 function ActionIcon(props: ActionIconProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-sm"
-          disabled={props.disabled}
-          aria-label={props.label}
-          title={props.label}
-          className={cn(
-            'h-8 w-8 shrink-0 cursor-pointer border-border/80',
-            props.isActive
-              ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground'
-              : 'text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
-          )}
-          onClick={props.onClick}>
-          <Icon
-            icon={props.icon}
-            className={cn('size-4', props.isBusy && 'animate-pulse')}
-          />
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={props.disabled}
+            aria-label={props.label}
+            title={props.label}
+            className={cn(
+              'h-8 w-8 shrink-0 cursor-pointer border-border/80',
+              props.isActive
+                ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground'
+                : 'text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
+            )}
+            onClick={props.onClick}>
+            <Icon
+              icon={props.icon}
+              className={cn('size-4', props.isBusy && 'animate-pulse')}
+            />
+          </Button>
+        }
+      />
       <TooltipContent side="top">{props.hint}</TooltipContent>
     </Tooltip>
   )
@@ -436,7 +440,7 @@ function ModeItem(props: ModeItemProps) {
     <DropdownMenuItem
       disabled={props.disabled}
       className="cursor-pointer flex-col items-start gap-0.5 py-2"
-      onSelect={props.onSelect}>
+      onClick={props.onSelect}>
       <span className="inline-flex items-center gap-2">
         <Icon
           icon={props.icon}

@@ -163,7 +163,10 @@ function ProviderPanel() {
         <div className="border-border flex flex-col gap-3 rounded-lg border px-3 py-3">
           <div className="flex items-center gap-3">
             <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-              <Icon icon="lucide:building" className="size-4" />
+              <Icon
+                icon="lucide:building"
+                className="size-4"
+              />
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -207,7 +210,10 @@ function ProviderPanel() {
                   key={provider.id}
                   className="flex items-center gap-3 px-3 py-3">
                   <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-                    <Icon icon="lucide:server" className="size-4" />
+                    <Icon
+                      icon="lucide:server"
+                      className="size-4"
+                    />
                   </div>
 
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -230,7 +236,7 @@ function ProviderPanel() {
 
                   <Button
                     type="button"
-                    variant="destructive-outline"
+                    variant="destructive"
                     size="sm"
                     disabled={removeMutation.isPending}
                     onClick={function () {

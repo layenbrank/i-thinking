@@ -35,7 +35,12 @@ function AccountAvatar(props: { initials: string | null; className?: string }) {
       size="sm"
       className={props.className}>
       <AvatarFallback className={props.initials ? 'text-3xs font-medium' : undefined}>
-        {props.initials ?? <Icon icon="lucide:user" className="size-3.5" />}
+        {props.initials ?? (
+          <Icon
+            icon="lucide:user"
+            className="size-3.5"
+          />
+        )}
       </AvatarFallback>
     </Avatar>
   )
@@ -75,7 +80,7 @@ export function AccountMenuContent(props: AccountMenuContentProps) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {props.onOpenSettings ? (
-            <DropdownMenuItem onSelect={props.onOpenSettings}>
+            <DropdownMenuItem onClick={props.onOpenSettings}>
               <Icon icon="lucide:settings" />
               设置
             </DropdownMenuItem>
@@ -83,13 +88,13 @@ export function AccountMenuContent(props: AccountMenuContentProps) {
           <DropdownMenuItem
             variant="destructive"
             disabled={isPending}
-            onSelect={signOut}>
+            onClick={signOut}>
             <Icon icon="lucide:log-out" />
             退出登录
           </DropdownMenuItem>
         </>
       ) : (
-        <DropdownMenuItem onSelect={props.onSignIn}>
+        <DropdownMenuItem onClick={props.onSignIn}>
           <Icon icon="lucide:log-in" />
           登录 i-thinking
         </DropdownMenuItem>
@@ -109,17 +114,19 @@ export function AccountMenu(props: AccountMenuProps) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-auto min-w-0 flex-1 justify-start gap-2 px-1 py-1"
-            aria-label={signedIn ? '账号' : '登录'}
-            title={signedIn ? (identity?.name ?? '账号') : '登录'}>
-            <AccountAvatar initials={identity ? identity.initials : null} />
-            <span className="truncate text-xs">{identity ? identity.name : '登录'}</span>
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto min-w-0 flex-1 justify-start gap-2 px-1 py-1"
+              aria-label={signedIn ? '账号' : '登录'}
+              title={signedIn ? (identity?.name ?? '账号') : '登录'}
+            />
+          }>
+          <AccountAvatar initials={identity ? identity.initials : null} />
+          <span className="truncate text-xs">{identity ? identity.name : '登录'}</span>
         </DropdownMenuTrigger>
         <AccountMenuContent
           side="top"

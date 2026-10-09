@@ -73,25 +73,27 @@ export function NavigationTile(props: {
           'group-hover:opacity-100 group-focus-within:opacity-100'
         )}>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="secondary"
-              aria-label={`${tile.title} 操作`}>
-              <Icon icon="lucide:ellipsis" />
-            </Button>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="secondary"
+                aria-label={`${tile.title} 操作`}
+              />
+            }>
+            <Icon icon="lucide:ellipsis" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onSelect={function () {
+              onClick={function () {
                 props.onEdit(tile)
               }}>
               编辑
             </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"
-              onSelect={function () {
+              onClick={function () {
                 props.onRemove(tile)
               }}>
               删除

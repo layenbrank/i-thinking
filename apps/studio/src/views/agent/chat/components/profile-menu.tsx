@@ -68,22 +68,27 @@ export function ProfileMenu(props: ProfileMenuProps) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground hover:text-foreground size-8 shrink-0 rounded-md"
-            aria-label="设置"
-            title="设置">
-            <Icon icon="lucide:settings" className="size-4" />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground hover:text-foreground size-8 shrink-0 rounded-md"
+              aria-label="设置"
+              title="设置"
+            />
+          }>
+          <Icon
+            icon="lucide:settings"
+            className="size-4"
+          />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           side="top"
           align="end"
           className="w-52">
-          <DropdownMenuItem onSelect={props.onOpenSettings}>
+          <DropdownMenuItem onClick={props.onOpenSettings}>
             <Icon icon="lucide:settings" />
             设置
             <DropdownMenuShortcut>{findSettingsShortcut()}</DropdownMenuShortcut>
@@ -120,7 +125,7 @@ export function ProfileMenu(props: ProfileMenuProps) {
           </DropdownMenuSub>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={function () {
+            onClick={function () {
               updateAboutOpen(true)
             }}>
             <Icon icon="lucide:info" />

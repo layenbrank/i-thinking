@@ -34,12 +34,14 @@ function AccountEntry(props: OverviewUtilityProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <UtilityButton
-          icon="mdi:account-circle"
-          label={identity ? identity.name : '账号'}
-        />
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={
+          <UtilityButton
+            icon="mdi:account-circle"
+            label={identity ? identity.name : '账号'}
+          />
+        }
+      />
       <AccountMenuContent
         side="bottom"
         align="start"

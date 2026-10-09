@@ -6,11 +6,7 @@ import {
   CollapsibleTrigger
 } from '@i-thinking/design/components/collapsible'
 import { Input } from '@i-thinking/design/components/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@i-thinking/design/components/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@i-thinking/design/components/popover'
 import {
   Select,
   SelectContent,
@@ -140,8 +136,10 @@ interface KindSelectProps {
 function KindSelect(props: KindSelectProps) {
   return (
     <Select
+      items={CONDITION_LABELS}
       value={props.kind}
       onValueChange={function (value) {
+        if (value === null) return
         props.onChange(value as ConditionKind)
       }}>
       <SelectTrigger
@@ -150,7 +148,7 @@ function KindSelect(props: KindSelectProps) {
         aria-label="条件类型">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent position="popper">
+      <SelectContent alignItemWithTrigger={false}>
         {CONDITION_KINDS.map(function (kind) {
           return (
             <SelectItem
@@ -212,7 +210,7 @@ function ConditionNode(props: ConditionNodeProps) {
           />
           <Button
             type="button"
-            variant="dashed"
+            variant="outline"
             size="sm"
             onClick={function () {
               props.onChange({ ...condition, [kind]: [...list, ''] })
@@ -379,14 +377,16 @@ function AddStepButton(props: AddStepButtonProps) {
         if (next) setOpen(true)
         else close()
       }}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="dashed"
-          className="w-full cursor-pointer rounded-xl border-border/70 py-5 text-muted-foreground hover:text-foreground">
-          <Glyph icon="mdi:plus" />
-          添加步骤
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full cursor-pointer rounded-xl border-border/70 py-5 text-muted-foreground hover:text-foreground"
+          />
+        }>
+        <Glyph icon="mdi:plus" />
+        添加步骤
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -548,17 +548,19 @@ interface IconActionProps {
 function IconAction(props: IconActionProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={props.label}
-          className={cn('text-muted-foreground', props.className)}
-          onClick={props.onClick}>
-          <Glyph icon={props.icon} />
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={props.label}
+            className={cn('text-muted-foreground', props.className)}
+            onClick={props.onClick}>
+            <Glyph icon={props.icon} />
+          </Button>
+        }
+      />
       <TooltipContent>{props.label}</TooltipContent>
     </Tooltip>
   )
@@ -598,8 +600,10 @@ function StepHeader(props: StepHeaderProps) {
           props.title
         )}
         <Select
+          items={STEP_KIND_LABEL}
           value={props.kind}
           onValueChange={function (value) {
+            if (value === null) return
             props.onKindChange(value as StepKind)
           }}>
           <SelectTrigger
@@ -608,7 +612,7 @@ function StepHeader(props: StepHeaderProps) {
             className="h-5 w-fit cursor-pointer gap-1 border-transparent bg-secondary px-1.5 text-[11px] font-normal text-secondary-foreground shadow-none hover:bg-secondary/80 [&_svg]:size-3">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent position="popper">
+          <SelectContent alignItemWithTrigger={false}>
             {STEP_KINDS.map(function (kind) {
               return (
                 <SelectItem
@@ -698,8 +702,12 @@ interface ActionSelectProps {
 function ActionSelect(props: ActionSelectProps) {
   return (
     <Select
+      items={props.catalog.map(function (action) {
+        return { value: action.id, label: action.name }
+      })}
       value={props.value}
       onValueChange={function (id) {
+        if (id === null) return
         const action = findAction(props.catalog, id)
         if (action) props.onChange(action)
       }}>
@@ -710,7 +718,7 @@ function ActionSelect(props: ActionSelectProps) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent
-        position="popper"
+        alignItemWithTrigger={false}
         className="max-h-72">
         {props.catalog.map(function (action) {
           return (
@@ -782,19 +790,21 @@ function ActionStepCard(props: ActionStepCardProps) {
         <Collapsible
           open={advanced}
           onOpenChange={setAdvanced}>
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              className="w-fit px-1 text-foreground/70 hover:text-foreground">
-              <Glyph
-                icon="mdi:chevron-right"
-                className={cn('transition-transform duration-200', advanced && 'rotate-90')}
-              />
-              高级选项（when / save_to / on_error / retry）
-            </Button>
-          </CollapsibleTrigger>
+          <CollapsibleTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                className="w-fit px-1 text-foreground/70 hover:text-foreground">
+                <Glyph
+                  icon="mdi:chevron-right"
+                  className={cn('transition-transform duration-200', advanced && 'rotate-90')}
+                />
+                高级选项（when / save_to / on_error / retry）
+              </Button>
+            }
+          />
           <CollapsibleContent className="flex flex-col gap-2 border-t border-dashed pt-2">
             <Field label="when 条件">
               {step.when !== undefined ? (
@@ -807,7 +817,7 @@ function ActionStepCard(props: ActionStepCardProps) {
               ) : (
                 <Button
                   type="button"
-                  variant="dashed"
+                  variant="outline"
                   size="sm"
                   className="w-fit"
                   onClick={function () {
@@ -872,7 +882,12 @@ function IfStepCard(props: IfStepCardProps) {
   return (
     <Card className={STEP_CARD_CLASS}>
       <StepHeader
-        icon={<Glyph icon="mdi:source-branch" className="size-4" />}
+        icon={
+          <Glyph
+            icon="mdi:source-branch"
+            className="size-4"
+          />
+        }
         tileClass={STEP_KIND_TILES.if}
         kind="if"
         onKindChange={props.onKindChange}
@@ -953,7 +968,12 @@ function RepeatStepCard(props: RepeatStepCardProps) {
   return (
     <Card className={STEP_CARD_CLASS}>
       <StepHeader
-        icon={<Glyph icon="mdi:repeat" className="size-4" />}
+        icon={
+          <Glyph
+            icon="mdi:repeat"
+            className="size-4"
+          />
+        }
         tileClass={STEP_KIND_TILES.repeat}
         kind="repeat"
         onKindChange={props.onKindChange}
@@ -1075,7 +1095,12 @@ function ParallelStepCard(props: ParallelStepCardProps) {
   return (
     <Card className={STEP_CARD_CLASS}>
       <StepHeader
-        icon={<Glyph icon="mdi:call-split" className="size-4" />}
+        icon={
+          <Glyph
+            icon="mdi:call-split"
+            className="size-4"
+          />
+        }
         tileClass={STEP_KIND_TILES.parallel}
         kind="parallel"
         onKindChange={props.onKindChange}
@@ -1147,7 +1172,12 @@ function StepsStepCard(props: StepsStepCardProps) {
   return (
     <Card className={STEP_CARD_CLASS}>
       <StepHeader
-        icon={<Glyph icon="mdi:format-list-numbered" className="size-4" />}
+        icon={
+          <Glyph
+            icon="mdi:format-list-numbered"
+            className="size-4"
+          />
+        }
         tileClass={STEP_KIND_TILES.steps}
         kind="steps"
         onKindChange={props.onKindChange}

@@ -9,7 +9,11 @@ import { useState } from 'react'
 import type { CorexAction } from '@/stores/corex'
 
 import { BUCKET_LABELS, findBucketMark } from '@/views/directive/list/bucket'
-import { createDefaultValues, findParamProblem, setParamValue } from '@/views/directive/params/field'
+import {
+  createDefaultValues,
+  findParamProblem,
+  setParamValue
+} from '@/views/directive/params/field'
 import { ParamField } from '@/views/directive/params/param-field'
 import { findPermissionIcon, findPermissionLabel } from '@/views/directive/permissions'
 import RunOutput from '@/views/directive/run/run-output'
@@ -37,14 +41,16 @@ function PermissionNotice(props: PermissionNoticeProps) {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant="secondary"
-          className="cursor-help text-[11px] font-normal">
-          <Icon icon="mdi:shield-key-outline" />
-          {`需要 ${props.permissions.length} 项权限`}
-        </Badge>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="secondary"
+            className="cursor-help text-[11px] font-normal">
+            <Icon icon="mdi:shield-key-outline" />
+            {`需要 ${props.permissions.length} 项权限`}
+          </Badge>
+        }
+      />
       <TooltipContent>
         <ul className="flex flex-col gap-1 py-0.5">
           {props.permissions.map(function (permission) {

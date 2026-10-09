@@ -9,7 +9,14 @@ import {
 } from '@i-thinking/design/components/tooltip'
 import { Icon } from '@iconify/react/offline'
 import { cn } from 'cn'
-import { cloneElement, isValidElement, useId, useState, type ReactElement, type ReactNode } from 'react'
+import {
+  cloneElement,
+  isValidElement,
+  useId,
+  useState,
+  type ReactElement,
+  type ReactNode
+} from 'react'
 
 /** 侧栏与步骤表单共用的紧凑控件：白底前景字，避免透明叠灰底像禁用 */
 const CONTROL_CLASS = 'h-8 rounded-lg bg-background text-xs text-foreground shadow-xs'
@@ -72,25 +79,27 @@ function HintTooltip(props: { hint: string; label: string }) {
   const [isOpen, updateOpen] = useState(false)
 
   return (
-    <TooltipProvider delayDuration={280}>
+    <TooltipProvider delay={280}>
       <Tooltip
         open={isOpen}
         onOpenChange={updateOpen}>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex size-3.5 shrink-0 items-center justify-center rounded-full text-foreground/45 hover:text-foreground"
-            aria-label={props.label}
-            onPointerDown={function (event) {
-              // 不抢焦点，避免 textarea 失焦
-              event.preventDefault()
-            }}>
-            <Icon
-              icon="mdi:information-outline"
-              className="size-3.5"
-            />
-          </button>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              className="inline-flex size-3.5 shrink-0 items-center justify-center rounded-full text-foreground/45 hover:text-foreground"
+              aria-label={props.label}
+              onPointerDown={function (event) {
+                // 不抢焦点，避免 textarea 失焦
+                event.preventDefault()
+              }}>
+              <Icon
+                icon="mdi:information-outline"
+                className="size-3.5"
+              />
+            </button>
+          }
+        />
         {isOpen ? (
           <TooltipContent
             side="top"
@@ -126,7 +135,8 @@ function Field(props: FieldProps) {
   const fallbackId = useId()
   const child = props.children
   const canBind =
-    isValidElement(child) && (child.type === Input || child.type === Textarea || typeof child.type === 'string')
+    isValidElement(child) &&
+    (child.type === Input || child.type === Textarea || typeof child.type === 'string')
   const hasId = canBind ? (child.props as { id?: string }).id : undefined
   const controlId = hasId ?? fallbackId
   const control = canBind

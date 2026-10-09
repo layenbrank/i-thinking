@@ -18,12 +18,7 @@ import {
 import { Input } from '@i-thinking/design/components/input'
 import { useState } from 'react'
 
-import {
-  canThink,
-  findModelKey,
-  findModelPref,
-  readModelPrefs
-} from './model-prefs.ts'
+import { canThink, findModelKey, findModelPref, readModelPrefs } from './model-prefs.ts'
 import { ModelSettings, type ModelRow } from './model-settings.tsx'
 import { findPlatformBlocker } from './platform.ts'
 import { findTargetLabel } from '@/features/chat/port/model.ts'
@@ -87,8 +82,11 @@ function ModelItem(props: { option: ModelOption; isActive: boolean; onPick: () =
   const tags = findCapabilityTags(option.model)
 
   return (
-    <DropdownMenuItem onSelect={props.onPick}>
-      <Icon icon="lucide:check" className={props.isActive ? 'text-primary' : 'opacity-0'} />
+    <DropdownMenuItem onClick={props.onPick}>
+      <Icon
+        icon="lucide:check"
+        className={props.isActive ? 'text-primary' : 'opacity-0'}
+      />
       <span className="min-w-0 flex-1 truncate">{option.model.name || option.model.id}</span>
 
       {option.model.providerName ? (
@@ -232,24 +230,32 @@ export function ModelPicker(props: ModelPickerProps) {
         onOpenChange={function (open) {
           if (!open) updateQuery('')
         }}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground h-7 max-w-52 justify-start gap-1 px-2 text-xs"
-            aria-label="选择模型"
-            title={trigger.title}>
-            <span className="truncate">{trigger.text}</span>
-            <Icon icon="lucide:chevron-down" className="size-3.5 shrink-0 opacity-60" />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground h-7 max-w-52 justify-start gap-1 px-2 text-xs"
+              aria-label="选择模型"
+              title={trigger.title}
+            />
+          }>
+          <span className="truncate">{trigger.text}</span>
+          <Icon
+            icon="lucide:chevron-down"
+            className="size-3.5 shrink-0 opacity-60"
+          />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
           align="end"
           className="w-80 p-0">
           <div className="border-border relative border-b p-2">
-            <Icon icon="lucide:search" className="text-muted-foreground pointer-events-none absolute start-4 top-1/2 size-3.5 -translate-y-1/2" />
+            <Icon
+              icon="lucide:search"
+              className="text-muted-foreground pointer-events-none absolute start-4 top-1/2 size-3.5 -translate-y-1/2"
+            />
             <Input
               value={query}
               placeholder="搜索模型…"
@@ -269,11 +275,14 @@ export function ModelPicker(props: ModelPickerProps) {
                 否则一旦选了具体模型就再也回不到自动（之前只能去设置页面改 provider 列）。 */}
             <DropdownMenuGroup>
               <DropdownMenuItem
-                onSelect={function () {
+                onClick={function () {
                   void update('chat', { providerID: null, model: '' })
                 }}
                 title="跟随当前可用模型（组织模型优先）">
-                <Icon icon="lucide:check" className={isAuto ? 'text-primary' : 'opacity-0'} />
+                <Icon
+                  icon="lucide:check"
+                  className={isAuto ? 'text-primary' : 'opacity-0'}
+                />
                 <span className="min-w-0 flex-1 truncate">自动</span>
                 <span className="text-muted-foreground shrink-0 text-3xs">
                   {target ? target.model : '还没有可用模型'}
@@ -308,14 +317,14 @@ export function ModelPicker(props: ModelPickerProps) {
           <DropdownMenuSeparator className="m-0" />
           <div className="p-1">
             <DropdownMenuItem
-              onSelect={function () {
+              onClick={function () {
                 props.onOpenSettings?.()
               }}>
               <Icon icon="lucide:plus" />
               添加模型
             </DropdownMenuItem>
             <DropdownMenuItem
-              onSelect={function () {
+              onClick={function () {
                 updateSettingsOpen(true)
               }}>
               <Icon icon="lucide:settings" />

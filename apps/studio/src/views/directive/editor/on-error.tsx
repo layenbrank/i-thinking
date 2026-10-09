@@ -28,8 +28,10 @@ interface OnErrorSelectProps {
 function OnErrorSelect(props: OnErrorSelectProps) {
   return (
     <Select
+      items={ON_ERROR_LABELS}
       value={props.value}
       onValueChange={function (value) {
+        if (value === null) return
         props.onChange(value as OnError)
       }}>
       <SelectTrigger
@@ -37,7 +39,7 @@ function OnErrorSelect(props: OnErrorSelectProps) {
         className="w-full">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent position="popper">
+      <SelectContent alignItemWithTrigger={false}>
         {ON_ERROR_OPTIONS.map(function (option) {
           return (
             <SelectItem

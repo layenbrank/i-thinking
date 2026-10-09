@@ -111,8 +111,14 @@ function UsageSection() {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="gateway-usage-model">模型</Label>
           <Select
+            items={[{ value: ALL, label: '全部模型' }].concat(
+              models.map(function (model) {
+                return { value: model.id, label: model.label }
+              })
+            )}
             value={pending.modelID}
             onValueChange={function (value) {
+              if (value === null) return
               updatePending({ ...pending, modelID: value })
             }}>
             <SelectTrigger

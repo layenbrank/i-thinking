@@ -240,14 +240,8 @@ const MagneticTile = {
         )}
         <span className={styles.title}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span>{props.title}</span>
-            </TooltipTrigger>
-            <TooltipContent
-              side="bottom"
-              avoidCollisions={false}>
-              {props.title}
-            </TooltipContent>
+            <TooltipTrigger render={<span>{props.title}</span>} />
+            <TooltipContent side="bottom">{props.title}</TooltipContent>
           </Tooltip>
         </span>
         <button

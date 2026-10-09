@@ -93,7 +93,7 @@ function PlatformProviderSection() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: async function (input: ProviderDraft) {
+    async mutationFn(input: ProviderDraft) {
       // 留空表示不改动已托管的密钥，所以字段要先剔掉再发
       const apiKey = input.apiKey ? { apiKey: input.apiKey } : {}
       if (input.id) {
@@ -113,21 +113,21 @@ function PlatformProviderSection() {
         ...apiKey
       })
     },
-    onSuccess: async function () {
+    async onSuccess() {
       toast.success(draft?.id ? '已更新供应商' : '已创建供应商')
       updateDraft(null)
       await refresh()
     },
-    onError: function (error) {
+    onError(error) {
       toast.error(HttpError(error).message || '保存失败')
     }
   })
 
   const removeMutation = useMutation({
-    mutationFn: function (id: string) {
+    mutationFn(id: string) {
       return DELETE_GATEWAY_PROVIDER(id)
     },
-    onSuccess: async function () {
+    async onSuccess() {
       toast.success('已删除供应商')
       updateRemoving(null)
       await refresh()
@@ -270,8 +270,10 @@ function PlatformProviderSection() {
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="gateway-provider-kind">类型</Label>
                 <Select
+                  items={GATEWAY_PROVIDER_KIND_LABELS}
                   value={draft.kind}
                   onValueChange={function (value) {
+                    if (value === null) return
                     updateDraft({ ...draft, kind: value })
                   }}>
                   <SelectTrigger
@@ -333,8 +335,10 @@ function PlatformProviderSection() {
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="gateway-provider-status">状态</Label>
                 <Select
+                  items={GATEWAY_PROVIDER_STATUS_LABELS}
                   value={draft.status}
                   onValueChange={function (value) {
+                    if (value === null) return
                     updateDraft({ ...draft, status: value })
                   }}>
                   <SelectTrigger

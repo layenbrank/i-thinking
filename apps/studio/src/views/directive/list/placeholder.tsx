@@ -19,7 +19,7 @@ type PlaceholderState = 'loading' | 'error' | 'empty' | 'no-match'
 interface PlaceholderAction {
   label: string
   icon?: string
-  variant?: 'default' | 'outline' | 'dashed'
+  variant?: 'default' | 'outline'
   onClick: () => void
 }
 

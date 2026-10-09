@@ -92,7 +92,10 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
           type="button"
           className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-1.5 border-b px-2.5 py-1.5 text-start text-xs"
           onClick={props.onBack}>
-          <Icon icon="lucide:chevron-left" className="size-3.5 shrink-0" />
+          <Icon
+            icon="lucide:chevron-left"
+            className="size-3.5 shrink-0"
+          />
           返回工作区列表
         </button>
       ) : null}
@@ -101,10 +104,17 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
         <p className="text-muted-foreground truncate px-2.5 pt-1.5 text-2xs">{relative}</p>
       ) : null}
 
-      <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5', props.listClassName)}>
+      <div
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5',
+          props.listClassName
+        )}>
         {isPending ? (
           <p className="text-muted-foreground flex items-center gap-1.5 p-2.5 text-xs">
-            <Icon icon="lucide:loader-circle" className="size-3.5 animate-spin" />
+            <Icon
+              icon="lucide:loader-circle"
+              className="size-3.5 animate-spin"
+            />
             读取中…
           </p>
         ) : null}
@@ -116,31 +126,39 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
 
               return (
                 <Tooltip key={entry.relative}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-auto w-full min-w-0 shrink justify-start gap-2 px-2 py-1.5 text-xs font-normal"
-                      onClick={function () {
-                        if (isDir) {
-                          updateRelative(entry.relative)
-                          return
-                        }
-                        props.onPick(entry.relative)
-                      }}>
-                      {isDir ? (
-                        <Icon icon="lucide:folder" className="text-muted-foreground size-3.5 shrink-0" />
-                      ) : (
-                        <Icon icon="lucide:file" className="text-muted-foreground size-3.5 shrink-0" />
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-start">{entry.name}</span>
-                      {parentLabel ? (
-                        <span className="text-muted-foreground max-w-[40%] shrink truncate text-end text-2xs">
-                          {parentLabel}
-                        </span>
-                      ) : null}
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-auto w-full min-w-0 shrink justify-start gap-2 px-2 py-1.5 text-xs font-normal"
+                        onClick={function () {
+                          if (isDir) {
+                            updateRelative(entry.relative)
+                            return
+                          }
+                          props.onPick(entry.relative)
+                        }}>
+                        {isDir ? (
+                          <Icon
+                            icon="lucide:folder"
+                            className="text-muted-foreground size-3.5 shrink-0"
+                          />
+                        ) : (
+                          <Icon
+                            icon="lucide:file"
+                            className="text-muted-foreground size-3.5 shrink-0"
+                          />
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-start">{entry.name}</span>
+                        {parentLabel ? (
+                          <span className="text-muted-foreground max-w-[40%] shrink truncate text-end text-2xs">
+                            {parentLabel}
+                          </span>
+                        ) : null}
+                      </Button>
+                    }
+                  />
                   <TooltipContent
                     side="top"
                     className="max-w-sm text-start wrap-break-word">

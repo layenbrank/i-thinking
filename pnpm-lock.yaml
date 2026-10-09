@@ -350,9 +350,6 @@ catalogs:
     qrcode.react:
       specifier: ^4.2.0
       version: 4.2.0
-    radix-ui:
-      specifier: ^1.6.7
-      version: 1.6.7
     react:
       specifier: ^19.2.0
       version: 19.2.7
@@ -1456,9 +1453,6 @@ importers:
       motion:
         specifier: 'catalog:'
         version: 12.42.2(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      radix-ui:
-        specifier: 'catalog:'
-        version: 1.6.7(@types/react-dom@19.2.4(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react:
         specifier: 'catalog:'
         version: 19.2.7

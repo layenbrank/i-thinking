@@ -103,7 +103,10 @@ const LogRow = memo(
           props.entry.level === 'error' && 'bg-destructive/5'
         )}>
         <span className="shrink-0 text-muted-foreground tabular-nums">{props.entry.time}</span>
-        <Icon icon={style.icon} className={cn('mt-0.5 size-3.5 shrink-0', style.tone)} />
+        <Icon
+          icon={style.icon}
+          className={cn('mt-0.5 size-3.5 shrink-0', style.tone)}
+        />
         <span
           className={cn(
             'min-w-0 flex-1 break-all whitespace-pre-wrap',
@@ -238,13 +241,13 @@ function RunOutput(props: Props) {
     <section className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2 px-3 py-2">
         <ToggleGroup
-          type="single"
           size="sm"
           variant="outline"
           spacing={4}
-          value={filter}
+          value={[filter]}
           onValueChange={function (value) {
-            if (value) updateFilter(value as Filter)
+            const next = value[0]
+            if (next) updateFilter(next as Filter)
           }}>
           {FILTERS.map(function (item) {
             return (

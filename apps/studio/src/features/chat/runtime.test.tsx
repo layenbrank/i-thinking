@@ -463,7 +463,7 @@ describe('对话排版（过程折叠）', function () {
 
     // 回合结束就折叠（Copilot 的 CollapsedPreview 口径）
     const trigger = fold!.querySelector('[data-slot="reasoning-trigger"]')!
-    expect(trigger.getAttribute('data-state')).toBe('closed')
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
   })
 
   it('一次「思考 → 答」不加折叠区：只有思考自己那条，形状与改造前一致', async function () {

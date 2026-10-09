@@ -119,9 +119,11 @@ export function TileDialog(props: TileDialogProps) {
             <div className={clsx('grid gap-2')}>
               <Label>形状</Label>
               <Select
+                items={SHAPES}
                 value={values.shape}
                 onValueChange={function (value) {
-                  updateValues({ ...values, shape: value as MagneticTile.Shape })
+                  if (value === null) return
+                  updateValues({ ...values, shape: value })
                 }}>
                 <SelectTrigger aria-label="形状">
                   <SelectValue />
@@ -143,9 +145,11 @@ export function TileDialog(props: TileDialogProps) {
             <div className={clsx('grid gap-2')}>
               <Label>方向</Label>
               <Select
+                items={DIRECTIONS}
                 value={values.direction}
                 onValueChange={function (value) {
-                  updateValues({ ...values, direction: value as MagneticTile.Direction })
+                  if (value === null) return
+                  updateValues({ ...values, direction: value })
                 }}>
                 <SelectTrigger aria-label="方向">
                   <SelectValue />
@@ -167,8 +171,12 @@ export function TileDialog(props: TileDialogProps) {
             <div className={clsx('grid gap-2')}>
               <Label>网格跨度</Label>
               <Select
+                items={SIZES.map(function (size) {
+                  return { value: String(size), label: `${size}×${size}` }
+                })}
                 value={String(values.size)}
                 onValueChange={function (value) {
+                  if (value === null) return
                   updateValues({ ...values, size: Number(value) as MagneticTile.Size })
                 }}>
                 <SelectTrigger aria-label="网格跨度">

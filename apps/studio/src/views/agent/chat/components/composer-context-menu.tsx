@@ -81,7 +81,10 @@ function SkillsPane(props: {
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
         {skillsQuery.isFetching ? (
           <p className="text-muted-foreground flex items-center gap-1.5 p-2.5 text-xs">
-            <Icon icon="lucide:loader-circle" className="size-3.5 animate-spin" />
+            <Icon
+              icon="lucide:loader-circle"
+              className="size-3.5 animate-spin"
+            />
             读取中…
           </p>
         ) : null}
@@ -96,7 +99,10 @@ function SkillsPane(props: {
                   onClick={function () {
                     props.onPick(skill.relative)
                   }}>
-                  <Icon icon="lucide:wrench" className="text-muted-foreground size-3.5 shrink-0" />
+                  <Icon
+                    icon="lucide:wrench"
+                    className="text-muted-foreground size-3.5 shrink-0"
+                  />
                   <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                     <span className="w-full truncate text-start">{skill.name}</span>
                     {skill.description ? (
@@ -145,18 +151,22 @@ export function ComposerContextMenu() {
       open={isOpen}
       onOpenChange={handleOpenChange}>
       <Tooltip open={isOpen ? false : undefined}>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="添加上下文"
-              className="text-muted-foreground hover:text-foreground size-7 rounded-md">
+        <TooltipTrigger
+          render={
+            <PopoverTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="添加上下文"
+                  className="text-muted-foreground hover:text-foreground size-7 rounded-md"
+                />
+              }>
               <Icon icon="lucide:plus" />
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
+            </PopoverTrigger>
+          }
+        />
         <TooltipContent
           side="top"
           className="max-w-56 text-start">

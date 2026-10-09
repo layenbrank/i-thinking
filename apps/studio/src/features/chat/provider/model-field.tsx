@@ -31,7 +31,7 @@ interface TriggerProps extends FieldTriggerProps {
 }
 
 /**
- * 触发器。`FormControl` 是 radix `Slot`，它把 `id` / `aria-*` / `ref` 注入到子元素上，
+ * 触发器。`FormControl` 用 Base UI 的 `useRender` 把 `id` / `aria-*` / `ref` 注入到子元素上，
  * 所以这里必须把未知 props 原样透传给按钮，label 的 for 与错误提示的 aria 才接得上。
  */
 function Trigger(props: TriggerProps) {
@@ -46,7 +46,10 @@ function Trigger(props: TriggerProps) {
       aria-expanded={isOpen}
       className={cn('w-full justify-between font-normal', className)}>
       <span className={cn('truncate', isPlaceholder && 'text-muted-foreground')}>{text}</span>
-      <Icon icon="lucide:chevron-down" className="text-muted-foreground size-4 shrink-0" />
+      <Icon
+        icon="lucide:chevron-down"
+        className="text-muted-foreground size-4 shrink-0"
+      />
     </Button>
   )
 }
@@ -61,7 +64,10 @@ function SearchBox(props: {
   return (
     <div className="border-border border-b p-1.5">
       <div className="relative">
-        <Icon icon="lucide:search" className="text-muted-foreground pointer-events-none absolute inset-s-2 top-1/2 size-3.5 -translate-y-1/2" />
+        <Icon
+          icon="lucide:search"
+          className="text-muted-foreground pointer-events-none absolute inset-s-2 top-1/2 size-3.5 -translate-y-1/2"
+        />
         <Input
           autoFocus
           value={props.query}
@@ -91,8 +97,10 @@ function OptionRow(props: { label: string; isActive: boolean; onPick: () => void
       aria-selected={props.isActive}
       onClick={props.onPick}
       className="hover:bg-accent h-auto w-full justify-start gap-2 rounded-sm px-2 py-1.5 text-xs">
-      <Icon icon="lucide:check"
-        className={cn('size-3.5 shrink-0', props.isActive ? 'text-primary' : 'opacity-0')} />
+      <Icon
+        icon="lucide:check"
+        className={cn('size-3.5 shrink-0', props.isActive ? 'text-primary' : 'opacity-0')}
+      />
       <span className="min-w-0 flex-1 truncate">{props.label}</span>
     </Button>
   )
@@ -157,17 +165,19 @@ function ModelField(props: ModelFieldProps) {
         updateOpen(next)
         if (!next) updateQuery('')
       }}>
-      <PopoverTrigger asChild>
-        <Trigger
-          {...triggerProps}
-          isOpen={isOpen}
-          text={value || placeholder}
-          isPlaceholder={!value}
-        />
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Trigger
+            {...triggerProps}
+            isOpen={isOpen}
+            text={value || placeholder}
+            isPlaceholder={!value}
+          />
+        }
+      />
       <PopoverContent
         align="start"
-        className="w-(--radix-popover-trigger-width) p-0">
+        className="w-(--anchor-width) p-0">
         <SearchBox
           query={query}
           placeholder="搜索或输入模型名"
@@ -240,17 +250,19 @@ function ModelsField(props: ModelsFieldProps) {
         updateOpen(next)
         if (!next) updateQuery('')
       }}>
-      <PopoverTrigger asChild>
-        <Trigger
-          {...triggerProps}
-          isOpen={isOpen}
-          text={value.length > 0 ? `已选 ${value.length} 个模型` : placeholder}
-          isPlaceholder={value.length === 0}
-        />
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Trigger
+            {...triggerProps}
+            isOpen={isOpen}
+            text={value.length > 0 ? `已选 ${value.length} 个模型` : placeholder}
+            isPlaceholder={value.length === 0}
+          />
+        }
+      />
       <PopoverContent
         align="start"
-        className="w-(--radix-popover-trigger-width) p-0">
+        className="w-(--anchor-width) p-0">
         <SearchBox
           query={query}
           placeholder="搜索或输入模型名"
@@ -343,7 +355,10 @@ function ModelChips(props: { models: readonly string[]; onChange: (models: strin
               onClick={function () {
                 props.onChange(toggleModelID(props.models, id))
               }}>
-              <Icon icon="lucide:x" className="size-3" />
+              <Icon
+                icon="lucide:x"
+                className="size-3"
+              />
             </Button>
           </Badge>
         )

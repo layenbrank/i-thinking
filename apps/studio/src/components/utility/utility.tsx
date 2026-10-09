@@ -5,7 +5,7 @@ import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from 'react
 
 import styles from './utility.module.scss'
 
-/** 余下的 button 属性一律透传给底层按钮：radix 下拉要把自己的 aria/data-state 挂在它身上 */
+/** 余下的 button 属性一律透传给底层按钮：下拉/工具提示触发器要把自己的 aria/data-state 挂在它身上 */
 interface UtilityButtonProps extends Omit<
   ComponentPropsWithoutRef<'button'>,
   'aria-label' | 'title'
@@ -19,7 +19,7 @@ interface UtilityButtonProps extends Omit<
 /**
  * 标题栏图标按钮：方形、与标题栏同高，且必须在拖拽区之外（data-region=false）。
  *
- * 显式 `forwardRef`：radix 的 `asChild` 触发器要拿到真实 DOM 节点当锚点（见 `tooltip-icon-button`）。
+ * 显式 `forwardRef`：`render` 触发器要拿到真实 DOM 节点当锚点（见 `tooltip-icon-button`）。
  */
 const UtilityButton = forwardRef<HTMLButtonElement, UtilityButtonProps>(function (props, ref) {
   const { icon, label, className, children, ...rest } = props

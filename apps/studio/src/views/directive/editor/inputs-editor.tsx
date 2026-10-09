@@ -122,7 +122,9 @@ function InputsEditor(props: InputsEditorProps) {
               hint="留空表示不声明默认值">
               <Input
                 className={CONTROL_CLASS}
-                value={input.default === undefined || input.default === null ? '' : String(input.default)}
+                value={
+                  input.default === undefined || input.default === null ? '' : String(input.default)
+                }
                 placeholder="留空 = 无"
                 aria-label="默认值"
                 onChange={function (event) {
@@ -135,7 +137,7 @@ function InputsEditor(props: InputsEditorProps) {
       })}
       <Button
         type="button"
-        variant="dashed"
+        variant="outline"
         size="sm"
         className="h-8 w-full cursor-pointer rounded-lg"
         onClick={function () {

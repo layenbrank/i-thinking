@@ -45,7 +45,7 @@ const VARIANTS = {
     hasSummary: false
   },
   wall: {
-    card: `rounded-2xl p-3 shadow-xs ${CARD_SIZE.wall.className}`,
+    card: `rounded-xl p-3 shadow-xs ${CARD_SIZE.wall.className}`,
     icon: 'size-8 rounded-xl',
     iconGlyph: 'size-4',
     hasSummary: true
@@ -122,28 +122,30 @@ function DirectiveCard(props: Props) {
 
   const deleteButton = (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant={variantKey === 'wall' ? 'outline' : 'ghost'}
-          size="icon-sm"
-          className={cn(
-            'relative z-10 h-8 w-8 shrink-0 cursor-pointer text-muted-foreground',
-            variantKey === 'wall' &&
-              'border-border/80 opacity-70 group-hover/card:opacity-100 focus-visible:opacity-100',
-            variantKey === 'wall'
-              ? 'hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive'
-              : 'opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 hover:bg-destructive/10 hover:text-destructive'
-          )}
-          aria-label={`删除 ${entry.name}`}
-          title={`删除 ${entry.name}`}
-          onClick={handleDelete}>
-          <Icon
-            icon="mdi:trash-can-outline"
-            className="size-4"
-          />
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant={variantKey === 'wall' ? 'outline' : 'ghost'}
+            size="icon-sm"
+            className={cn(
+              'relative z-10 h-8 w-8 shrink-0 cursor-pointer text-muted-foreground',
+              variantKey === 'wall' &&
+                'border-border/80 opacity-70 group-hover/card:opacity-100 focus-visible:opacity-100',
+              variantKey === 'wall'
+                ? 'hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive'
+                : 'opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 hover:bg-destructive/10 hover:text-destructive'
+            )}
+            aria-label={`删除 ${entry.name}`}
+            title={`删除 ${entry.name}`}
+            onClick={handleDelete}>
+            <Icon
+              icon="mdi:trash-can-outline"
+              className="size-4"
+            />
+          </Button>
+        }
+      />
       <TooltipContent side="top">删除 {entry.name}</TooltipContent>
     </Tooltip>
   )
@@ -160,23 +162,25 @@ function DirectiveCard(props: Props) {
       />
     ) : isParsed ? (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className={cn(
-              'relative z-10 shrink-0 cursor-pointer text-muted-foreground',
-              'hover:bg-primary hover:text-primary-foreground'
-            )}
-            aria-label={`运行 ${entry.name}`}
-            onClick={handleRun}>
-            <Icon
-              icon="mdi:play"
-              className="size-4"
-            />
-          </Button>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                'relative z-10 shrink-0 cursor-pointer text-muted-foreground',
+                'hover:bg-primary hover:text-primary-foreground'
+              )}
+              aria-label={`运行 ${entry.name}`}
+              onClick={handleRun}>
+              <Icon
+                icon="mdi:play"
+                className="size-4"
+              />
+            </Button>
+          }
+        />
         <TooltipContent side="top">运行 {entry.name}</TooltipContent>
       </Tooltip>
     ) : null
@@ -198,9 +202,7 @@ function DirectiveCard(props: Props) {
           {props.stepCount} 步 · {inputCount} 输入
         </span>
       ) : null}
-      {runs.failed > 0 ? (
-        <span className="text-destructive"> · {runs.failed} 次失败</span>
-      ) : null}
+      {runs.failed > 0 ? <span className="text-destructive"> · {runs.failed} 次失败</span> : null}
       {runs.lastAt ? (
         <span className="tabular-nums">
           {' · '}

@@ -27,11 +27,7 @@ import { ModelChips, ModelField, ModelsField } from './model-field.tsx'
 import { collectModelOptions } from './models.ts'
 import { applyProviderPreset, PROVIDER_FORM_DEFAULTS } from './preset.ts'
 import type { ProviderRow } from './row.ts'
-import {
-  PROVIDER_SCHEMA,
-  toModelIDs,
-  type ProviderValues
-} from './schema.ts'
+import { PROVIDER_SCHEMA, toModelIDs, type ProviderValues } from './schema.ts'
 
 interface ProviderFormProps {
   provider: ProviderRow | null
@@ -151,8 +147,10 @@ function ProviderForm(props: ProviderFormProps) {
               <FormItem>
                 <FormLabel>Provider</FormLabel>
                 <Select
+                  items={PROVIDER_KINDS}
                   value={field.value}
                   onValueChange={function (value) {
+                    if (value === null) return
                     field.onChange(value)
 
                     // 换厂商时把这一家的出厂值填回去（规则见 applyProviderPreset）

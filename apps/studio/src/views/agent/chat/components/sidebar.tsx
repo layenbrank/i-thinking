@@ -27,11 +27,7 @@ import {
   type Workspace
 } from '@/features/agent/workspace/client.ts'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
-import {
-  findSidebarState,
-  writeSidebarState,
-  type SidebarState
-} from './sidebar-expansion.ts'
+import { findSidebarState, writeSidebarState, type SidebarState } from './sidebar-expansion.ts'
 import { useWorkspaceThreadGroups } from './thread-groups.ts'
 import { ProfileMenu } from './profile-menu.tsx'
 import { QuotaMenu } from './quota-menu.tsx'
@@ -187,7 +183,10 @@ export default function AgentSidebar(props: SidebarProps) {
             variant="ghost"
             size="sm"
             className="hover:bg-muted h-8 w-full justify-start gap-1.5 rounded-md px-2 text-md font-medium">
-            <Icon icon="lucide:plus" className="size-4" />
+            <Icon
+              icon="lucide:plus"
+              className="size-4"
+            />
             {labels.newThread}
           </Button>
         </ThreadListPrimitive.New>
@@ -209,7 +208,10 @@ export default function AgentSidebar(props: SidebarProps) {
           aria-label="新建工作区"
           title="新建工作区"
           onClick={openCreate}>
-          <Icon icon="lucide:plus" className="size-3.5" />
+          <Icon
+            icon="lucide:plus"
+            className="size-3.5"
+          />
         </Button>
       </div>
 
@@ -245,29 +247,37 @@ export default function AgentSidebar(props: SidebarProps) {
                     onClick={function () {
                       handleNewThreadIn(item.id)
                     }}>
-                    <Icon icon="lucide:plus" className="size-3.5" />
+                    <Icon
+                      icon="lucide:plus"
+                      className="size-3.5"
+                    />
                   </Button>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        className="opacity-0 group-hover:opacity-100"
-                        aria-label="工作区菜单">
-                        <Icon icon="lucide:ellipsis" className="size-3.5" />
-                      </Button>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="opacity-0 group-hover:opacity-100"
+                          aria-label="工作区菜单"
+                        />
+                      }>
+                      <Icon
+                        icon="lucide:ellipsis"
+                        className="size-3.5"
+                      />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onSelect={function () {
+                        onClick={function () {
                           openEdit(item.id)
                         }}>
                         编辑
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onSelect={function () {
+                        onClick={function () {
                           void handlePin(item)
                         }}>
                         {item.pinned ? '取消固定' : '固定'}
@@ -275,7 +285,7 @@ export default function AgentSidebar(props: SidebarProps) {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         variant="destructive"
-                        onSelect={function () {
+                        onClick={function () {
                           void handleArchive(item.id)
                         }}>
                         归档
@@ -316,21 +326,25 @@ export default function AgentSidebar(props: SidebarProps) {
             open={sidebarState.archivedOpen}
             onOpenChange={setArchivedOpen}>
             <div className="border-border/70 mt-2 flex min-h-7.5 items-center gap-0.5 border-t pt-1">
-              <CollapsibleTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground shrink-0"
-                  aria-label={sidebarState.archivedOpen ? '收起已归档' : '展开已归档'}>
-                  <Icon icon="lucide:chevron-right"
-                    className={
-                      sidebarState.archivedOpen
-                        ? 'size-3.5 rotate-90 transition-transform'
-                        : 'size-3.5 transition-transform'
-                    } />
-                </Button>
-              </CollapsibleTrigger>
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-muted-foreground shrink-0"
+                    aria-label={sidebarState.archivedOpen ? '收起已归档' : '展开已归档'}>
+                    <Icon
+                      icon="lucide:chevron-right"
+                      className={
+                        sidebarState.archivedOpen
+                          ? 'size-3.5 rotate-90 transition-transform'
+                          : 'size-3.5 transition-transform'
+                      }
+                    />
+                  </Button>
+                }
+              />
               <span className="text-muted-foreground px-1 text-xs font-medium">
                 已归档（{archivedRows.length}）
               </span>
@@ -362,7 +376,10 @@ export default function AgentSidebar(props: SidebarProps) {
                         onClick={function () {
                           void handleRestore(item.id)
                         }}>
-                        <Icon icon="lucide:archive-restore" className="size-3.5" />
+                        <Icon
+                          icon="lucide:archive-restore"
+                          className="size-3.5"
+                        />
                       </Button>
                     }>
                     <ThreadIndices
@@ -433,7 +450,12 @@ function WorkspaceRow(props: WorkspaceRowProps) {
       {taskCount > 0 ? (
         <span className="text-muted-foreground shrink-0 text-3xs tabular-nums">{taskCount}</span>
       ) : null}
-      {item.pinned ? <Icon icon="lucide:pin" className="text-muted-foreground size-3 shrink-0" /> : null}
+      {item.pinned ? (
+        <Icon
+          icon="lucide:pin"
+          className="text-muted-foreground size-3 shrink-0"
+        />
+      ) : null}
     </>
   )
 
@@ -444,19 +466,25 @@ function WorkspaceRow(props: WorkspaceRowProps) {
       <div
         data-active={isActive ? 'true' : 'false'}
         className="hover:bg-muted/60 data-[active=true]:bg-muted/80 group flex min-h-8.5 items-center gap-0.5 rounded-lg px-0.5">
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground shrink-0"
-            aria-label={isOpen ? '折叠' : '展开'}>
-            <Icon icon="lucide:chevron-right"
-              className={
-                isOpen ? 'size-3.5 rotate-90 transition-transform' : 'size-3.5 transition-transform'
-              } />
-          </Button>
-        </CollapsibleTrigger>
+        <CollapsibleTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground shrink-0"
+              aria-label={isOpen ? '折叠' : '展开'}>
+              <Icon
+                icon="lucide:chevron-right"
+                className={
+                  isOpen
+                    ? 'size-3.5 rotate-90 transition-transform'
+                    : 'size-3.5 transition-transform'
+                }
+              />
+            </Button>
+          }
+        />
 
         {onSelect ? (
           <Button

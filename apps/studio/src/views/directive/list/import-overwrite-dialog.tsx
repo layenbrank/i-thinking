@@ -56,18 +56,17 @@ function ImportOverwriteDialog(props: Props) {
               ? `「${names[0]}」已存在，如何处理？`
               : `${names.length} 个同名指令已存在，如何处理？`}
           </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>覆盖会改写指令库里的同名条目；跳过则只导入新的。</p>
-              {names.length > 1 ? (
-                <ul className="max-h-40 list-inside list-disc overflow-y-auto font-mono text-xs">
-                  {shown.map(function (name) {
-                    return <li key={name}>{name}</li>
-                  })}
-                  {rest > 0 ? <li>…等共 {names.length} 个</li> : null}
-                </ul>
-              ) : null}
-            </div>
+          <AlertDialogDescription
+            render={<div className="space-y-2 text-sm text-muted-foreground" />}>
+            <p>覆盖会改写指令库里的同名条目；跳过则只导入新的。</p>
+            {names.length > 1 ? (
+              <ul className="max-h-40 list-inside list-disc overflow-y-auto font-mono text-xs">
+                {shown.map(function (name) {
+                  return <li key={name}>{name}</li>
+                })}
+                {rest > 0 ? <li>…等共 {names.length} 个</li> : null}
+              </ul>
+            ) : null}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-between">

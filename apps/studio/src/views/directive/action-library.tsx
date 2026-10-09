@@ -14,7 +14,13 @@ import { memo, useEffect, useMemo, useState } from 'react'
 
 import { useCorexStore, type CorexAction } from '@/stores/corex'
 
-import { BUCKET_ICONS, BUCKET_LABELS, BUCKETS, findBucketMark, type Bucket } from '@/views/directive/list/bucket'
+import {
+  BUCKET_ICONS,
+  BUCKET_LABELS,
+  BUCKETS,
+  findBucketMark,
+  type Bucket
+} from '@/views/directive/list/bucket'
 import { DirectivePlaceholder, type PlaceholderState } from '@/views/directive/list/placeholder'
 import { findPermissionIcon, findPermissionLabel } from './permissions'
 import { CardSkeleton } from '@/views/directive/render/card-skeleton'
@@ -253,13 +259,13 @@ function ActionLibraryDialog(props: Props) {
               </div>
 
               <ToggleGroup
-                type="single"
                 size="sm"
                 spacing={4}
-                value={bucket}
+                value={[bucket]}
                 aria-label="动作分类"
                 onValueChange={function (value) {
-                  if (value) setBucket(value as Bucket | 'all')
+                  const next = value[0]
+                  if (next) setBucket(next as Bucket | 'all')
                 }}
                 className="flex-wrap justify-start">
                 <ToggleGroupItem

@@ -84,32 +84,36 @@ export function ComposerClip() {
   return (
     <DropdownMenu>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="添加附件"
-              className="text-muted-foreground hover:text-foreground size-7 rounded-md">
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="添加附件"
+                  className="text-muted-foreground hover:text-foreground size-7 rounded-md"
+                />
+              }>
               <Icon icon="lucide:paperclip" />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
+            </DropdownMenuTrigger>
+          }
+        />
         <TooltipContent side="top">添加图片、文件或文件夹</TooltipContent>
       </Tooltip>
       <DropdownMenuContent
         align="start"
         className="w-44">
-        <DropdownMenuItem onSelect={handlePickImages}>
+        <DropdownMenuItem onClick={handlePickImages}>
           <Icon icon="lucide:image" />
           添加图片
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={handlePickFiles}>
+        <DropdownMenuItem onClick={handlePickFiles}>
           <Icon icon="lucide:file" />
           添加文件
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={handlePickFolders}>
+        <DropdownMenuItem onClick={handlePickFolders}>
           <Icon icon="lucide:folder" />
           添加文件夹
         </DropdownMenuItem>

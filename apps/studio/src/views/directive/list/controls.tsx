@@ -127,14 +127,14 @@ interface SortProps {
 function DirectiveSort(props: SortProps) {
   return (
     <ToggleGroup
-      type="single"
       size="sm"
       variant="outline"
       spacing={0}
-      value={props.value}
+      value={[props.value]}
       className={cn('shadow-xs', props.className)}
       onValueChange={function (value) {
-        if (value) props.onChange(value as SortMode)
+        const next = value[0]
+        if (next) props.onChange(next as SortMode)
       }}>
       {SORT_MODES.map(function (mode) {
         return (
@@ -142,7 +142,7 @@ function DirectiveSort(props: SortProps) {
             key={mode}
             value={mode}
             aria-label={`按${SORT_LABELS[mode]}排序`}
-            className="grow basis-0 cursor-pointer gap-1.5 px-2.5 text-xs whitespace-nowrap data-[state=on]:bg-primary/10 data-[state=on]:text-primary">
+            className="grow basis-0 cursor-pointer gap-1.5 px-2.5 text-xs whitespace-nowrap data-[pressed]:bg-primary/10 data-[pressed]:text-primary">
             <Icon icon={SORT_ICONS[mode]} />
             {SORT_LABELS[mode]}
           </ToggleGroupItem>
@@ -170,42 +170,44 @@ interface ImportProps {
 function DirectiveImport(props: ImportProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {props.isCompact ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className={props.className}
-            aria-label="导入 YAML"
-            title="导入 YAML">
-            <Icon icon="mdi:file-import-outline" />
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={props.className}
-            aria-label="导入 YAML"
-            title="导入 YAML">
-            <Icon icon="mdi:file-import-outline" />
-            导入
-          </Button>
-        )}
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={
+          props.isCompact ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className={props.className}
+              aria-label="导入 YAML"
+              title="导入 YAML">
+              <Icon icon="mdi:file-import-outline" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={props.className}
+              aria-label="导入 YAML"
+              title="导入 YAML">
+              <Icon icon="mdi:file-import-outline" />
+              导入
+            </Button>
+          )
+        }
+      />
       <DropdownMenuContent
         align="end"
         className="min-w-44">
         <DropdownMenuItem
-          onSelect={function () {
+          onClick={function () {
             props.onImportFolder()
           }}>
           <Icon icon="mdi:folder-open-outline" />
           导入 YAML 目录…
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={function () {
+          onClick={function () {
             props.onImportFile()
           }}>
           <Icon icon="mdi:file-import-outline" />

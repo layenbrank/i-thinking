@@ -303,7 +303,7 @@ function VariablesEditor(props: VariablesEditorProps) {
       })}
       <Button
         type="button"
-        variant="dashed"
+        variant="outline"
         size="sm"
         className="h-8 w-full cursor-pointer rounded-lg"
         onClick={function () {
@@ -379,8 +379,10 @@ function EdgeSelect(props: EdgeSelectProps) {
       label={props.label}
       hint={props.hint}>
       <Select
+        items={EDGE_LABELS}
         value={props.value}
         onValueChange={function (value) {
+          if (value === null) return
           props.onChange(value as EdgeOption)
         }}>
         <SelectTrigger
@@ -388,7 +390,7 @@ function EdgeSelect(props: EdgeSelectProps) {
           className={cn(CONTROL_CLASS, 'w-full')}>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent position="popper">
+        <SelectContent alignItemWithTrigger={false}>
           {EDGE_OPTIONS.map(function (option) {
             return (
               <SelectItem
@@ -512,7 +514,7 @@ function TriggersEditor(props: TriggersEditorProps) {
                   label="events"
                   hint="监听哪些文件事件">
                   <ToggleGroup
-                    type="multiple"
+                    multiple
                     size="sm"
                     variant="outline"
                     spacing={0}
@@ -535,7 +537,7 @@ function TriggersEditor(props: TriggersEditorProps) {
                             'h-7 justify-center rounded-md px-2.5 text-xs',
                             // 各自完整圆角与边框，覆盖 spacing=0 的紧凑连排样式
                             'data-[spacing=0]:rounded-md data-[spacing=0]:first:rounded-md data-[spacing=0]:last:rounded-md',
-                            'data-[spacing=0]:data-[variant=outline]:border-l data-[state=on]:shadow-none'
+                            'data-[spacing=0]:data-[variant=outline]:border-l data-[pressed]:shadow-none'
                           )}>
                           {name}
                         </ToggleGroupItem>
@@ -654,7 +656,7 @@ function TriggersEditor(props: TriggersEditorProps) {
       <div className="grid grid-cols-1 gap-1.5 @min-[16rem]:grid-cols-2">
         <Button
           type="button"
-          variant="dashed"
+          variant="outline"
           size="sm"
           className="h-8 cursor-pointer rounded-lg"
           disabled={hasCron}
@@ -667,7 +669,7 @@ function TriggersEditor(props: TriggersEditorProps) {
         </Button>
         <Button
           type="button"
-          variant="dashed"
+          variant="outline"
           size="sm"
           className="h-8 cursor-pointer rounded-lg"
           disabled={hasWatch}
@@ -1119,17 +1121,19 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
           <Glyph icon="mdi:pencil-outline" />
         </Button>
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="cursor-pointer text-muted-foreground hover:text-destructive"
-              aria-label="删除指令"
-              title="删除指令"
-              disabled={!content || isPending || isDeleting}>
-              <Glyph icon="mdi:trash-can-outline" />
-            </Button>
+          <AlertDialogTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="cursor-pointer text-muted-foreground hover:text-destructive"
+                aria-label="删除指令"
+                title="删除指令"
+                disabled={!content || isPending || isDeleting}
+              />
+            }>
+            <Glyph icon="mdi:trash-can-outline" />
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -1269,8 +1273,10 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
                     </Field>
                     <Field label="分类">
                       <Select
+                        items={{ [UNCATEGORIZED]: '未分类', ...BUCKET_LABELS }}
                         value={content.bucket || UNCATEGORIZED}
                         onValueChange={function (value) {
+                          if (value === null) return
                           patchContent({ bucket: parseBucket(value) })
                         }}>
                         <SelectTrigger
@@ -1278,7 +1284,7 @@ function Editor({ name, isListOpen, onOpen, onToggleList, onRun }: Props) {
                           className={cn(CONTROL_CLASS, 'w-full')}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper">
+                        <SelectContent alignItemWithTrigger={false}>
                           <SelectItem value={UNCATEGORIZED}>未分类</SelectItem>
                           {BUCKETS.map(function (bucket) {
                             return (

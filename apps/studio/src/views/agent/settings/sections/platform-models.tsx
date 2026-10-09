@@ -368,9 +368,13 @@ function PlatformModelSection() {
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="gateway-model-provider">供应商</Label>
                 <Select
+                  items={providers.map(function (provider) {
+                    return { value: provider.id, label: provider.name }
+                  })}
                   value={draft.providerID}
                   disabled={draft.id !== null}
                   onValueChange={function (value) {
+                    if (value === null) return
                     updateDraft({ ...draft, providerID: value })
                   }}>
                   <SelectTrigger

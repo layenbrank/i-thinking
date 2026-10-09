@@ -150,7 +150,10 @@ export function ModelSettings(props: ModelSettingsProps) {
                     className="grid grid-cols-[minmax(0,1.3fr)_7.5rem_4.5rem_minmax(8rem,1fr)] items-center gap-2 border-t px-1 py-2.5">
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-                        <Icon icon="lucide:box" className="size-4" />
+                        <Icon
+                          icon="lucide:box"
+                          className="size-4"
+                        />
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm">{row.model}</span>
@@ -162,8 +165,10 @@ export function ModelSettings(props: ModelSettingsProps) {
 
                     {row.canThink ? (
                       <Select
+                        items={THINKING_OPTIONS}
                         value={pref.thinking}
                         onValueChange={function (value) {
+                          if (value === null) return
                           patch(row.key, { thinking: value as ThinkingLevel })
                         }}>
                         <SelectTrigger

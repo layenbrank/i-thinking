@@ -201,8 +201,8 @@
     0 3px 6px -4px rgb(0 0 0 / 12%),
     0 9px 28px 8px rgb(0 0 0 / 5%);
 
-  /* keepAlive：Radix 关闭后仍挂载，这里兜住显隐 */
-  &[data-state='closed'] {
+  /* keepAlive：Base UI 关闭后仍挂载，这里兜住显隐 */
+  &[data-closed] {
     display: none;
   }
 }

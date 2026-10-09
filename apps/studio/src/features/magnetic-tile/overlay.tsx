@@ -1,6 +1,6 @@
 import { Dialog, DialogContent } from '@i-thinking/design/components/dialog'
 import { clsx, type ClassValue } from 'clsx'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ComponentProps, CSSProperties, ReactNode } from 'react'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile/components'
@@ -32,6 +32,9 @@ interface OverlayProps {
 }
 
 type OverlayControlProps = Pick<OverlayProps, 'cache' | 'onAbort' | 'abortTimeoutMs'>
+
+/** 关闭原因由 Base UI 的 `onOpenChange` 第二参给出，取代 radix 的 onEscapeKeyDown / onPointerDownOutside */
+type OpenChangeDetails = Parameters<NonNullable<ComponentProps<typeof Dialog>['onOpenChange']>>[1]
 
 interface OverlayProviderProps {
   children: ReactNode
@@ -100,7 +103,7 @@ function Overlay(props: OverlayProps) {
   const { visible, fullscreen, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
 
   const shouldDestroyOnHidden = cache === 'destroy' ? true : (destroyOnHidden ?? false)
-  /** keepAlive：关闭后仍留在 DOM（iframe 不重载）；关闭态靠 .overlay[data-state='closed'] 隐藏 */
+  /** keepAlive：关闭后仍留在 DOM（iframe 不重载）；关闭态靠 .overlay[data-closed] 隐藏 */
   const isKeepMounted = !shouldDestroyOnHidden
 
   const hasControls = controls !== null && controls !== undefined
@@ -130,19 +133,20 @@ function Overlay(props: OverlayProps) {
     onCancel?.(reason)
   }
 
-  /** Esc / 遮罩 / 关闭按钮统一走这里；理由由 onEscapeKeyDown、onPointerDownOutside 补充 */
-  function handleOpenChange(open: boolean) {
+  /** Esc / 遮罩 / 关闭按钮统一走这里；理由由 `onOpenChange` 的 eventDetails 补充 */
+  function handleOpenChange(open: boolean, eventDetails: OpenChangeDetails) {
     if (open) return
 
+    if (eventDetails.reason === 'escape-key') {
+      handleCancel('escape')
+      return
+    }
+    if (eventDetails.reason === 'outside-press') {
+      handleCancel('overlay')
+      return
+    }
+
     onUpdateVisible(false)
-  }
-
-  function handleEscapeKeyDown() {
-    handleCancel('escape')
-  }
-
-  function handlePointerDownOutside() {
-    handleCancel('overlay')
   }
 
   // 尺寸由 .framed / .fluid / .fullscreen 管；仅透传 style，fluid 可覆盖 height
@@ -154,10 +158,20 @@ function Overlay(props: OverlayProps) {
   return (
     <Dialog
       open={visible}
-      onOpenChange={handleOpenChange}>
+      onOpenChange={handleOpenChange}
+      onOpenChangeComplete={function (open) {
+        // 关闭收尾挂这里：官方文档把它定义为「开关动画都结束后」的回调，也是迁移参考里
+        // 替代 radix `forceMount`/收尾动作的指定位置（`apps/v4` 的 skill：forceMount → keepMounted on Portal,
+        // otherwise dropped, use `actionsRef.current.unmount()` + `onOpenChangeComplete`）。
+        //
+        // 注意它**开/关都会回调**：开侧来自 `DialogPopup` 里的 `onComplete() { if (open) ... }`，
+        // 关侧来自共享 popup store 的 `useOpenStateTransitions` → `forceUnmount()` → `onOpenChangeComplete(false)`
+        // （`utils/popups/popupStoreUtils.js`）。只 grep `dialog/` 目录会看不到关侧那一处。
+        if (!open) void handleAfterClose()
+      }}>
       <DialogContent
         showCloseButton={false}
-        forceMount={isKeepMounted ? true : undefined}
+        keepMounted={isKeepMounted}
         data-slot="magnetic-tile-overlay"
         className={clsx(
           'magnetic-tile-overlay',
@@ -166,10 +180,7 @@ function Overlay(props: OverlayProps) {
           fullscreen && styles.fullscreen,
           className
         )}
-        style={{ ...overlayStyle, width: fullscreen ? '100%' : width }}
-        onEscapeKeyDown={handleEscapeKeyDown}
-        onPointerDownOutside={handlePointerDownOutside}
-        onCloseAutoFocus={handleAfterClose}>
+        style={{ ...overlayStyle, width: fullscreen ? '100%' : width }}>
         <div className={styles.body}>{children}</div>
         {hasControls ? <div className={styles.controls}>{controls}</div> : null}
       </DialogContent>

@@ -15,6 +15,15 @@ import { useAgentStore, type DurationFormat } from '@/stores/agent.ts'
 import { SettingRow, SettingsSection } from '@/views/agent/settings/components/section.tsx'
 
 /**
+ * 耗时格式：`items` 与下拉里的选项共用这一份 —— base-ui 的触发器标签只认 `items`
+ * （或 Root 的 `itemToStringLabel`），不像 radix 那样回读选中项的子树。
+ */
+const DURATION_FORMATS = [
+  { value: 'integer', label: '整数秒' },
+  { value: 'precise', label: '精确到 0.1 秒' }
+] as const satisfies readonly { value: DurationFormat; label: string }[]
+
+/**
  * 常规：对话区怎么渲染，模型从哪来，以及审批。
  *
  * 每个开关都有真实的消费者，不是摆设。原先这里有个「对话通路」选择器（本地 / 在线）——
@@ -89,8 +98,10 @@ export function GeneralSection() {
           hint="回合摘要里的秒数怎么取整。"
           control={
             <Select
+              items={DURATION_FORMATS}
               value={chat.durationFormat}
               onValueChange={function (value) {
+                if (value === null) return
                 void update('chat', { durationFormat: value as DurationFormat })
               }}>
               <SelectTrigger
@@ -99,8 +110,15 @@ export function GeneralSection() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="integer">整数秒</SelectItem>
-                <SelectItem value="precise">精确到 0.1 秒</SelectItem>
+                {DURATION_FORMATS.map(function (format) {
+                  return (
+                    <SelectItem
+                      key={format.value}
+                      value={format.value}>
+                      {format.label}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           }
@@ -128,7 +146,10 @@ export function GeneralSection() {
 
         {blocker ? (
           <p className="text-muted-foreground flex items-start gap-1.5 pb-2.5 text-xs">
-            <Icon icon="lucide:circle-alert" className="mt-0.5 size-3.5 shrink-0" />
+            <Icon
+              icon="lucide:circle-alert"
+              className="mt-0.5 size-3.5 shrink-0"
+            />
             组织模型当前不可用：{blocker}
           </p>
         ) : null}
@@ -142,8 +163,10 @@ export function GeneralSection() {
           hint={policy?.hint}
           control={
             <Select
+              items={APPROVAL_POLICIES}
               value={chat.approval}
               onValueChange={function (value) {
+                if (value === null) return
                 const next = findApprovalPolicy(value)
                 if (next) void update('chat', { approval: next.value })
               }}>
