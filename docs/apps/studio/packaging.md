@@ -101,13 +101,28 @@ Studio：`apps/studio/forge/makers.ts` + `nsis/installer-hooks.nsh`（经 maker 
 | -------------------- | --------------- | ---- |
 | `publisher: layen` | `manufacturer: layen`（`APP_PUBLISHER`） | 产品名与发布者 |
 | `wix.language: zh-CN, en-US` | `language: 2052` + `cultures: zh-CN;en-US` | Product 语言以简中为主 |
-| `nsis.installMode: currentUser` | `defaultInstallMode: perUser` | 默认装当前用户（无需管理员） |
+| `nsis.installMode: currentUser` | `defaultInstallMode: perUser` + `beforeCreate` 修补 | 去掉上游 `InstallScope`，靠 `MSIINSTALLPERUSER` 重定向到 `%LOCALAPPDATA%\Programs\i thinking\`；产品名无 Machine 后缀 |
 | `nsis.startMenuFolder: i thinking` | `shortcutFolderName` / `shortcutName` | 开始菜单文件夹 |
 | `nsis.installerIcon` | `icon` ← `resources/icon.ico` | 与 Client 同源 |
 | AUMID | `appUserModelId` = `com.i-thinking.studio` | 与 `main.ts` 一致 |
 | （升级身份） | **固定** `upgradeCode`（`WIX_UPGRADE_CODE`） | 必须钉死才能覆盖升级 |
 | `nsis.installerHooks` | — | MSI **无** NSIS hooks；升级前请先退出 Studio / 停侧车 |
 | — | `features.autoUpdate/autoLaunch: false` | 更新走 NSIS + electron-updater |
+
+#### 何时用 NSIS vs MSI（重要）
+
+| 场景 | 用哪个 | 原因 |
+| ---- | ------ | ---- |
+| 日常下载 / 自动更新 / 给普通用户 | **NSIS** `Setup.exe`（默认 `make`） | 与 Client 一致；`electron-updater` 只认 NSIS feed |
+| 企业 SCCM / Intune 等要求 MSI | `make:msi` 旁路 | Forge + `electron-wix-msi` 对大 Electron 包偏脆；需本机 WiX v3 |
+
+**已知 MSI 限制（Forge WiX / electron-wix-msi）：**
+
+- 无 NSIS 的 `installerHooks`（升级前请先退出 Studio / 杀 `corex-daemon`）
+- 自动更新仍走 NSIS + `latest.yml`，**不要**把 MSI 当 update 包
+- 上游模板默认标题带 `(Machine - MSI)`，且同时写 `InstallScope=perUser` + `MSIINSTALLPERUSER` 会让引擎删掉后者、目录仍指向 `C:\Program Files`（1303）；本仓库用 `beforeCreate`（`patchWixCreatorForPerUser`）去掉 InstallScope / Machine 文案并改用 MediaTemplate
+- 曾装过旧「Machine」包的机器可能残留 per-machine 产品，与新的 per-user 包**不会**互相 MajorUpgrade；需管理员卸载旧包后再装
+- 错误 **2349**（Copy resumed with different info）常见于 CAB/中断安装/混用旧包；优先清残留后重装，日常请改用 NSIS
 
 #### 安装 WiX Toolset v3（打 MSI 必装）
 
@@ -133,8 +148,11 @@ pnpm --filter @i-thinking/studio make:msi
 | 现象 | 原因 | 处理 |
 | ---- | ---- | ---- |
 | `Could not find light.exe or candle.exe` | 未装 WiX v3，或当前进程 PATH 没有其 bin | 见上文；`make:msi` 会经 `run-forge.ts` 尝试注入常见 WiX bin |
-| Making nsis / zip / wix 一并 ✖ | Forge 并行 maker，WiX 失败打断整次 `make` | 先修好 WiX；不需要 MSI 时用 `make` |
+| Making nsis / zip / wix 一并 ✖ | Forge 并行 maker，WiX 失败打断整次 `make` | 先修好 WiX；不需要 MSI 时用 `make` / `make:nsis` |
 | `[sass] JSONError … package.json … trailing comma` | `package.json` 尾逗号 | 去掉尾逗号后再 `make` |
+| 安装 UI 标题仍是 `(Machine - MSI)` | 旧 MSI（未打 `beforeCreate` 补丁） | 用当前仓库重打；卸载旧包后再装 |
+| 错误 **1303**（无法访问 `C:\Program Files\i thinking`） | 旧包把 perUser 写到 Program Files | 用当前补丁后的 MSI；或改用 NSIS |
+| 错误 **2349**（程序包/CAB） | 中断安装、残留、或损坏的 MSI | 见 [troubleshooting.md](./troubleshooting.md)；日常用 NSIS |
 
 **Windows：** 打包配置 `tmpdir: false`，直接在 `out/studio/` 构建。打包前会结束本仓库路径下的 `electron` / `i-thinking` 进程并清理 `out/studio`。第三方杀毒建议将 `out/studio` 加入排除列表。
 

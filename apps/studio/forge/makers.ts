@@ -12,6 +12,7 @@ import { MakerWix } from '@electron-forge/maker-wix'
 import { MakerZIP } from '@electron-forge/maker-zip'
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis'
 import type { ForgeConfig } from '@electron-forge/shared-types'
+import type { MSICreator } from 'electron-wix-msi/lib/creator'
 
 const require = createRequire(import.meta.url)
 
@@ -72,6 +73,51 @@ function findUpdaterFeedUrl(): string | undefined {
   if (UPDATE_URL) return UPDATE_URL.replace(/\/$/, '')
   if (!S3_UPDATE_BASE) return undefined
   return `${S3_UPDATE_BASE.replace(/\/$/, '')}/win32/x64`
+}
+
+/**
+ * 修补 electron-wix-msi 默认 WXS 模板，使 `defaultInstallMode: perUser` 真能按当前用户安装。
+ *
+ * 上游同时写了 `InstallScope=perUser` 与 `MSIINSTALLPERUSER=1`。按微软单包双用途规则，
+ * 带 InstallScope 时引擎会**删掉** MSIINSTALLPERUSER → SetProperty 永不跑（标题永远
+ * `(Machine - MSI)`），且 ProgramFiles64 **不会**重定向到用户目录 → 非管理员 1303。
+ * 残留/中断安装还可能表现为 2349。
+ *
+ * 修补：去掉 InstallScope（保留 MSIINSTALLPERUSER 做真正 per-user 重定向）、干净产品名、
+ * MediaTemplate。目录仍用 ProgramFiles64（由 MSI 重定向到 `%LOCALAPPDATA%\Programs\…`）。
+ */
+function patchWixCreatorForPerUser(creator: MSICreator): void {
+  let template = creator.wixTemplate
+
+  template = template.replace(
+    'Name = "{{ApplicationName}} (Machine - MSI)"',
+    'Name = "{{ApplicationName}}"'
+  )
+  template = template.replace(
+    'Value="{{ApplicationName}} (Machine)"',
+    'Value="{{ApplicationName}}"'
+  )
+  // 标题已固定为产品名；去掉依赖 MSIINSTALLPERUSER 的 Machine/User 改名
+  template = template.replace(
+    /\s*<!-- Lets change the product name[\s\S]*?<\/SetProperty>\s*<!-- Again we give thee MSI[\s\S]*?<\/SetProperty>/,
+    '\n'
+  )
+  // 去掉 InstallScope，否则 MSIINSTALLPERUSER 会被删、ProgramFiles 无法 per-user 重定向
+  template = template.replace(/\s*InstallScope="\{\{PackageScope\}\}"/, '')
+  // 双用途包：ALLUSERS=2 + MSIINSTALLPERUSER=1 → 默认 per-user 并重定向 ProgramFiles*
+  if (!template.includes('Id="ALLUSERS"')) {
+    template = template.replace(
+      '<Property Id="MSIINSTALLPERUSER" Secure="yes" Value="{{InstallPerUser}}" />',
+      '<Property Id="ALLUSERS" Secure="yes" Value="2" />\n    <Property Id="MSIINSTALLPERUSER" Secure="yes" Value="{{InstallPerUser}}" />'
+    )
+  }
+  // 大 Electron 包用单 CAB 易在安装阶段触发 2349；MediaTemplate 可拆柜并提高压缩稳定性
+  template = template.replace(
+    '<Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>',
+    '<MediaTemplate EmbedCab="yes" CompressionLevel="high" />'
+  )
+
+  creator.wixTemplate = template
 }
 
 function buildMakers(): NonNullable<ForgeConfig['makers']> {
@@ -199,7 +245,7 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
   }
 
   // Windows MSI（需 WiX Toolset；STUDIO_MAKE_WIX=1）— 企业旁路，默认不跑
-  // 选项对齐 Client NSIS/WiX（见 docs/apps/studio/packaging.md）
+  // 日常分发请用 NSIS Setup.exe；MSI 限制见 docs/apps/studio/packaging.md
   if (MAKE_WIX) {
     makers.push(
       new MakerWix({
@@ -209,13 +255,14 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
         exe: APP_EXECUTABLE,
         shortName: APP_NAME,
         appUserModelId: APP_AUMID,
+        // 经 patch 后 per-user 重定向到用户 Programs 下（对齐 Client currentUser）
         programFilesFolderName: displayName,
         shortcutFolderName: START_MENU_FOLDER,
         shortcutName: displayName,
         upgradeCode: WIX_UPGRADE_CODE,
         language: WIX_LANGUAGE,
         cultures: WIX_CULTURES,
-        // 对齐 Client NSIS installMode: currentUser
+        // 对齐 Client NSIS installMode: currentUser（模板须 beforeCreate 修补，见上）
         defaultInstallMode: 'perUser',
         // Electron / corex 侧车仅 win32-x64；库默认 x86 会打错架构
         arch: 'x64',
@@ -227,6 +274,9 @@ function buildMakers(): NonNullable<ForgeConfig['makers']> {
         ...(setupIcon ? { icon: setupIcon } : {}),
         ui: {
           chooseDirectory: true
+        },
+        beforeCreate(creator) {
+          patchWixCreatorForPerUser(creator)
         },
         ...(WINDOWS_CERTIFICATE_FILE
           ? {

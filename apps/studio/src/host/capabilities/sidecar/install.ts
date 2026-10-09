@@ -17,7 +17,8 @@ import {
  *   数据目录、端点、token 都由它自己算（问 `corex paths --json`）。它是用户的，指令就在他的数据目录里。
  * - **Studio 自带的那份**：打包态在 `resources/sidecar`，开发态在
  *   `apps/studio/sidecar/staging/<platform>`（`pnpm command sidecar bootstrap studio` 按 tools.lock
- *   拉下来并校验 sha256）。自带那份一律用应用私有的数据目录 + 私有端点，不与用户环境共享任何东西。
+ *   拉下来并校验 sha256）。自带那份用应用私有的数据目录，端点与 corex 平台默认一致
+ *   （Windows `\\.\pipe\corex`，Unix `<data>/corex.sock`）。
  * - **数据目录不是安装目录**：`~/.corex` 只放数据（指令库、token、历史），不放进候选安装位置。
  *   它曾经也在候选里 —— 那会让「开发时用哪份二进制」被用户环境里那份旧 corex 悄悄决定。
  *
@@ -40,8 +41,11 @@ const DATABASE_FILE = 'corex.db'
 /** 探测 `corex paths` 的超时：启动路径上不该被一条命令拖住。 */
 const PATHS_TIMEOUT_MS = 5_000
 
-/** 捆绑回退用的私有端点：用户装的 daemon 占着 `\\.\pipe\corex`，两条路互不干扰。 */
-const BUNDLED_ENDPOINT = String.raw`\\.\pipe\corex-studio`
+/**
+ * Windows 默认命名管道，与 `corex_ipc::ipc_endpoint` / CLI / MCP 一致。
+ * 私有数据目录靠 `COREX_DATA_DIR` 隔离；端点不另起名字，避免宿主与 corex 各连各的。
+ */
+const BUNDLED_ENDPOINT = String.raw`\\.\pipe\corex`
 
 /** `corex paths --json` 的字段，由 corex 自己算好，宿主不重新拼。 */
 interface CorexPaths {
@@ -236,10 +240,11 @@ function findBundledDataDir(): string {
   return process.env[COREX_DATA_DIR_ENV]?.trim() || privateDir
 }
 /**
- * Studio 自带的那份：私有数据目录 + 私有端点，不与用户环境共享任何东西。
+ * Studio 自带的那份：私有数据目录 + 平台默认端点（与 corex CLI / MCP 同一条管道）。
  *
  * 数据目录**绝不用 exe 旁边**：开发态 staging 在仓库里、打包态 `resources/sidecar` 在应用目录里，
  * 而 corex 的解析顺序里「可写的 exe 目录」排在第二位 —— 不钉住就会把指令库写进那些地方。
+ * Windows 端点不随数据目录变；已有 daemon 在默认管道上时会复用（见 sidecar `ping`）。
  */
 function findBundledInstall(): CorexInstall {
   const dataDir = findBundledDataDir()

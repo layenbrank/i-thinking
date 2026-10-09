@@ -416,7 +416,9 @@ class CorexHost {
       )
       return response.type === 'pong' || response.type === 'ok' ? 'ok' : 'unauthorized'
     } catch (error) {
-      console.warn('[corex] ping 无人应答，按未启动处理', error)
+      const detail = error instanceof Error ? error.message : String(error)
+      // 冷启动管道还不在是常态：记一条探测结果，不把整段堆栈当故障甩出来
+      console.info(`[corex] ping 未应答（${detail}），按未启动处理`)
       return 'absent'
     }
   }
@@ -533,7 +535,10 @@ class CorexHost {
           socket.destroy()
         }
         if (error) {
-          host.markDisconnected(`${String(payload.type)}: ${error.message}`)
+          // 启动探测（尚未 ready）时的失败是常态，别当成「断开」
+          if (host.isReady) {
+            host.markDisconnected(`${String(payload.type)}: ${error.message}`)
+          }
           reject(error)
           return
         }

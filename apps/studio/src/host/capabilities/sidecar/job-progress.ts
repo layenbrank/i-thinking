@@ -40,8 +40,14 @@ function watchJobProgress(dataDir: string): () => void {
     try {
       entries = fs.readdirSync(root, { withFileTypes: true })
     } catch (error) {
-      // 没有 cron / watch 目录是常态（没建过守护）
-      reportOnce(`读取守护目录失败：${root}`, error)
+      // 没有 cron / watch 目录是常态（没建过守护）；ENOENT 不必报
+      const code =
+        error && typeof error === 'object' && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : ''
+      if (code !== 'ENOENT') {
+        reportOnce(`读取守护目录失败：${root}`, error)
+      }
       return
     }
     for (const entry of entries) {
