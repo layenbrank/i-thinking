@@ -81,7 +81,11 @@ async function stageVendoredTools(
     }
     const pins = findLockPins(lock, tool.key)
     if (!pins || !hasToolPin(pins, platform)) {
-      if (tool.key === 'corex' || (target.id === 'client' && tool.key === 'goose')) {
+      // corex 缺了起不来（引擎）；client 的 goose / pdfium 是 build.rs 直接检的硬依赖
+      const required =
+        tool.key === 'corex' ||
+        (target.id === 'client' && (tool.key === 'goose' || tool.key === 'pdfium'))
+      if (required) {
         throw new Error(`[stage] 当前平台无 ${tool.key} 钉死版本: ${platform}（应用=${target.id}）`)
       }
       continue

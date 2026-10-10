@@ -3,6 +3,7 @@ import { FfmpegTool } from './ffmpeg.ts'
 import { GooseTool } from './goose.ts'
 import { OpencodeTool } from './opencode.ts'
 import { PandocTool } from './pandoc.ts'
+import { PdfiumTool } from './pdfium.ts'
 
 import type { ToolStrategy } from './types.ts'
 
@@ -12,7 +13,8 @@ const TOOLS: Record<string, ToolStrategy> = {
   ffmpeg: FfmpegTool,
   goose: GooseTool,
   opencode: OpencodeTool,
-  pandoc: PandocTool
+  pandoc: PandocTool,
+  pdfium: PdfiumTool
 }
 
 function findTool(key: string): ToolStrategy {

@@ -23,6 +23,8 @@ interface ToolsLock {
   goose?: Record<string, ToolPin>
   opencode?: Record<string, ToolPin>
   pandoc: Record<string, ToolPin>
+  /** corex 的 PDF 运行时库（client 的构建期硬依赖，随安装包发出） */
+  pdfium?: Record<string, ToolPin>
 }
 
 function parseToolsLock(filePath = TOOLS_LOCK_PATH): ToolsLock {
@@ -36,6 +38,7 @@ function parseToolsLock(filePath = TOOLS_LOCK_PATH): ToolsLock {
   parsed.ffmpeg = parsed.ffmpeg ?? {}
   parsed.goose = parsed.goose ?? {}
   parsed.opencode = parsed.opencode ?? {}
+  parsed.pdfium = parsed.pdfium ?? {}
   return parsed
 }
 
@@ -45,7 +48,8 @@ function findLockPins(lock: ToolsLock, toolKey: string): Record<string, ToolPin>
     ffmpeg: lock.ffmpeg,
     goose: lock.goose,
     opencode: lock.opencode,
-    pandoc: lock.pandoc
+    pandoc: lock.pandoc,
+    pdfium: lock.pdfium
   }
   return pinsByTool[toolKey]
 }

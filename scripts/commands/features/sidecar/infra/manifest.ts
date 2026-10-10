@@ -25,8 +25,9 @@ import { findBinaryName, findPlatformKey } from './platform.ts'
  *   pnpm command sidecar manifest            打印当前平台的声明
  *   pnpm command sidecar manifest --verify   真的下载并核 sha256（几十 ~ 几百 MB）
  *
- * 落盘为什么优先走它：lock 里那三个工具的归档在 **GitHub Releases**（本仓开发机常年连不上），
- * 而 R2 上的重打包包与运行时下载的是**同一份字节** —— 落盘跟着它走，既不依赖 GitHub，
+ * 落盘为什么优先走它：lock 里 pandoc / opencode / ffmpeg(linux-x64) 的归档在 **GitHub Releases**
+ * （本仓开发机常年连不上），而 R2 上的重打包包与运行时下载的是**同一份字节**
+ * （ffmpeg(win32) 的 lock pin 已经就是这一条）—— 落盘跟着它走，既不依赖 GitHub，
  * 又保证「内置的那份」与「在线下载的那份」不会分叉。
  */
 

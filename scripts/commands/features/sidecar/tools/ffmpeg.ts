@@ -26,7 +26,8 @@ function findFfmpegBinary(key = findPlatformKey()): string {
 }
 
 /**
- * 按 tools.lock 下载 BtbN/FFmpeg-Builds release 到缓存 ffmpeg/<platform>/bin。
+ * 按 tools.lock 下载归档到缓存 ffmpeg/<platform>/bin：win32 是自建 R2 的重打包包
+ * （与在线包同一条制品，可执行文件平铺在包根），linux-x64 是 BtbN/FFmpeg-Builds release。
  * 落盘 ffmpeg(.exe)；归档内若有 ffprobe/ffplay 一并拷贝。
  *
  * 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：见 infra/vendor.ts

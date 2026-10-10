@@ -51,8 +51,8 @@ function isRequiredTool(toolKey: string, app: string): boolean {
   if (toolKey === 'corex') {
     return true
   }
-  // client 依赖 goose ACP sidecar
-  return app === 'client' && toolKey === 'goose'
+  // client 的构建期硬依赖：goose ACP 侧车、pdfium 运行时库（build.rs 会检这两样）
+  return app === 'client' && (toolKey === 'goose' || toolKey === 'pdfium')
 }
 
 async function runBootstrap(app: string): Promise<void> {
