@@ -55,7 +55,7 @@ type ActivateFn = (ctx: ActivateCtx) => void | Promise<void>
 /**
  * 双击侧通道：全部磁贴走独立窗口 / 系统浏览器。
  * - navigation → window.open（security setWindowOpenHandler → 默认浏览器）
- * - intelligence / directive → itc.window.toOpen
+ * - agent / directive → itc.window.toOpen
  * - capture → capture:open（截屏浮层窗）
  */
 const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
@@ -63,7 +63,7 @@ const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
     if (!ctx.tile.url) return
     window.open(ctx.tile.url, '_blank', 'noopener')
   },
-  async intelligence() {
+  async agent() {
     await itc.window.toOpen({ key: 'agent' })
   },
   async directive() {

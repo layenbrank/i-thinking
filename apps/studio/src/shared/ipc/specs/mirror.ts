@@ -102,7 +102,7 @@ const COMPONENT = z.enum([
   'markdown',
   'morph',
   'settings',
-  'intelligence',
+  'agent',
   'navigation',
   'marketplace',
   'developer',

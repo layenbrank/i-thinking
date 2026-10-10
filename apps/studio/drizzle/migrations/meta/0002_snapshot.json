@@ -1,8 +1,8 @@
 {
+  "id": "50118954-651c-41d1-ac8e-97c6e8d7565a",
+  "prevId": "4585b448-30b9-4b51-ab06-4ba1ae578391",
   "version": "6",
   "dialect": "sqlite",
-  "id": "4585b448-30b9-4b51-ab06-4ba1ae578391",
-  "prevId": "83bff0ad-c026-43d5-9167-fcc30dc3c401",
   "tables": {
     "asset": {
       "name": "asset",
@@ -141,12 +141,16 @@
       "indexes": {
         "idx_asset_hash": {
           "name": "idx_asset_hash",
-          "columns": ["hash"],
+          "columns": [
+            "hash"
+          ],
           "isUnique": false
         },
         "idx_asset_path": {
           "name": "idx_asset_path",
-          "columns": ["filePath"],
+          "columns": [
+            "filePath"
+          ],
           "isUnique": false
         }
       },
@@ -256,17 +260,23 @@
       "indexes": {
         "idx_chatMessage_sessionID": {
           "name": "idx_chatMessage_sessionID",
-          "columns": ["sessionID"],
+          "columns": [
+            "sessionID"
+          ],
           "isUnique": false
         },
         "idx_chatMessage_parentID": {
           "name": "idx_chatMessage_parentID",
-          "columns": ["parentID"],
+          "columns": [
+            "parentID"
+          ],
           "isUnique": false
         },
         "idx_chatMessage_createdAt": {
           "name": "idx_chatMessage_createdAt",
-          "columns": ["createdAt"],
+          "columns": [
+            "createdAt"
+          ],
           "isUnique": false
         }
       },
@@ -274,20 +284,28 @@
         "chatMessage_sessionID_chatSession_id_fk": {
           "name": "chatMessage_sessionID_chatSession_id_fk",
           "tableFrom": "chatMessage",
+          "columnsFrom": [
+            "sessionID"
+          ],
           "tableTo": "chatSession",
-          "columnsFrom": ["sessionID"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "chatMessage_parentID_chatMessage_id_fk": {
           "name": "chatMessage_parentID_chatMessage_id_fk",
           "tableFrom": "chatMessage",
+          "columnsFrom": [
+            "parentID"
+          ],
           "tableTo": "chatMessage",
-          "columnsFrom": ["parentID"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -365,7 +383,9 @@
       "indexes": {
         "idx_chatProvider_kind": {
           "name": "idx_chatProvider_kind",
-          "columns": ["kind"],
+          "columns": [
+            "kind"
+          ],
           "isUnique": false
         }
       },
@@ -431,17 +451,23 @@
       "indexes": {
         "idx_chatSession_updatedAt": {
           "name": "idx_chatSession_updatedAt",
-          "columns": ["updatedAt"],
+          "columns": [
+            "updatedAt"
+          ],
           "isUnique": false
         },
         "idx_chatSession_providerID": {
           "name": "idx_chatSession_providerID",
-          "columns": ["providerID"],
+          "columns": [
+            "providerID"
+          ],
           "isUnique": false
         },
         "idx_chatSession_rootID": {
           "name": "idx_chatSession_rootID",
-          "columns": ["rootID"],
+          "columns": [
+            "rootID"
+          ],
           "isUnique": false
         }
       },
@@ -449,11 +475,15 @@
         "chatSession_providerID_chatProvider_id_fk": {
           "name": "chatSession_providerID_chatProvider_id_fk",
           "tableFrom": "chatSession",
+          "columnsFrom": [
+            "providerID"
+          ],
           "tableTo": "chatProvider",
-          "columnsFrom": ["providerID"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -611,7 +641,9 @@
       "indexes": {
         "idx_magnetic_tile_mirror": {
           "name": "idx_magnetic_tile_mirror",
-          "columns": ["mirrorID"],
+          "columns": [
+            "mirrorID"
+          ],
           "isUnique": false
         }
       },
@@ -873,12 +905,16 @@
       "indexes": {
         "idx_overlay_archivedAt": {
           "name": "idx_overlay_archivedAt",
-          "columns": ["archivedAt"],
+          "columns": [
+            "archivedAt"
+          ],
           "isUnique": false
         },
         "idx_overlay_tenantID": {
           "name": "idx_overlay_tenantID",
-          "columns": ["tenantID"],
+          "columns": [
+            "tenantID"
+          ],
           "isUnique": false
         }
       },
@@ -973,12 +1009,16 @@
       "indexes": {
         "idx_calendar_startAt": {
           "name": "idx_calendar_startAt",
-          "columns": ["startAt"],
+          "columns": [
+            "startAt"
+          ],
           "isUnique": false
         },
         "idx_calendar_reminderID": {
           "name": "idx_calendar_reminderID",
-          "columns": ["reminderID"],
+          "columns": [
+            "reminderID"
+          ],
           "isUnique": false
         }
       },
@@ -986,11 +1026,15 @@
         "calendar_reminderID_reminder_id_fk": {
           "name": "calendar_reminderID_reminder_id_fk",
           "tableFrom": "calendar",
+          "columnsFrom": [
+            "reminderID"
+          ],
           "tableTo": "reminder",
-          "columnsFrom": ["reminderID"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "cascade"
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1192,22 +1236,30 @@
       "indexes": {
         "idx_reminder_dueAt": {
           "name": "idx_reminder_dueAt",
-          "columns": ["dueAt"],
+          "columns": [
+            "dueAt"
+          ],
           "isUnique": false
         },
         "idx_reminder_fireTime": {
           "name": "idx_reminder_fireTime",
-          "columns": ["fireTime"],
+          "columns": [
+            "fireTime"
+          ],
           "isUnique": false
         },
         "idx_reminder_enabled": {
           "name": "idx_reminder_enabled",
-          "columns": ["enabled"],
+          "columns": [
+            "enabled"
+          ],
           "isUnique": false
         },
         "idx_reminder_archivedAt": {
           "name": "idx_reminder_archivedAt",
-          "columns": ["archivedAt"],
+          "columns": [
+            "archivedAt"
+          ],
           "isUnique": false
         }
       },
@@ -1266,12 +1318,16 @@
       "indexes": {
         "workspaceRoot_path_unique": {
           "name": "workspaceRoot_path_unique",
-          "columns": ["path"],
+          "columns": [
+            "path"
+          ],
           "isUnique": true
         },
         "idx_workspaceRoot_sort": {
           "name": "idx_workspaceRoot_sort",
-          "columns": ["sort"],
+          "columns": [
+            "sort"
+          ],
           "isUnique": false
         }
       },
@@ -1284,9 +1340,9 @@
   "views": {},
   "enums": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   },
   "internal": {
     "indexes": {}

@@ -10,11 +10,11 @@ import { findBinaryName, findPlatformKey } from '@/host/framework/binaries'
  * - 宿主（这个文件）：构建期把 JSON 内联进 main bundle，运行时不读文件；
  * - 仓库 CLI（`pnpm command sidecar manifest`）：发新包后照着它核对 R2 上的东西对不对。
  *
- * 与 `tools.lock.json` 的关系：那份钉的是**完整版落盘**用的 release 归档（GitHub 原包），
- * 这份钉的是**运行时在线下载**的重打包包（R2，可执行文件平铺在包根）。
- * 两个通路、两套归档，所以哈希本来就不同 —— 但**版本是同一条线**：
+ * 与 `tools.lock.json` 的关系：那份钉的是**完整版落盘**用的归档 —— pandoc / opencode 用
+ * GitHub 原包，ffmpeg(win32) 与这份**同一条 R2 制品**；这份一律是 R2 上的重打包包
+ * （可执行文件平铺在包根）。两条通路来源不同，所以哈希不逐字镜像 —— 但**版本是同一条线**：
  * opencode 必须与 lock 一致（与 `@opencode/client` 强耦合，漂了症状是协议对不上），
- * `catalog.test.ts` 守着；ffmpeg 是有意的例外（在线包是上游 master 的 `n9.0.2`）。
+ * pandoc / ffmpeg(win32) 同理，`catalog.test.ts` 守着。
  *
  * 加一个平台 / 换一个包：改 `manifest.json` 即可，代码不用动。
  */

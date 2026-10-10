@@ -33,7 +33,8 @@ import { findBucketMark } from './bucket'
  * `onClick`，键盘焦点交给铺满卡片的那层无内容按钮，两者最终都走同一个 `onOpen`。
  *
  * 卡片有几十上百张，父组件的时钟每跳一次就会重渲染一轮，故按值 `memo`。
- * 按下反馈用 CSS `active:scale`，不用 motion —— 分组保活后成批挂着，motion 实例更贵。
+ * 按下反馈用 CSS 色阶（`active:bg-accent-active`），不用 motion 也不用位移 —— 分组保活后成批挂着，
+ * motion 实例更贵，位移/缩放又会抖布局（见 `docs/guides/agent-conventions.md` 的交互约定）。
  */
 
 /** 两种摆放方式下卡片自己的内边距与要不要露出描述 */
@@ -216,8 +217,8 @@ function DirectiveCard(props: Props) {
     <div
       className={cn(
         'group/card relative flex w-full min-w-0 cursor-pointer flex-col overflow-hidden border bg-card',
-        'transition-[border-color,background-color,box-shadow,transform] duration-200',
-        'active:scale-[0.985] motion-reduce:active:scale-100',
+        'transition-[border-color,background-color,box-shadow] duration-200',
+        'active:bg-accent-active',
         variant.card,
         // 焦点圈画在容器上：卡片 overflow-hidden，画在里面那层按钮上会被裁掉
         'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50',

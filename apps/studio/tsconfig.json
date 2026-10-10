@@ -47,7 +47,7 @@
       "@i-thinking/shared/controller",
       "@i-thinking/shared/magnetic-tile",
       "@i-thinking/shared/magnetic-tile-bookmark",
-      "@i-thinking/shared/magnetic-tile-intelligence",
+      "@i-thinking/shared/magnetic-tile-agent",
       "@i-thinking/shared/process-env",
       "@electron-forge/plugin-vite/forge-vite-env"
     ],

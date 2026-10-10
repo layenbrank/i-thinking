@@ -7,11 +7,12 @@ import { TOOL_KEYS } from '@/shared/ipc/specs/tools'
 import { findTool, findToolBinaryNames, findTools } from './catalog'
 
 /**
- * `sidecar/manifest.json`（在线包）与 `tools.lock.json`（完整版落盘的 release 归档）是**两条路**：
- * 前者是 R2 上的重打包包（可执行文件平铺在包根），后者是 GitHub 上的原包，所以哈希本来就不同，
- * 这里**不去镜像哈希**。要盯的只有两件事：
+ * `sidecar/manifest.json`（在线包）与 `tools.lock.json`（完整版落盘的归档）是**两条路**：
+ * 前者一律是 R2 上的重打包包（可执行文件平铺在包根）；后者 ffmpeg(win32) 已与在线包同源，
+ * pandoc / opencode 仍是 GitHub 上的原包 —— lock 还要覆盖在线包没发的平台，所以**不去镜像哈希**。
+ * 要盯的只有两件事：
  * 1. 覆盖面对得上：哪些工具算「按需」由 lock 说了算；
- * 2. **版本不漂**：opencode / pandoc 必须与 lock 逐字一致（见 VERSION_CHECKED）。
+ * 2. **版本不漂**：pandoc / opencode / ffmpeg(win32) 必须与 lock 逐字一致（见 VERSION_CHECKED）。
  */
 const LOCK_PATH = fileURLToPath(
   new URL('../../../../../../scripts/commands/features/sidecar/tools.lock.json', import.meta.url)
@@ -36,10 +37,10 @@ const HOST_KEY = 'win32-x64'
  *
  * opencode 是硬约束：server 与 `@opencode/client` 强耦合，漂了不是报错而是协议对不上
  * （症状是 400 `Missing key at ["prompt"]`）。pandoc 同上游线，也对齐。
- * ffmpeg 不在内：在线包是上游 master 的重打包（n9.0.2），lock 那份是 BtbN autobuild，
- * 本就是两个包 —— 不写成「必须不同」的反向断言，哪天两边真对齐了那种断言反而会红。
+ * ffmpeg：win32 的 lock pin 与在线包是同一条 R2 制品（上游 master 重打包，n9.0.2），
+ * 版号必须一致；其余平台只有 lock 那份（BtbN autobuild），在线包没发。
  */
-const VERSION_CHECKED = ['pandoc', 'opencode']
+const VERSION_CHECKED = ['pandoc', 'opencode', 'ffmpeg']
 
 const SHA256 = /^[0-9a-f]{64}$/
 
