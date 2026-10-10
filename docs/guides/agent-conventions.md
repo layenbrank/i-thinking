@@ -80,21 +80,31 @@
 | ---------------- | ----------------------------------------------- |
 | `apps/studio`    | shadcn/ui + Tailwind v4（`@i-thinking/design`） |
 | `apps/extension` | 同上                                            |
-| `apps/client`    | **antd**（尚未迁移）                            |
+| `apps/client`    | 同上（Tauri；窗口装饰自绘）                     |
 | `apps/devtools`  | 纯 Vue 3，无组件库                              |
 
-### shadcn（studio / extension）
+### shadcn（studio / extension / client）
 
 - 组件一律从 `@i-thinking/design/{components,assistant}/*` 引入；**不要手写 `<button>` / `<dialog>`，也不要在 app 内造一次性组件**。
+- 按压反馈用色阶，**不用位移/缩放**：`hover:bg-primary-hover`、`active:bg-primary-active`（`--*-hover` / `--*-active` 已在 `globals.css` 定义并暴露为 `bg-*-hover` / `bg-*-active`，hover 提亮、active 下沉，与 antd 一致）。`active:translate-y-px` / `active:scale-*` 这类会改变布局盒子或引起抖动的写法不要再用。
 - 设计 token 唯一源：`packages/design/src/styles/globals.css`；**app 侧不得另定义同名变量**。
 - 用语义 token 的工具类（`bg-primary`、`text-muted-foreground`）；不写硬编码色值，不用任意值（`bg-[#4080ff]`）。
 - 新增组件走 registry：`pnpm --filter @i-thinking/design registry:add <items>`。
 
-### antd（仅 `apps/client`）
+### Tauri 窗口（仅 `apps/client`）
 
-- 颜色使用主色；消费主题变量（`--ith-*`）须挂 `CSSVAR.KEY`（见 `apps/client/src/themes/runtime/build.ts`），或用 `useCssVarClassName`；样式里写 `var(--ith-…)`，**不要写 `var(--ant-*)`**。
-- 注入规则为 `.ith { --ith-*: … }`，未挂 `ith` 作用域则变量不生效。
-- 设计稿的样式仅参考，不必原样照抄；实现时注意布局工整、对齐。
+- 窗口一律 `decorations: false`，桌面壳自绘：`Caption`（`src/components/caption/`）负责拖拽区 + 窗口键，`WindowFrame`（`src/components/window-frame/`）**是窗口容器**（标题栏 + 撑满内容 + 纵向 flex 列），不要用裸 `Caption` + 自建布局。
+- 拖拽区：槽位容器带 `data-region="true"`（CSS `-webkit-app-region: drag`，WebView2 生效）；**槽位里的交互元素必须带 `data-region="false"`**，否则会被拖拽区吃掉点击（窗口键即如此处理）。`data-tauri-drag-region` 是 Tauri 自带的拖拽处理，其裸值只在直接点中该元素时触发，需要子树任意位置触发时写 `"deep"`。
+- 每个窗口都要有自绘标题栏；只有刻意的无装饰浮层（`/overlay`）例外。透明窗用 `WindowFrame` 内层卡片；自带材质（主窗口 mica）的传 `isFramed={false}`，卡片会盖死 mica。
+- 磁贴**不再用 Dialog**：双击开独立窗口（`activateTile` → `views/<component>`），按磁贴记录建窗（label `component:id`）。
+- 磁贴分两层，**别把窗口逻辑塞回 features**：`views/<tile>/` 是窗口页（双击后开的整个界面，含 `workspace/**` 这类窗口专属实现）；`features/magnetic-tiles/<tile>/` 只放磁贴表面（板上那块磁贴：`<tile>.tsx` / `marker.tsx` / 尺寸 scss）与两侧共用件。
+- 窗口 UI 一律归 `views/`：agent 窗口的部件在 `views/agent/chat/components/**`，子页共用件在 `views/agent/components/**`；`features/agent/` 只留 `acp/`、`model/` 与领域类型。
+- 窗口内要分屏时用**布局路由 + 子页**，不要用 Dialog 或页内开关：`views/agent/agent.tsx` 是出口，
+  `views/agent/{chat,settings}/` 是子页，URL 只有 `/agent/chat`（默认）与 `/agent/settings`（对齐 studio 的 `/agent`）。
+
+### 旧约定（已废弃）
+
+- `--ith-*`（antd cssVar）已全量迁到设计 token（`--primary` / `--foreground` / `--border` …）；不要再写 `var(--ith-…)` 或 `var(--ant-*)`。
 
 ## Git 提交
 

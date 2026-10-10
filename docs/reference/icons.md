@@ -179,7 +179,7 @@ packages/shared/.../icons/custom.json ──┘
 ### 不在本体系内
 
 - TipTap 编辑器内的 `tiptap-icons/*` 手写 SVG 组件：独立，不纳入本约定。
-- Ant Design 的 `@ant-design/icons`（如 `DownOutlined`）：另一套，按现有用法保留。
+- `@ant-design/icons`：**已随 antd 全量移除**；原 `DownOutlined` 之类改用 `Icon` + `@iconify/json` 的 ant-design 图标集（`icon="ant-design:down-outlined"`）。
 
 ---
 

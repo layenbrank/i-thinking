@@ -15,7 +15,7 @@ Source: `apps/client/src/components/contextmenu/`
 category: Components
 title: ContextMenu
 subtitle: 右键菜单
-description: 企业级可无限嵌套的右键菜单，支持声明式与命令式 API，主题对齐 Ant Design（`--ith-*`）。
+description: 企业级可无限嵌套的右键菜单，支持声明式与命令式 API，主题走设计 token。
 group:
   title: 通用
   order: 1
@@ -23,7 +23,7 @@ group:
 
 ## 实现总结 {#implementation-summary}
 
-ContextMenu **未**薄封装 antd `Dropdown` / `Menu`，原因：
+ContextMenu **未**使用设计系统的 `DropdownMenu` 组合，而是自研递归面板，原因：
 
 1. 全局 Menu recipe（侧栏黑底）会污染弹出菜单外观
 2. 需要统一的 motion 进退场与多级定制渲染
@@ -34,7 +34,7 @@ ContextMenu **未**薄封装 antd `Dropdown` / `Menu`，原因：
 | 面板 | 自研递归 `MenuPanel`（`panel.tsx`） |
 | 数据结构 | `ContextMenuItem` 递归 `children`，`parseItems` 规范化 |
 | 定位 | `parsePopupOrigin`：根菜单相对指针，子菜单相对父项；flip + shift + `boundaryPadding` |
-| 主题 | `contextmenu.scss` 全部使用 `var(--ith-*)` |
+| 主题 | `contextmenu.scss` 全部使用设计 token（`var(--popover)` / `var(--border)` …） |
 | 动效 | `motion/react`（导入别名 `motion as Motion`）+ `useReducedMotion` |
 | 声明式 | `<ContextMenu items={...}>{children}</ContextMenu>` |
 | 命令式 | `useContextMenu().open({ x, y, items })` + `<ContextMenu.Host />` |
@@ -52,16 +52,17 @@ ContextMenu **未**薄封装 antd `Dropdown` / `Menu`，原因：
 ### 基本（声明式）
 
 ```tsx
+import { Icon } from '@iconify/react/offline'
+
 import { ContextMenu } from '@/components/contextmenu'
-import { CopyOutlined, DeleteOutlined } from '@ant-design/icons'
 
 export default function Demo() {
   return (
     <ContextMenu
       items={[
-        { key: 'copy', label: '复制', icon: <CopyOutlined />, shortcut: 'Ctrl+C' },
+        { key: 'copy', label: '复制', icon: <Icon icon="ant-design:copy-outlined" />, shortcut: 'Ctrl+C' },
         { type: 'divider' },
-        { key: 'delete', label: '删除', icon: <DeleteOutlined />, danger: true }
+        { key: 'delete', label: '删除', icon: <Icon icon="ant-design:delete-outlined" />, danger: true }
       ]}
       onClick={function (info) {
         console.log(info.key, info.keyPath)
@@ -452,15 +453,242 @@ export default function RouteShell() {
 
 ### Fallback.Route
 
-无 Props。渲染全视口居中的 antd `Spin` +「Loading...」文案。
+全视口居中的加载指示（`Spinner`）。
+
+| 属性 | 说明   | 类型 | 默认值 |
+| ---- | ------ | ---- | ------ |
+| —    | 无入参 | —    | —      |
 
 导出形态：
 
 ```ts
-export const Fallback = { Route }
+export const Fallback = { Route, ErrorBoundary }
 ```
 
+### Fallback.ErrorBoundary
+
+错误边界；命中后在原位渲染一行提示，不冒泡打断整条路由。
+
+| 属性     | 说明       | 类型        | 默认值 |
+| -------- | ---------- | ----------- | ------ |
+| children | 受保护子树 | `ReactNode` | —      |
+
 ---
+
+## caption-cn
+
+Source: `apps/client/src/components/caption/`
+
+---
+category: Components
+title: Caption
+subtitle: 窗口标题栏（窗口装饰）
+description: decorations: false 的自绘桌面壳：拖拽区 + 窗口键。
+group:
+  title: 窗口
+  order: 1
+---
+
+## 何时使用 {#when-to-use}
+
+- 任何 `decorations: false` 的 Tauri 窗口
+- 磁贴窗口直接用 `WindowFrame` 即可（它内部就是 `Caption`）
+- 需要在顶栏放自定义内容（标题 / 筛选 / 视图切换）或扩展操作按钮时
+
+## 代码演示 {#examples}
+
+### 基本
+
+```tsx
+import { Caption } from '@/components/caption'
+
+export default function Panel() {
+  return (
+    <div className="flex h-screen flex-col">
+      <Caption
+        title="面板"
+        className="border-b border-border/60 px-2"
+      />
+      <div className="min-h-0 flex-1 overflow-auto" />
+    </div>
+  )
+}
+```
+
+## API
+
+### Caption
+
+| 属性        | 说明                                              | 类型                                                             | 默认值 |
+| ----------- | ------------------------------------------------- | ---------------------------------------------------------------- | ------ |
+| className   | 根 class                                          | `ClassValue`                                                     | —      |
+| title       | 顶栏标题（`start` 缺省时使用）                    | `string`                                                         | —      |
+| start       | 顶栏左侧主区域，优先于 `title`                    | `ReactNode`                                                      | —      |
+| actions     | 顶栏右侧扩展操作（渲染在窗口键左侧）              | `ReactNode`                                                      | —      |
+| controls    | 窗口键开关；`true` 全开，对象形式可单独关掉某个键 | `boolean \| Partial<Record<'minimize' \| 'maximize' \| 'close', boolean>>` | `true` |
+| isDraggable | 整条作为拖拽区；窗口自带装饰时传 `false`          | `boolean`                                                        | `true` |
+
+**结构**
+
+- 根节点挂 `data-region="true"` + `data-tauri-drag-region`（拖拽区），交互子节点挂 `data-region="false"`（`-webkit-app-region: no-drag`）
+- 窗口键来自 `WINDOW_CONTROLS` 表：新增一个键只需往表里加一条，布局与状态订阅都不用动
+- 最大化态由窗口 `onResized` 订阅，`maximize` 键的图标与提示随态在「最大化 ⇄ 还原」间切换
+
+---
+
+## window-frame-cn
+
+Source: `apps/client/src/components/window-frame/`
+
+---
+category: Components
+title: WindowFrame
+subtitle: 窗口容器
+description: 顶栏装饰 + 内容区 + 可选底栏；透明窗口下的内层圆角卡片。
+group:
+  title: 窗口
+  order: 2
+---
+
+## 何时使用 {#when-to-use}
+
+- **任何 `decorations: false` 窗口的根容器**（磁贴窗口 `views/<component>`、agent 窗口、主窗口）——
+  它负责标题栏、撑满窗口、纵向 flex 列与可选底栏；窗口内容不再各自管 `height: 100vh`
+- 需要「标题栏 + 内容区 + 底栏操作」这种标准窗口骨架时
+
+## 代码演示 {#examples}
+
+### 磁贴窗（内层圆角卡片）
+
+```tsx
+import { Button } from '@i-thinking/design/components/button'
+import { WindowFrame } from '@/components/window-frame'
+
+export default function Bookmark() {
+  return (
+    <WindowFrame
+      title="书签"
+      footer={<Button>保存</Button>}>
+      内容
+    </WindowFrame>
+  )
+}
+```
+
+### 主窗口（自带 mica，不画卡片）
+
+```tsx
+import { WindowFrame } from '@/components/window-frame'
+
+export default function Overview() {
+  return (
+    <WindowFrame
+      isFramed={false}
+      isScrollable={false}
+      start={<span>i-thinking</span>}>
+      <header>搜索</header>
+      <main className="flex-1">镜像</main>
+    </WindowFrame>
+  )
+}
+```
+
+## API
+
+### WindowFrame
+
+| 属性         | 说明                                       | 类型                      | 默认值 |
+| ------------ | ------------------------------------------ | ------------------------- | ------ |
+| children     | 内容区                                     | `ReactNode`               | —      |
+| className    | 内层容器 class                             | `ClassValue`              | —      |
+| title        | 顶栏标题（`start` 缺省时使用）             | `string`                  | —      |
+| start        | 顶栏左侧主区域，优先于 `title`             | `ReactNode`               | —      |
+| actions      | 顶栏右侧扩展操作                           | `ReactNode`               | —      |
+| controls     | 窗口键开关（透传 `Caption`）               | `CaptionProps['controls']` | `true` |
+| footer       | 底栏操作区；不传则不渲染                   | `ReactNode`               | —      |
+| isScrollable | 内容区由外壳统一滚动；内部已有滚动区传 `false` | `boolean`             | `true` |
+| isFramed     | 是否画内层圆角卡片（自带窗口材质时传 `false`） | `boolean`              | `true` |
+
+**结构（两种形态）**
+
+- `isFramed`（默认）：根节点透明，可见面是内层卡片 `rounded-xl border border-border bg-card shadow-lg`，顶栏带下边框、内容区 `bg-background`
+- `isFramed={false}`：不画卡片与边框，顶栏与内容区都透明，让原生 mica / 亚克力透出来（主窗口用）
+- 两种形态下容器职责一致：`flex-col` + 内容区 `min-h-0 flex-1`，所以子元素直接 `flex: 1` 就能撑满
+- 磁贴窗口映射：`activateTile` 按磁贴记录建窗（label `${component}:${id}`），路由 `/<component>`，见 `apps/client/src/features/magnetic-tile/activate.ts`
+
+#### 拖拽区（`data-region` / `data-tauri-drag-region`）
+
+`Caption` 的槽位容器同时带两个属性，两条机制并存：
+
+- `data-region="true"` → CSS `-webkit-app-region: drag`（**WebView2 实测生效**，是这里真正让标题栏能拖的那条）
+- `data-tauri-drag-region` → Tauri 自带的拖拽处理（`tauri/src/window/scripts/drag.js`）；其**裸值只在直接点中该元素**时触发，要在子树任意位置触发需写 `"deep"`
+
+槽位里的交互元素（按钮、链接、`[tabindex]`）必须带 **`data-region="false"`**，否则会被拖拽区吃掉点击 —— 窗口键、镜像切换器、状态芯片、账号按钮都按此处理。
+
+---
+
+## 磁贴窗口化（Dialog → 独立窗口）
+
+原来的 `MagneticTile.Overlay`（antd `Modal` 门面）已删除：**磁贴双击一律开独立窗口**。
+
+| 环节     | 位置                                                              |
+| -------- | ----------------------------------------------------------------- |
+| 激活     | `src/features/magnetic-tile/activate.ts`（`activateTile`）        |
+| 窗口配置 | `src/constants/magnetic-tile/window.ts`（`WINDOW` / `DEFAULT`）   |
+| 窗口键   | `src/components/caption/`                                          |
+| 内容     | `src/views/<component>/<component>.tsx`                            |
+| 路由     | `src/routers/index.tsx`                                            |
+
+- 窗口 label 为 `${component}:${磁贴 id}` —— 一个组件有多条记录时一窗对一记录（等价于原来「每个磁贴一个 Dialog」）
+- 记录上的 `url` 只能在建窗时经查询串传入（`?url=`），窗口内用 `URLSearchParams` 读
+- 全部窗口 `decorations: false`；透明窗口的可见面由 `WindowFrame` 的内层圆角卡片承担
+
+### 主窗口
+
+`tauri.conf.json` 的 `main` 窗口也是 `decorations: false`，同样走 `WindowFrame` 当**容器**（`isFramed={false}`，让 mica 透出来），标题栏内容全部由 `views/overview/caption/` 提供：
+
+| 位置            | 内容                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| `start`（左）   | 品牌 `i-thinking` · 分隔线 · **镜像入口**（`caption/mirror.tsx`）     |
+| `actions`（右） | **状态区**（`caption/status.tsx`）+ **账号**（`caption/account.tsx`） |
+| 窗口键          | `Caption` 自绘（最小化 / 最大化 / 关闭）                             |
+
+- **镜像入口**（切换 + 管理）：触发按钮＝「序号 + 当前镜像标题」+ chevron，**始终可点** —— 多个时点开是切换，单个时点开是管理面，一个都没有时直接给「新建镜像」。列表支持 ↑↓、Home/End、Enter，Esc 关闭；每行带「重命名」（行内输入，Enter 保存 / Esc 取消 / 失焦保存）与「删除」（`AlertDialog` 二次确认，删的若是当前镜像会自动切到剩下的第一个）；底部「新建镜像」（按 `镜像-0N` 顺延命名）。注意这几个操作原先**全仓没有任何 UI**，`stores/mirror.ts` 的 `toInsertMirror` / `toUpdateMirror` / `toRemoveMirror` 因此一直没有调用者
+- **状态区**：把原来两颗一次性 toast 变成常驻芯片 —— `corex 未就绪`（点击重新检测）、`可更新 vX.Y.Z`（点击安装，✕ 忽略）。更新来自启动时的静默检查（`autoCheckUpdate`），状态由 `utils/updater.ts` 的 `subscribeUpdateStatus` 暴露
+- **账号**：未登录＝登录按钮（开 `ReSignIn`）；已登录＝头像 + 菜单（需要 `DropdownMenuGroup` 包住 `DropdownMenuLabel`，base-ui 的 `GroupLabel` 脱离 Group 会抛错）
+- 曾经的 `OverviewCapsule`（贴边纵向胶囊：gsap 拖拽 + 贴左右边 + 位置持久化）**已删除**：镜像切换与账号收进标题栏，那套自定义拖拽状态机不再需要
+- 别退回「裸 `<Caption>` + 自己的 div」：antd `Layout` 换掉后曾丢掉纵向 flex，`.core` 的 `flex: 1` 失效（内容区塌成一行高）
+- `overlay` 窗口（`/overlay`）是刻意的无装饰浮层（alwaysOnTop、skipTaskbar、`maximized`、不可 resize），不需要标题栏
+
+### 目录职责：磁贴表面 vs 磁贴窗口
+
+一个组件有两块实现，**别混着放**（`views/<tile>` 是窗口，`features/magnetic-tiles/<tile>` 是板上那块磁贴）：
+
+| 目录                                  | 归属          | 放什么                                                                 |
+| ------------------------------------- | ------------- | ---------------------------------------------------------------------- |
+| `src/views/<tile>/`                   | 磁贴窗口页     | 双击磁贴后开的整个界面：`<tile>.tsx` + 其私有实现（`workspace/**`、`panels/**`、`calendar-view.tsx` …） |
+| `src/features/magnetic-tiles/<tile>/` | 磁贴表面       | 板上那块磁贴：`<tile>.tsx`（`MagneticTile.Section`）、`marker.tsx`、尺寸 scss |
+| 两侧共用件                             | 同上           | 表面与窗口都要用的（如 clock 的 `faces/**`、`flip-digit.tsx`、`alarm-time.ts`）放 `features/…/<tile>/` |
+
+- 判定口径：只被 `views/<tile>/**` 可达 → 属于窗口；磁贴表面（`features/controller/reflection.tsx`）也用到 → 留在 features
+- 窗口页的代码分割按 `views/<component>/**` 归到 `tile-<component>` chunk（见 `vite.chunk.ts`）
+
+### 窗口内分屏：布局路由 + 子页（agent 窗口）
+
+一个窗口要多个互斥页面时，用**布局路由当出口**，不要页内 Dialog / 布尔开关（对齐 studio 的 `/agent`）：
+
+| 位置                                    | 职责                                                     |
+| --------------------------------------- | -------------------------------------------------------- |
+| `src/views/agent/agent.tsx`             | 出口：全局设置初始化 + `<Outlet />`（无自有 UI）          |
+| `src/views/agent/chat/chat.tsx`         | 子页：三栏工作台（工作区 \| 主对话 \| Plan）              |
+| `src/views/agent/settings/settings.tsx` | 子页：模型接入（原聊天页里的 Dialog）                     |
+| `src/views/agent/components/`           | 两个子页共用（`titlebar.tsx` 窗口标题栏）                 |
+| `src/routers/index.tsx`                 | `/agent` 布局路由；`index` 重定向到 `chat`（查询串随带） |
+
+- URL 只有两个：`/agent/chat`（默认）与 `/agent/settings`；磁贴窗口仍开 `/agent`，靠重定向落到默认子页
+- 子页之间用 `navigate('/agent/settings')` / `navigate('/agent/chat')` 互跳
+- 目录与路由同形：`views/agent/<子页名>/` 就是 URL 段名；**窗口 UI 归 views**（`views/agent/chat/components/**`），
+  `features/agent/` 只留 `acp/`、`model/` 与领域类型（对齐 studio 的 `views/agent` + `features/chat`）
 
 ## provider-cn
 
@@ -470,7 +698,7 @@ Source: `apps/client/src/components/provider/`
 category: Components
 title: Provider
 subtitle: 应用级提供者
-description: 插件生命周期 Provider 与 React Query Provider。
+description: React Query Provider。
 group:
   title: 通用
   order: 5
@@ -478,53 +706,13 @@ group:
 
 ## 何时使用 {#when-to-use}
 
-- **PluginProvider**：在应用根注册可挂载/卸载的插件（存储、智能助手等），按优先级挂载
 - **QueryProvider**：为应用提供 TanStack Query 客户端（内部 `buildQueryClient`）
 
+> 原先的 `PluginProvider`（`plugins/*` 的挂载宿主）已移除：它的 context 没有任何消费者，
+> 副作用改由各窗口/视图自己负责（主窗口 `views/overview`、agent 窗口 `views/agent/chat`）。
+> 插件契约留在 `src/plugins/types.ts`。
+
 ## 代码演示 {#examples}
-
-### PluginProvider
-
-```tsx
-import { PluginProvider, type Plugin } from '@/components/provider/plugin'
-
-const plugins: Plugin[] = [
-  {
-    unique: 'storage',
-    priority: 10,
-    mount: function () {
-      /* init */
-    },
-    unmount: function () {
-      /* dispose */
-    }
-  }
-]
-
-export default function App() {
-  return (
-    <PluginProvider
-      plugins={plugins}
-      onError={function (plugin, error) {
-        console.error(plugin.unique, error)
-      }}>
-      <AppRoutes />
-    </PluginProvider>
-  )
-}
-```
-
-### 读取插件状态
-
-```tsx
-import { usePluginContext } from '@/components/provider/plugin'
-
-function Status() {
-  const { getter } = usePluginContext()
-  const state = getter('storage')
-  return <span>{state?.status}</span>
-}
-```
 
 ### QueryProvider
 
@@ -541,32 +729,6 @@ export default function App() {
 ```
 
 ## API
-
-### PluginProvider
-
-| 属性 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| children | 子树 | `ReactNode` | — |
-| plugins | 插件列表（按 `unique` 去重，`enabled !== false` 过滤，`priority` 降序挂载） | `Plugin[]` | `[]` |
-| onError | 挂载失败回调 | `(plugin, error) => void` | — |
-
-卸载顺序：先卸载被移除的插件；Provider 卸载时按挂载逆序全部 `unmount`。
-
-### Plugin
-
-| 属性 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| unique | 唯一标识 | `string` | — |
-| mount | 挂载 | `() => void` | — |
-| unmount | 卸载 | `() => void` | — |
-| priority | 越大越先挂载 | `number` | `0` |
-| enabled | `false` 时跳过 | `boolean` | `true` |
-
-### usePluginContext
-
-返回 `{ getter(unique: string) => PluginState | undefined }`。
-
-`PluginState`：`{ plugin, status: 'mounted' \| 'error', error? }`。
 
 ### QueryProvider
 

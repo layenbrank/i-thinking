@@ -26,7 +26,7 @@ Source: `apps/client/src/components/contextmenu/`
 - group（`contextmenu-group`）：分组容器
 - groupTitle（`contextmenu-group-title`）：分组标题
 
-样式令牌示例：`--ith-color-bg-elevated`、`--ith-color-text`、`--ith-border-radius-lg`、`--ith-box-shadow-secondary`。
+样式令牌示例：`--popover`、`--foreground`、`--radius-lg`、`--border`。
 
 ### 使用案例
 
@@ -200,14 +200,13 @@ Source: `apps/client/src/components/fallback/`
 
 ### Semantic Parts
 
-无 `classNames` API。固定全视口 flex 居中布局 + antd `Spin`。
+无 `classNames` API。固定全视口 flex 居中布局 + 设计系统 `Spinner`。
 
 ### Abstract DOM Structure
 
 ```html
-<div class="w-[100vw] h-[100vh] bg-white dark:bg-black flex items-center justify-center flex-col gap-4">
-  <div class="ant-spin ant-spin-spinning ant-spin-lg"><!-- Spin --></div>
-  <span>Loading...</span>
+<div class="flex h-screen w-screen items-center justify-center bg-transparent">
+  <svg role="status" aria-label="Loading" class="size-4 animate-spin text-muted-foreground"><!-- Spinner --></svg>
 </div>
 ```
 
@@ -217,15 +216,15 @@ Source: `apps/client/src/components/fallback/`
 
 Source: `apps/client/src/components/provider/`
 
-## PluginProvider / QueryProvider
+## QueryProvider
 
 ### Semantic Parts
 
-无视觉 DOM 语义。二者均为 Context / Query 包装器，不渲染可样式化结构节点（仅透传 `children`）。
+无视觉 DOM 语义。Context 包装器，不渲染可样式化结构节点（仅透传 `children`）。
 
 ### Abstract DOM Structure
 
 ```html
-<!-- PluginProvider / QueryProvider -->
+<!-- QueryProvider -->
 <!-- children only -->
 ```
