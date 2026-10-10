@@ -17,8 +17,6 @@ import { Textarea } from '../components/textarea'
 
 const ANIMATION_DURATION = 200
 
-const pressable = 'active:scale-[0.98]'
-
 export type ToolFallbackRootProps = Omit<
   React.ComponentProps<typeof Collapsible>,
   'open' | 'onOpenChange'
@@ -126,7 +124,7 @@ function ToolFallbackTrigger({
     <CollapsibleTrigger
       data-slot="tool-fallback-trigger"
       className={cn(
-        'aui-tool-fallback-trigger group/trigger text-muted-foreground hover:text-foreground flex w-fit origin-left items-center gap-2 py-1.5 text-sm transition-[color,scale] active:scale-[0.98]',
+        'aui-tool-fallback-trigger group/trigger text-muted-foreground hover:text-foreground active:text-foreground flex w-fit origin-left items-center gap-2 py-1.5 text-sm transition-colors',
         className
       )}
       {...props}>
@@ -442,7 +440,6 @@ function ToolFallbackApproval({
       {question && (
         <Button
           size="sm"
-          className={pressable}
           onClick={submitAnswer}
           disabled={submitted || !answer.trim()}>
           Send
@@ -481,7 +478,6 @@ function ToolFallbackApproval({
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            className={pressable}
             onClick={() => respondWithOption(confirming)}
             disabled={submitted}>
             Confirm
@@ -489,7 +485,6 @@ function ToolFallbackApproval({
           <Button
             size="sm"
             variant="outline"
-            className={pressable}
             onClick={() => setConfirmingId(null)}
             disabled={submitted}>
             Back
@@ -515,7 +510,6 @@ function ToolFallbackApproval({
               key={option.id}
               size="sm"
               variant={option === allowOptions[0] ? 'default' : 'outline'}
-              className={pressable}
               onClick={() => handleOption(option)}
               disabled={submitted}>
               {approvalOptionLabel(option)}
@@ -525,7 +519,6 @@ function ToolFallbackApproval({
             <Button
               size="sm"
               variant="outline"
-              className={pressable}
               onClick={() => respond(false)}
               disabled={submitted}>
               Deny
@@ -562,7 +555,6 @@ function ToolFallbackApproval({
       <div className="flex items-center gap-2">
         <Button
           size="sm"
-          className={pressable}
           onClick={() => respond(true)}
           disabled={submitted}>
           Allow
@@ -570,7 +562,6 @@ function ToolFallbackApproval({
         <Button
           size="sm"
           variant="outline"
-          className={pressable}
           onClick={() => respond(false)}
           disabled={submitted}>
           Deny
