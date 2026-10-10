@@ -1,5 +1,5 @@
 declare namespace MagneticTile {
-  namespace Intelligence {
+  namespace Agent {
     interface AiSession {
       id: string
       title: string

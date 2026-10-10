@@ -27,7 +27,7 @@ const ResponseSchema = z.object({
 // export { ResponseSchema, IdentitySchema, ModelSchema, MessageSchema }
 
 declare namespace MagneticTile {
-  namespace Intelligence {
+  namespace Agent {
     interface AiSession {
       id: string
       title: string
@@ -91,5 +91,5 @@ declare namespace MagneticTile {
     export { Communicate, AiMessage, AiSession, AiWorkspace, AiWorkspaceFolder }
   }
 
-  export { Intelligence }
+  export { Agent }
 }

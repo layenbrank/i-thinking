@@ -57,7 +57,6 @@ declare namespace MagneticTile {
     | 'markdown'
     | 'morph'
     | 'settings'
-    | 'intelligence'
     | 'navigation'
     | 'marketplace'
     | 'developer'
@@ -65,6 +64,7 @@ declare namespace MagneticTile {
     | 'gallery' // 图库
     | 'capture' // 截屏
     | 'directive' // 指令
+    | 'agent' // 智能体（原 intelligence）
     | 'example'
 
   interface Backdrop {
