@@ -120,7 +120,7 @@ flowchart LR
 
 | Tauri 能力             | 用途                                                                                        | Electron 侧建议                                                                                                |
 | ---------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **tauri-plugin-store** | 键值配置（如 [keycodes/store.ts](apps/client/src/keycodes/store.ts) 的 `keycode.json`）     | **electron-store** 或 **conf**（主进程 JSON 持久化，经 IPC 暴露）                                              |
+| **tauri-plugin-store** | 键值配置（如 [stores/setting.ts](apps/client/src/stores/setting.ts) 的 `settings.json`）     | **electron-store** 或 **conf**（主进程 JSON 持久化，经 IPC 暴露）                                              |
 | **tauri-plugin-sql**   | 关系型数据（[databases/client.ts](apps/client/src/databases/client.ts) 的 `i-thinking.db`） | 主进程 **better-sqlite3** 或 **sql.js**，通过 IPC 暴露查询接口；或使用 **RxDB + SQLite** 若需与 Web 端结构一致 |
 
 ### 推荐存储选型

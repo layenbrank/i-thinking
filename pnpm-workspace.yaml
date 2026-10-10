@@ -3,8 +3,8 @@ packages:
   - apps/*
   - packages/*
   # Rust / Python 应用依赖各自生态（cargo / uv）管理，不进入 pnpm workspace
-  - '!apps/cogito'
-  - '!apps/ai-worker'
+  - "!apps/cogito"
+  - "!apps/ai-worker"
 
 # 注册源（替代 .npmrc 中的 registry / @scope:registry）
 # https://pnpm.io/zh/blog/releases/11.0
@@ -22,30 +22,30 @@ autoInstallPeers: true
 shamefullyHoist: true
 
 hoistPattern:
-  - '*'
-  - '!@i-thinking/*'
+  - "*"
+  - "!@i-thinking/*"
 
 publicHoistPattern:
-  - '*eslint*'
-  - '*prettier*'
-  - '*typescript*'
-  - '*vite*'
-  - '*vitest*'
-  - '*turbo*'
-  - '*rollup*'
-  - '*@rollup/*'
-  - '*@nestjs/*'
-  - '*jest*'
+  - "*eslint*"
+  - "*prettier*"
+  - "*typescript*"
+  - "*vite*"
+  - "*vitest*"
+  - "*turbo*"
+  - "*rollup*"
+  - "*@rollup/*"
+  - "*@nestjs/*"
+  - "*jest*"
 
 # 允许执行 install 脚本的包（取代已移除的 onlyBuiltDependencies）
 allowBuilds:
-  '@bitdisaster/exe-icon-extractor': false
-  '@nestjs/core': true
-  '@parcel/watcher': true
-  '@prisma/client': true
-  '@prisma/engines': true
-  '@scarf/scarf': true
-  '@swc/core': true
+  "@bitdisaster/exe-icon-extractor": false
+  "@nestjs/core": true
+  "@parcel/watcher": true
+  "@prisma/client": true
+  "@prisma/engines": true
+  "@scarf/scarf": true
+  "@swc/core": true
   # 必须为 false：better-sqlite3 的 install 脚本（prebuild-install）会为「宿主 Node」下载/编译二进制，
   # 覆盖 apps/studio postinstall 产出的 Electron ABI 构建。构建交给 @electron/rebuild。
   better-sqlite3: false
@@ -64,129 +64,136 @@ allowBuilds:
 # catalog 收录 studio 会以 catalog: 引用的包；传递依赖仍由 Forge 自带
 catalog:
   # —— 运行时 / UI ——
-  'electron': ^44.0.0
-  'electron-store': ^11.0.2
-  'electron-updater': ^6.8.9
-  'antd': ^6.6.2
-  'antd-style': ^4.1.0
-  '@ant-design/colors': ^8.0.1
-  '@ant-design/x': ^2.9.0
-  '@ant-design/x-sdk': ^2.9.0
-  '@ant-design/x-markdown': ^2.9.0
+  "electron": ^44.0.0
+  "electron-store": ^11.0.2
+  "electron-updater": ^6.8.9
+  "antd": ^6.6.2
+  "antd-style": ^4.1.0
+  "@ant-design/colors": ^8.0.1
+  "@ant-design/x": ^2.9.0
+  "@ant-design/x-sdk": ^2.9.0
+  "@ant-design/x-markdown": ^2.9.0
+
+  "unplugin-fonts": "^2.0.0"
+  "unplugin-icons": "^24.0.0"
 
   # —— React 运行时（studio / extension / packages/design 共享）——
-  'react': ^19.2.0
-  'react-dom': ^19.2.0
-  'react-router-dom': ^7.8.2
-  '@iconify/react': ^6.0.2
-  '@iconify/json': ^2.2.402
-  '@types/react': ^19.2.2
-  '@types/react-dom': ^19.2.2
-  'zustand': ^5.0.8
-  '@tanstack/react-query': ^5.102.8
-  'reflect-metadata': ^0.2.2
-  'zod': ^4.1.5
-  'uuid': ^14.0.2
-  'rxjs': ^7.8.2
+  "react": ^19.2.0
+  "react-dom": ^19.2.0
+  "react-router-dom": ^7.8.2
+  "@iconify/react": ^6.0.2
+  "@iconify/json": ^2.2.402
+  "@types/react": ^19.2.2
+  "@types/react-dom": ^19.2.2
+  "zustand": ^5.0.8
+  "@tanstack/react-query": ^5.102.8
+  "reflect-metadata": ^0.2.2
+  "zod": ^4.1.5
+  "uuid": ^14.0.2
+  "rxjs": ^7.8.2
 
   # —— 截屏 / Konva（studio；钉 react-konva 与 React 19.2 对齐）——
-  'konva': ^10.7.0
-  'react-konva': 19.2.5
-  'react-hotkeys-hook': ^5.3.3
+  "konva": ^10.7.0
+  "react-konva": 19.2.5
+  "react-hotkeys-hook": ^5.3.3
 
   # —— shadcn/ui + Tailwind v4 体系 ——
-  'tailwindcss': ^4.3.3
-  '@tailwindcss/vite': ^4.3.3
-  'tw-animate-css': ^1.4.0
-  'shadcn': ^4.21.0
-  'clsx': ^2.1.1
-  'cn': ^0.3.0
-  'tailwind-merge': ^3.7.0
-  'class-variance-authority': ^0.7.1
-  'motion': ^12.29.0
-  '@base-ui/react': ^1.8.0
-  'sonner': ^2.0.8
-  'go-captcha-react': 1.0.5
+  "tailwindcss": ^4.3.3
+  "@tailwindcss/vite": ^4.3.3
+  "tw-animate-css": ^1.4.0
+  "shadcn": ^4.21.0
+  "clsx": ^2.1.1
+  "cn": ^0.3.0
+  "tailwind-merge": ^3.7.0
+  "class-variance-authority": ^0.7.1
+  "motion": ^12.29.0
+  "@base-ui/react": ^1.8.0
+  "sonner": ^2.0.8
+  "go-captcha-react": 1.0.5
   # 收银台要在本地渲染渠道支付二维码（微信 Native / 支付宝当面付）——
   # 绝不用第三方二维码图片服务：code_url 是支付凭证，透出去等于把订单递给别人
-  'qrcode.react': ^4.2.0
-  'react-hook-form': ^7.88.0
-  '@hookform/resolvers': ^5.9.1
-  'remark-gfm': ^4.0.1
+  "qrcode.react": ^4.2.0
+  "react-hook-form": ^7.88.0
+  "@hookform/resolvers": ^5.9.1
+  "remark-gfm": ^4.0.1
 
   # —— Vue 运行时（client / devtools / composables）——
-  'pinia': ^3.0.3
-  'vue-router': ^4.5.1
-  '@vueuse/core': ^14.1.0
+  "pinia": ^3.0.3
+  "vue-router": ^4.5.1
+  "@vueuse/core": ^14.1.0
+  "@vueuse/rxjs": ^14.1.0
   # shared 与 core 主线不同步时钉死，避免 hoist 拉飞
-  '@vueuse/shared': 13.9.0
-  '@vue/eslint-config-prettier': ^10.2.0
-  '@vue/eslint-config-typescript': ^14.5.0
-  'eslint-plugin-vue': ^10.5.1
-  'unplugin-vue-components': ^30.0.0
-  'vite-plugin-vue-devtools': ^8.0.3
+  "@vueuse/shared": ^14.1.0
+  "@vueuse/integrations": ^14.1.0
+  "@tanstack/vue-query": ^5.102.8
+  "@vue/eslint-config-prettier": ^10.2.0
+  "@vue/eslint-config-typescript": ^14.5.0
+  "eslint-plugin-vue": ^10.5.1
+  "unplugin-vue-components": ^30.0.0
+  "vite-plugin-vue-devtools": ^8.0.3
+  "swiper": ^12.1.4
 
   # —— opencode：studio 内嵌的 agent 运行时（server 由 sidecar 提供，客户端包须与二进制同版本）——
-  '@opencode/client': ^2.0.15
+  "@opencode/client": ^2.0.15
 
   # —— assistant-ui ——
   # assistant-ui 组件经 shadcn registry（copy-in）落入 packages/design；runtime/传输在各 app
-  '@assistant-ui/react': ^0.15.19
-  '@assistant-ui/react-markdown': ^0.14.15
-  '@assistant-ui/react-devtools': ^1.2.18
+  "@assistant-ui/react": ^0.15.19
+  "@assistant-ui/react-markdown": ^0.14.15
+  "@assistant-ui/react-devtools": ^1.2.18
   # assistant-ui 的底层流库（本仓直接 import 它的 createAssistantStream）
-  'assistant-stream': ^0.3.42
-  'tw-shimmer': ^0.4.13
+  "assistant-stream": ^0.3.42
+  "tw-shimmer": ^0.4.13
 
   # —— Forge：CLI + makers ——
-  '@electron-forge/cli': ^7.11.2
-  '@electron-forge/maker-deb': ^7.11.2
-  '@electron-forge/maker-dmg': ^7.11.2
-  '@electron-forge/maker-rpm': ^7.11.2
-  '@electron-forge/maker-zip': ^7.11.2
-  '@electron-forge/maker-flatpak': ^7.11.2
-  '@electron-forge/maker-pkg': ^7.11.2
-  '@electron-forge/maker-msix': ^7.11.2
-  '@electron-forge/maker-wix': ^7.11.2
+  "@electron-forge/cli": ^7.11.2
+  "@electron-forge/maker-deb": ^7.11.2
+  "@electron-forge/maker-dmg": ^7.11.2
+  "@electron-forge/maker-rpm": ^7.11.2
+  "@electron-forge/maker-zip": ^7.11.2
+  "@electron-forge/maker-flatpak": ^7.11.2
+  "@electron-forge/maker-pkg": ^7.11.2
+  "@electron-forge/maker-msix": ^7.11.2
+  "@electron-forge/maker-wix": ^7.11.2
   # 社区 NSIS maker（Forge 7.x；产出 electron-updater 用的 latest.yml）
-  '@felixrieseberg/electron-forge-maker-nsis': ^7.2.0
+  "@felixrieseberg/electron-forge-maker-nsis": ^7.2.0
 
   # —— Forge：plugins / publishers / types ——
-  '@electron-forge/plugin-auto-unpack-natives': ^7.11.2
-  '@electron-forge/plugin-fuses': ^7.11.2
-  '@electron-forge/plugin-vite': ^7.11.2
-  '@electron-forge/publisher-github': ^7.11.2
-  '@electron-forge/publisher-s3': ^7.11.2
-  '@electron-forge/shared-types': ^7.11.2
+  "@electron-forge/plugin-auto-unpack-natives": ^7.11.2
+  "@electron-forge/plugin-fuses": ^7.11.2
+  "@electron-forge/plugin-vite": ^7.11.2
+  "@electron-forge/publisher-github": ^7.11.2
+  "@electron-forge/publisher-s3": ^7.11.2
+  "@electron-forge/shared-types": ^7.11.2
 
   # —— Electron 工具（直接引用 / 签名）——
   # fuses 2.x 仍导出 FuseV1Options；plugin-fuses peer 仍写 ^1，见下方 peerDependencyRules
-  '@electron/fuses': ^2.1.3
-  '@electron/rebuild': ^4.2.0
-  '@electron/windows-sign': ^2.0.6
+  "@electron/fuses": ^2.1.3
+  "@electron/rebuild": ^4.2.0
+  "@electron/windows-sign": ^2.0.6
 
   # —— 本地 DB（studio 主进程）——
   # 引擎 better-sqlite3 ^12（勿上 13）；访问层/迁移 Drizzle
   # （选型与替换记录见 docs/decisions/prisma-to-drizzle.md）
-  'better-sqlite3': ^12.11.1
-  'drizzle-orm': ^0.45.2
-  'drizzle-kit': ^0.31.10
-  '@types/better-sqlite3': ^9.6.0
+  "better-sqlite3": ^12.11.1
+  "drizzle-orm": ^0.45.2
+  "drizzle-kit": ^0.31.10
+  "@types/better-sqlite3": ^9.6.0
 
   # —— toolchain（单一版本源，package.json 用 catalog: 引用）——
-  'vite': ^8.2.2
-  'rolldown': ^1.2.7
-  'rolldown-plugin-dts': ^0.28.5
-  'vitest': ^5.0.0
-  '@vitest/coverage-v8': ^5.0.0
-  '@vitest/eslint-plugin': ^1.6.27
-  'vue': ^3.5.42
-  '@vitejs/plugin-vue': ^6.0.8
-  '@vitejs/plugin-vue-jsx': ^5.1.6
-  '@vitejs/plugin-react': ^5.2.0
-  '@vitejs/plugin-react-swc': ^4.3.3
-  'vue-tsc': ^3.3.11
-  '@vue/tsconfig': ^0.9.1
+  "vite": ^8.2.2
+  "rolldown": ^1.2.7
+  "rolldown-plugin-dts": ^0.28.5
+  "vitest": ^5.0.0
+  "@vitest/coverage-v8": ^5.0.0
+  "@vitest/eslint-plugin": ^1.6.27
+  "vue": ^3.5.42
+  "@vitejs/plugin-vue": ^6.0.8
+  "@vitejs/plugin-vue-jsx": ^5.1.6
+  "@vitejs/plugin-react": ^5.2.0
+  "@vitejs/plugin-react-swc": ^4.3.3
+  "vue-tsc": ^3.3.11
+  "@vue/tsconfig": ^0.9.1
   # —— TypeScript 7/6 并排（catalog 无法表达 npm alias，版本与别名在根 package.json 显式声明）——
   # TS7.0 为 Go 原生移植、无稳定 API：typescript-eslint / vue-tsc(Volar) / @nestjs/cli
   # 仍需 import 'typescript'（=TS6 API）。官方方案（TS7.0 公告 “Side-by-Side”）：
@@ -195,35 +202,36 @@ catalog:
 
 overrides:
   # 与 catalog 对齐，避免 forge / 传递依赖拉到旧 rebuild
-  '@electron/rebuild': ^4.2.0
-  'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
-  'dayjs': '1.11.21'
+  "@electron/rebuild": ^4.2.0
+  "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  "dayjs": "1.11.21"
   # @reactuses/core 拉到的 1.2.0 未声明 React 19；1.6+ 已支持
-  'use-sync-external-store': '1.6.0'
+  "use-sync-external-store": "1.6.0"
   # 1.2.0 只要 emnapi 2-alpha；1.2.2 兼容 emnapi 1.x
-  '@napi-rs/wasm-runtime': '1.2.2'
+  "@napi-rs/wasm-runtime": "1.2.2"
 
 # vitepress → @docsearch/react@3 未声明 React 19，运行无妨，放宽 peer 检查
 peerDependencyRules:
   allowedVersions:
-    react: '19'
-    react-dom: '19'
-    '@types/react': '19'
-    '@electron/fuses': '>=1'
+    react: "19"
+    react-dom: "19"
+    "@types/react": "19"
+    "@electron/fuses": ">=1"
 
 minimumReleaseAgeExclude:
-  - '@napi-rs/wasm-runtime@1.2.2'
-  - '@typescript-eslint/eslint-plugin@8.70.0'
-  - '@typescript-eslint/parser@8.70.0'
-  - '@typescript-eslint/project-service@8.70.0'
-  - '@typescript-eslint/scope-manager@8.70.0'
-  - '@typescript-eslint/tsconfig-utils@8.70.0'
-  - '@typescript-eslint/type-utils@8.70.0'
-  - '@typescript-eslint/types@8.70.0'
-  - '@typescript-eslint/typescript-estree@8.70.0'
-  - '@typescript-eslint/utils@8.70.0'
-  - '@typescript-eslint/visitor-keys@8.70.0'
+  - "@napi-rs/wasm-runtime@1.2.2"
+  - "@typescript-eslint/eslint-plugin@8.70.0"
+  - "@typescript-eslint/parser@8.70.0"
+  - "@typescript-eslint/project-service@8.70.0"
+  - "@typescript-eslint/scope-manager@8.70.0"
+  - "@typescript-eslint/tsconfig-utils@8.70.0"
+  - "@typescript-eslint/type-utils@8.70.0"
+  - "@typescript-eslint/types@8.70.0"
+  - "@typescript-eslint/typescript-estree@8.70.0"
+  - "@typescript-eslint/utils@8.70.0"
+  - "@typescript-eslint/visitor-keys@8.70.0"
   - typescript-eslint@8.70.0
-  - '@opencode/client@2.0.15'
-  - '@opencode/protocol@2.0.15'
-  - '@opencode/schema@2.0.15'
+  - "@opencode/client@2.0.26"
+  - "@opencode/protocol@2.0.26"
+  - "@opencode/schema@2.0.26"
+  - "@agentclientprotocol/sdk@1.8.0"

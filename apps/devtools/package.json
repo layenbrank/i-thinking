@@ -1,4 +1,17 @@
 {
+  "name": "@i-thinking/devtools",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "vite --clearScreen false",
+    "lint": "eslint \"src/**/*.ts\"",
+    "preview": "vite preview",
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest --coverage"
+  },
   "dependencies": {
     "pinia": "catalog:",
     "vue": "catalog:",
@@ -13,18 +26,5 @@
     "eslint-plugin-vue": "catalog:",
     "unplugin-vue-components": "catalog:",
     "vite-plugin-vue-devtools": "catalog:"
-  },
-  "name": "@i-thinking/devtools",
-  "private": true,
-  "scripts": {
-    "build": "tsc && vite build",
-    "dev": "vite --clearScreen false",
-    "lint": "eslint \"src/**/*.ts\"",
-    "preview": "vite preview",
-    "test:unit": "vitest",
-    "test:e2e": "playwright test",
-    "test:coverage": "vitest --coverage"
-  },
-  "type": "module",
-  "version": "0.0.0"
+  }
 }
