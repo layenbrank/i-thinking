@@ -22,6 +22,7 @@ import Utility from '@/features/capture/components/utility'
 import { fetchImageFromPath, takePendingScreenshot, takeScreenshot } from '@/features/capture/tauri'
 import { copyImage, pinTexture, saveToUserPath } from '@/features/capture/clipboard'
 import { findHoverRegion, type CaptureRegion } from '@/features/capture/region'
+import { useKeyCode } from '@/keycodes/react'
 import { DETECT_WINDOW, useSettingsStore } from '@/stores/setting'
 
 import styles from '@/features/capture/capture.module.scss'
@@ -290,9 +291,11 @@ export default function Capture(props: CaptureProps = {}) {
     e.preventDefault()
     handleDelete()
   })
-  useHotkeys('escape', function (e) {
-    e.preventDefault()
+  // Esc 逐级退出（annotating → 取消选中 → 重选 → 退出）走 keycode：返回 true 表示已接管，
+  // overlay 外壳就不再兜底退一次（见 views/overlay/overlay.tsx）
+  useKeyCode('escape', function () {
     handleEscape()
+    return true
   })
   useHotkeys('mod+r', function (e) {
     e.preventDefault()

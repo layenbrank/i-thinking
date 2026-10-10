@@ -25,7 +25,7 @@
         .col + .col {
           border-left: none;
           padding-left: 0;
-          border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+          border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
           padding-top: 4px;
           margin-top: 0;
         }
@@ -97,7 +97,7 @@
         .col + .col {
           border-left: none;
           padding: 4px 0 0;
-          border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+          border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
         }
         .decor { display: none; }
         .progress { padding: 0; }
@@ -113,7 +113,7 @@
         .col + .col {
           border-left: none;
           padding: 4px 0 0;
-          border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+          border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
         }
         .decor { display: none; }
         .progress { padding: 0; }
@@ -200,7 +200,7 @@
         .col + .col {
           border-left: none;
           padding: 6px 0 0;
-          border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+          border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
         }
         .decor { display: none; }
         .panels { display: none; }

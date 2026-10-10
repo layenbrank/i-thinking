@@ -1,26 +1,31 @@
-import { Button, Checkbox, Form, Input, Segmented, message } from 'antd'
 import { Icon } from '@iconify/react/offline'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button } from '@i-thinking/design/components/button'
+import { Checkbox } from '@i-thinking/design/components/checkbox'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel
+} from '@i-thinking/design/components/form'
+import { ToggleGroup, ToggleGroupItem } from '@i-thinking/design/components/toggle-group'
 import { useEffect } from 'react'
+import { useForm, type Resolver } from 'react-hook-form'
+import { toast } from 'sonner'
 
 import {
   LIMIT,
   MODE,
-  RULE,
-  type AuthMode
+  SIGNIN_SCHEMA,
+  type AuthMode,
+  type SigninValues
 } from '@/features/signin/constants.ts'
 import { CaptchaField } from '@/features/signin/captcha-field.tsx'
+import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
 import { useSessionStore } from '@/stores/session.ts'
-
-type SigninFormValues = {
-  username?: string
-  phone?: string
-  email?: string
-  password?: string
-  captcha?: string
-  remember?: boolean
-}
 
 type SigninFormProps = {
   motionKey: number
@@ -31,186 +36,205 @@ type SigninFormProps = {
   onSuccess?: () => void
 }
 
+/** 预填空串：zod 的 required 文案只在值是字符串时才生效 */
+const SIGNIN_DEFAULTS: SigninValues = {
+  username: '',
+  phone: '',
+  email: '',
+  password: '',
+  captcha: '',
+  remember: true
+}
+
 function SigninForm(props: SigninFormProps) {
   const { motionKey, signinMode, onModeChange, onForgot, onSignup, onSuccess } = props
-  const [form] = Form.useForm<SigninFormValues>()
   const toSignIn = useSessionStore(function (state) {
     return state.toSignIn
   })
 
+  // 每个身份对应一套 schema；收窄一次泛型以满足 RHF 的联合类型
+  const form = useForm<SigninValues>({
+    resolver: zodResolver(SIGNIN_SCHEMA[signinMode]) as Resolver<SigninValues>,
+    defaultValues: SIGNIN_DEFAULTS
+  })
+
   useEffect(
     function () {
-      form.resetFields()
-      form.setFieldValue('remember', true)
+      form.reset(SIGNIN_DEFAULTS)
     },
     [form, signinMode]
   )
 
-  function onFinish(values: SigninFormValues) {
+  function onSubmit(values: SigninValues) {
     const username = values.username || values.email || values.phone || 'user'
     toSignIn({
       id: `mock-${Date.now()}`,
       username,
       avatarUrl: null
     })
-    message.success('登录成功（mock）')
+    toast.success('登录成功（mock）')
     onSuccess?.()
-  }
-
-  function onSegmentChange(value: string | number) {
-    onModeChange(value as AuthMode)
   }
 
   const isPasswordMode = signinMode === MODE.USERNAME || signinMode === MODE.EMAIL
 
   return (
-    <Form
-      form={form}
-      name="signin"
-      layout="vertical"
-      requiredMark={false}
-      initialValues={{ remember: true }}
-      className={styles.form}
-      onFinish={onFinish}>
-      <FormStagger key={`${motionKey}-${signinMode}`}>
-        <MotionField className={styles.tabs}>
-          <Segmented
-            block
-            value={signinMode}
-            options={MODE.options}
-            onChange={onSegmentChange}
-          />
-        </MotionField>
+    <Form {...form}>
+      <form
+        className={styles.form}
+        noValidate
+        onSubmit={form.handleSubmit(onSubmit)}>
+        <FormStagger key={`${motionKey}-${signinMode}`}>
+          <MotionField className={styles.tabs}>
+            <ToggleGroup
+              className="grid w-full grid-cols-3"
+              value={[signinMode]}
+              onValueChange={function (value) {
+                const next = value[0] as AuthMode | undefined
+                if (next) onModeChange(next)
+              }}>
+              {MODE.options.map(function (option) {
+                return (
+                  <ToggleGroupItem
+                    key={option.value}
+                    value={option.value}
+                    className="data-[pressed]:bg-primary/10 data-[pressed]:text-primary">
+                    {option.label}
+                  </ToggleGroupItem>
+                )
+              })}
+            </ToggleGroup>
+          </MotionField>
 
-        {signinMode === MODE.USERNAME && (
-          <>
-            <MotionField>
-              <Form.Item
-                name="username"
-                label="用户名"
-                rules={RULE.USERNAME}>
-                <Input
-                  size="large"
-                  maxLength={LIMIT.USERNAME}
-                  prefix={<Icon icon="ant-design:user-outlined" />}
+          {signinMode === MODE.USERNAME && (
+            <>
+              <MotionField>
+                <AuthField
+                  control={form.control}
+                  name="username"
+                  label="用户名"
                   placeholder="请输入用户名"
-                  aria-label="用户名"
+                  icon={<Icon icon="lucide:user" />}
+                  maxLength={LIMIT.USERNAME}
+                  autoComplete="username"
                 />
-              </Form.Item>
-            </MotionField>
-            <MotionField>
-              <Form.Item
-                name="password"
-                label="密码"
-                rules={RULE.PASSWORD}>
-                <Input.Password
-                  size="large"
-                  maxLength={LIMIT.PASSWORD}
-                  prefix={<Icon icon="ant-design:lock-outlined" />}
+              </MotionField>
+              <MotionField>
+                <AuthField
+                  control={form.control}
+                  name="password"
+                  type="password"
+                  label="密码"
                   placeholder="请输入密码"
-                  aria-label="密码"
-                />
-              </Form.Item>
-            </MotionField>
-          </>
-        )}
-
-        {signinMode === MODE.PHONE && (
-          <>
-            <MotionField>
-              <Form.Item
-                name="phone"
-                label="手机号"
-                rules={RULE.PHONE}>
-                <Input
-                  size="large"
-                  maxLength={LIMIT.PHONE}
-                  inputMode="numeric"
-                  prefix={<Icon icon="ant-design:mobile-outlined" />}
-                  placeholder="请输入手机号"
-                  aria-label="手机号"
-                />
-              </Form.Item>
-            </MotionField>
-            <MotionField>
-              <CaptchaField
-                form={form}
-                mode={MODE.PHONE}
-                targetField="phone"
-              />
-            </MotionField>
-          </>
-        )}
-
-        {signinMode === MODE.EMAIL && (
-          <>
-            <MotionField>
-              <Form.Item
-                name="email"
-                label="邮箱"
-                rules={RULE.EMAIL}>
-                <Input
-                  size="large"
-                  maxLength={LIMIT.EMAIL}
-                  prefix={<Icon icon="ant-design:mail-outlined" />}
-                  placeholder="请输入邮箱"
-                  aria-label="邮箱"
-                />
-              </Form.Item>
-            </MotionField>
-            <MotionField>
-              <Form.Item
-                name="password"
-                label="密码"
-                rules={RULE.PASSWORD}>
-                <Input.Password
-                  size="large"
+                  icon={<Icon icon="lucide:lock" />}
                   maxLength={LIMIT.PASSWORD}
-                  prefix={<Icon icon="ant-design:lock-outlined" />}
-                  placeholder="请输入密码"
-                  aria-label="密码"
+                  autoComplete="current-password"
                 />
-              </Form.Item>
-            </MotionField>
-          </>
-        )}
-
-        <MotionField className={styles.extra}>
-          {isPasswordMode ? (
-            <Form.Item
-              noStyle
-              name="remember"
-              valuePropName="checked">
-              <Checkbox>记住我</Checkbox>
-            </Form.Item>
-          ) : (
-            <span />
+              </MotionField>
+            </>
           )}
-          <Button
-            type="link"
-            htmlType="button"
-            onClick={onForgot}>
-            忘记密码
-          </Button>
-        </MotionField>
 
-        <MotionField className={styles.actions}>
-          <Button
-            block
-            size="large"
-            type="primary"
-            htmlType="submit">
-            登录
-          </Button>
-          <Button
-            block
-            size="large"
-            htmlType="button"
-            onClick={onSignup}>
-            注册
-          </Button>
-        </MotionField>
-      </FormStagger>
+          {signinMode === MODE.PHONE && (
+            <>
+              <MotionField>
+                <AuthField
+                  control={form.control}
+                  name="phone"
+                  label="手机号"
+                  placeholder="请输入手机号"
+                  icon={<Icon icon="lucide:smartphone" />}
+                  inputMode="numeric"
+                  maxLength={LIMIT.PHONE}
+                  autoComplete="tel"
+                />
+              </MotionField>
+              <MotionField>
+                <CaptchaField
+                  form={form}
+                  mode={MODE.PHONE}
+                  targetField="phone"
+                />
+              </MotionField>
+            </>
+          )}
+
+          {signinMode === MODE.EMAIL && (
+            <>
+              <MotionField>
+                <AuthField
+                  control={form.control}
+                  name="email"
+                  label="邮箱"
+                  placeholder="请输入邮箱"
+                  icon={<Icon icon="lucide:mail" />}
+                  maxLength={LIMIT.EMAIL}
+                  autoComplete="email"
+                />
+              </MotionField>
+              <MotionField>
+                <AuthField
+                  control={form.control}
+                  name="password"
+                  type="password"
+                  label="密码"
+                  placeholder="请输入密码"
+                  icon={<Icon icon="lucide:lock" />}
+                  maxLength={LIMIT.PASSWORD}
+                  autoComplete="current-password"
+                />
+              </MotionField>
+            </>
+          )}
+
+          <MotionField className={styles.extra}>
+            {isPasswordMode ? (
+              <FormField
+                control={form.control}
+                name="remember"
+                render={function ({ field }) {
+                  return (
+                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === true}
+                          onCheckedChange={function (checked) {
+                            field.onChange(checked === true)
+                          }}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">记住我</FormLabel>
+                    </FormItem>
+                  )
+                }}
+              />
+            ) : (
+              <span />
+            )}
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto p-0"
+              onClick={onForgot}>
+              忘记密码
+            </Button>
+          </MotionField>
+
+          <MotionField className={styles.actions}>
+            <Button
+              type="submit"
+              className="h-11 w-full">
+              登录
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full"
+              onClick={onSignup}>
+              注册
+            </Button>
+          </MotionField>
+        </FormStagger>
+      </form>
     </Form>
   )
 }

@@ -1,5 +1,7 @@
 import { Icon } from '@iconify/react/offline'
-import { ColorPicker, Divider, Slider, theme, Tooltip } from 'antd'
+import { Popover, PopoverContent, PopoverTrigger } from '@i-thinking/design/components/popover'
+import { Separator } from '@i-thinking/design/components/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { clsx } from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -7,6 +9,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Glide } from '@/components/glide/glide'
 import {
   generateDerivedShades,
+  normalizeHex,
   parsePresetHues
 } from '@/features/capture/components/colors'
 import { type GraphicsEnum } from '@/features/capture/components/graphics'
@@ -50,6 +53,8 @@ const FILLABLE_GRAPHICS = new Set<GraphicsEnum>(['rect', 'ellipse'])
 const FONTSIZE_GRAPHICS = new Set<GraphicsEnum>(['text', 'index'])
 /** 不参与透明度调整的形状（模糊/马赛克/聚光灯的视觉语义不应被改） */
 const NON_OPACITY_GRAPHICS = new Set<GraphicsEnum>(['mosaic', 'blur', 'spotlight'])
+/** 主题主色锚点：取应用默认主色（与 capture 默认标注色一致） */
+const THEME_PRIMARY = '#4080ff'
 
 const UTILITIES: UtilityOption[] = [
   { type: 'rect', label: '矩形', icon: 'mdi:rectangle-outline' },
@@ -76,7 +81,6 @@ export default function Utility(props: UtilityProps) {
     opacity,
     selection,
     thickness,
-    onClose,
     onUpdateColor,
     onUpdateFilled,
     onUpdateFontSize,
@@ -91,8 +95,6 @@ export default function Utility(props: UtilityProps) {
     onUpdateUtility
   } = props
 
-  const { token } = theme.useToken()
-
   // 主色锚点：点击预设色板时写入；衍生色 / 自定义色不改锚点
   const [pinnedMainColor, setPinnedMainColor] = useState(color)
 
@@ -103,13 +105,10 @@ export default function Utility(props: UtilityProps) {
   const showOpacity = active !== null && active !== undefined && !NON_OPACITY_GRAPHICS.has(active)
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  // 平铺预设色相：弹层色板数据源（仅依赖主题色，固定预设）
-  const presetHues = useMemo(
-    function () {
-      return parsePresetHues(token.colorPrimary)
-    },
-    [token.colorPrimary]
-  )
+  // 平铺预设色相：弹层色板数据源（主色锚点固定，弹层开合不重算）
+  const presetHues = useMemo(function () {
+    return parsePresetHues(THEME_PRIMARY)
+  }, [])
 
   // 外部 color 若本身是预设主色（如切换选中对象），直接用作主色；否则沿用锚点
   const presetMatch = useMemo(
@@ -205,23 +204,27 @@ export default function Utility(props: UtilityProps) {
             <div className={styles.ensemble}>
               {UTILITIES.map(function (utility) {
                 return (
-                  <Tooltip
-                    title={utility.label}
-                    key={utility.type}>
-                    <motion.button
-                      className={clsx(styles.button, {
-                        [styles.active]: active === utility.type
-                      })}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={function () {
-                        onUpdateUtility(active === utility.type ? null : utility.type)
-                      }}>
+                  <Tooltip key={utility.type}>
+                    <TooltipTrigger
+                      render={
+                        <motion.button
+                          type="button"
+                          className={clsx(styles.button, {
+                            [styles.active]: active === utility.type
+                          })}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={function () {
+                            onUpdateUtility(active === utility.type ? null : utility.type)
+                          }}
+                        />
+                      }>
                       <Icon
                         icon={utility.icon}
                         width={18}
                         height={18}
                       />
-                    </motion.button>
+                    </TooltipTrigger>
+                    <TooltipContent>{utility.label}</TooltipContent>
                   </Tooltip>
                 )
               })}
@@ -231,85 +234,120 @@ export default function Utility(props: UtilityProps) {
 
             {/* 操作按钮 */}
             <div className={styles.ensemble}>
-              <Tooltip title="撤销 Ctrl+Z">
-                <motion.button
-                  className={styles.button}
-                  title="撤销 Ctrl+Z"
-                  disabled={!canUndo}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onUndo}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <motion.button
+                      type="button"
+                      className={styles.button}
+                      disabled={!canUndo}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={onUndo}
+                    />
+                  }>
                   <Icon
                     icon="mdi:undo-variant"
                     width={18}
                     height={18}
                   />
-                </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>撤销 Ctrl+Z</TooltipContent>
               </Tooltip>
-              <Tooltip title="重做 Ctrl+Y">
-                <motion.button
-                  className={styles.button}
-                  disabled={!canRedo}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onRedo}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <motion.button
+                      type="button"
+                      className={styles.button}
+                      disabled={!canRedo}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={onRedo}
+                    />
+                  }>
                   <Icon
                     icon="mdi:redo-variant"
                     width={18}
                     height={18}
                   />
-                </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>重做 Ctrl+Y</TooltipContent>
               </Tooltip>
             </div>
 
             <div className={styles.separator} />
 
             <div className={styles.ensemble}>
-              <Tooltip title="重选">
-                <motion.button
-                  className={styles.button}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onRefresh}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <motion.button
+                      type="button"
+                      className={styles.button}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={onRefresh}
+                    />
+                  }>
                   <Icon
                     icon="mdi:refresh"
                     width={18}
                     height={18}
                   />
-                </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>重选</TooltipContent>
               </Tooltip>
-              <Tooltip title="复制">
-                <motion.button
-                  className={styles.button}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onCopy}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <motion.button
+                      type="button"
+                      className={styles.button}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={onCopy}
+                    />
+                  }>
                   <Icon
                     icon="mdi:content-copy"
                     width={18}
                     height={18}
                   />
-                </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>复制</TooltipContent>
               </Tooltip>
-              <Tooltip title="贴图">
-                <motion.button
-                  className={styles.button}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onPin}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <motion.button
+                      type="button"
+                      className={styles.button}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={onPin}
+                    />
+                  }>
                   <Icon
                     icon="mdi:pin"
                     width={18}
                     height={18}
                   />
-                </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>贴图</TooltipContent>
               </Tooltip>
-              <Tooltip title="保存">
-                <motion.button
-                  className={styles.button}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onSave}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <motion.button
+                      type="button"
+                      className={styles.button}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={onSave}
+                    />
+                  }>
                   <Icon
                     icon="mdi:content-save-outline"
                     width={18}
                     height={18}
                   />
-                </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>保存</TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -334,63 +372,29 @@ export default function Utility(props: UtilityProps) {
                 transition={{
                   duration: 0.15
                 }}>
-                {/* 调色/自定义颜色入口：与滑块控件同行，色板仅在弹层内展示 */}
-                <ColorPicker
-                  onOpenChange={setPickerOpen}
-                  value={color}
-                  disabledAlpha
-                  trigger="click"
-                  panelRender={function (panel, extra) {
-                    const { Picker } = extra.components
-                    return (
-                      <div className={styles.panelStack}>
-                        {/* 预设色板：单行横向滚动，不换行不分组 */}
-                        <Glide.X
-                          classNames={{
-                            root: styles.presetRow,
-                            inner: styles.presetTrack
-                          }}>
-                          {presetHues.map(function (value) {
-                            return (
-                              <button
-                                key={value}
-                                title={value}
-                                className={clsx(styles.color, {
-                                  [styles.active]:
-                                    mainColor.toUpperCase() === value.toUpperCase()
-                                })}
-                                onClick={() => {
-                                  setPinnedMainColor(value)
-                                  onUpdateColor(value)
-                                }}
-                                style={{
-                                  background: value
-                                }}
-                              />
-                            )
-                          })}
-                        </Glide.X>
-                        <Divider style={{ margin: 0 }} />
-                        <Picker />
-                      </div>
-                    )
-                  }}
-                  onChangeComplete={(c) => onUpdateColor(c.toHexString().toUpperCase())}>
-                  <Tooltip title="自定义颜色">
-                    <motion.button
-                      className={clsx(styles.color, styles.palette, {
-                        [styles.active]: isCustomColor
-                      })}
-                      whileTap={{ scale: 0.85 }}
-                      animate={{
-                        scale: pickerOpen ? 1.1 : 1,
-                        outline: pickerOpen ? '2px solid #1677ff' : '2px solid transparent'
-                      }}
-                      transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                      style={{
-                        background: isCustomColor ? color : 'transparent',
-                        color: isCustomColor ? undefined : 'currentColor'
-                      }}>
+                {/* 调色/自定义颜色入口：与滑块控件同行，色板与取色器收在弹层内 */}
+                <Popover
+                  open={pickerOpen}
+                  onOpenChange={setPickerOpen}>
+                  <Tooltip open={pickerOpen ? false : undefined}>
+                    <TooltipTrigger
+                      render={
+                        <PopoverTrigger
+                          render={
+                            <motion.button
+                              type="button"
+                              className={clsx(styles.color, styles.palette, {
+                                // 选中自定义色或弹层展开：同一套环形高亮
+                                [styles.active]: isCustomColor || pickerOpen
+                              })}
+                              whileTap={{ scale: 0.85 }}
+                              animate={{ scale: pickerOpen ? 1.1 : 1 }}
+                              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                              style={{ background: isCustomColor ? color : 'transparent' }}
+                            />
+                          }
+                        />
+                      }>
                       {!isCustomColor && (
                         <Icon
                           icon="mdi:palette-outline"
@@ -398,9 +402,53 @@ export default function Utility(props: UtilityProps) {
                           height={18}
                         />
                       )}
-                    </motion.button>
+                    </TooltipTrigger>
+                    <TooltipContent>自定义颜色</TooltipContent>
                   </Tooltip>
-                </ColorPicker>
+                  <PopoverContent
+                    align="start"
+                    className="w-auto">
+                    <div className={styles.panelStack}>
+                      {/* 预设色板：单行横向滚动，不换行不分组 */}
+                      <Glide.X
+                        classNames={{
+                          root: styles.presetRow,
+                          inner: styles.presetTrack
+                        }}>
+                        {presetHues.map(function (value) {
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              title={value}
+                              className={clsx(styles.color, {
+                                [styles.active]: mainColor.toUpperCase() === value.toUpperCase()
+                              })}
+                              onClick={() => {
+                                setPinnedMainColor(value)
+                                onUpdateColor(value)
+                              }}
+                              style={{
+                                background: value
+                              }}
+                            />
+                          )
+                        })}
+                      </Glide.X>
+                      <Separator />
+                      {/* 取色器：原生 color input 自绘（不支持 alpha） */}
+                      <input
+                        type="color"
+                        aria-label="自定义颜色"
+                        value={color}
+                        className="border-border bg-background h-7 w-full cursor-pointer rounded-md border p-0.5"
+                        onChange={function (event) {
+                          onUpdateColor(normalizeHex(event.target.value))
+                        }}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
                 {/* 衍生色阶：浅色 → 主色 → 深色，紧凑单行平铺 */}
                 <div className={styles.shades}>
@@ -424,52 +472,51 @@ export default function Utility(props: UtilityProps) {
                 <div className={styles.separator} />
 
                 {/* 控件区：粗细 / 填充 / 字号 / 透明度 */}
-                <Tooltip title={`粗细 ${Math.round(thickness)}`}>
-                  <div className={clsx(styles.ensemble, styles.compact)}>
-                    <Icon
-                      icon="mdi:format-line-weight"
-                      width={14}
-                      height={14}
-                    />
-                    <Slider
-                      className={clsx(styles.thickness)}
-                      value={thickness}
-                      onChange={(v) => onUpdateThickness(Math.round(v))}
-                      step={0.01}
-                      min={1}
-                      max={16}
-                      tooltip={{ open: false }}
-                      styles={{
-                        track: {
-                          backgroundImage: 'linear-gradient(180deg, #91caff, #1677ff)'
-                        },
-                        handle: {
-                          borderColor: '#1677ff',
-                          boxShadow: '0 2px 8px #1677ff',
-                          willChange: 'transform'
-                        }
-                      }}
-                    />
-                  </div>
-                </Tooltip>
+                <div
+                  className={clsx(styles.ensemble, styles.compact)}
+                  title={`粗细 ${Math.round(thickness)}`}>
+                  <Icon
+                    icon="mdi:format-line-weight"
+                    width={14}
+                    height={14}
+                  />
+                  <input
+                    type="range"
+                    className={styles.thickness}
+                    min={1}
+                    max={16}
+                    step={1}
+                    value={thickness}
+                    aria-label="粗细"
+                    onChange={function (event) {
+                      onUpdateThickness(Math.round(Number(event.target.value)))
+                    }}
+                  />
+                </div>
 
                 {/* 填充开关：仅闭合形状（rect / ellipse） */}
                 {showFilled && (
                   <>
                     <div className={styles.separator} />
-                    <Tooltip title={filled ? '取消填充' : '填充'}>
-                      <motion.button
-                        className={clsx(styles.button, { [styles.active]: filled })}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={function () {
-                          onUpdateFilled(!filled)
-                        }}>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <motion.button
+                            type="button"
+                            className={clsx(styles.button, { [styles.active]: filled })}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={function () {
+                              onUpdateFilled(!filled)
+                            }}
+                          />
+                        }>
                         <Icon
                           icon={filled ? 'mdi:format-color-fill' : 'mdi:format-color-highlight'}
                           width={18}
                           height={18}
                         />
-                      </motion.button>
+                      </TooltipTrigger>
+                      <TooltipContent>{filled ? '取消填充' : '填充'}</TooltipContent>
                     </Tooltip>
                   </>
                 )}
@@ -478,24 +525,27 @@ export default function Utility(props: UtilityProps) {
                 {showFontSize && (
                   <>
                     <div className={styles.separator} />
-                    <Tooltip title={`字号 ${Math.round(fontSize)}`}>
-                      <div className={clsx(styles.ensemble, styles.compact)}>
-                        <Icon
-                          icon="mdi:format-size"
-                          width={14}
-                          height={14}
-                        />
-                        <Slider
-                          className={clsx(styles.fontSize)}
-                          value={fontSize}
-                          onChange={(v) => onUpdateFontSize(Math.round(v))}
-                          step={1}
-                          min={10}
-                          max={64}
-                          tooltip={{ open: false }}
-                        />
-                      </div>
-                    </Tooltip>
+                    <div
+                      className={clsx(styles.ensemble, styles.compact)}
+                      title={`字号 ${Math.round(fontSize)}`}>
+                      <Icon
+                        icon="mdi:format-size"
+                        width={14}
+                        height={14}
+                      />
+                      <input
+                        type="range"
+                        className={styles.fontSize}
+                        min={10}
+                        max={64}
+                        step={1}
+                        value={fontSize}
+                        aria-label="字号"
+                        onChange={function (event) {
+                          onUpdateFontSize(Math.round(Number(event.target.value)))
+                        }}
+                      />
+                    </div>
                   </>
                 )}
 
@@ -503,24 +553,27 @@ export default function Utility(props: UtilityProps) {
                 {showOpacity && (
                   <>
                     <div className={styles.separator} />
-                    <Tooltip title={`不透明度 ${Math.round(opacity * 100)}%`}>
-                      <div className={clsx(styles.ensemble, styles.compact)}>
-                        <Icon
-                          icon="mdi:opacity"
-                          width={14}
-                          height={14}
-                        />
-                        <Slider
-                          className={clsx(styles.opacity)}
-                          value={Math.round(opacity * 100)}
-                          onChange={(v) => onUpdateOpacity(Math.max(0.05, v / 100))}
-                          step={1}
-                          min={5}
-                          max={100}
-                          tooltip={{ open: false }}
-                        />
-                      </div>
-                    </Tooltip>
+                    <div
+                      className={clsx(styles.ensemble, styles.compact)}
+                      title={`不透明度 ${Math.round(opacity * 100)}%`}>
+                      <Icon
+                        icon="mdi:opacity"
+                        width={14}
+                        height={14}
+                      />
+                      <input
+                        type="range"
+                        className={styles.opacity}
+                        min={5}
+                        max={100}
+                        step={1}
+                        value={Math.round(opacity * 100)}
+                        aria-label="不透明度"
+                        onChange={function (event) {
+                          onUpdateOpacity(Math.max(0.05, Number(event.target.value) / 100))
+                        }}
+                      />
+                    </div>
                   </>
                 )}
               </motion.div>

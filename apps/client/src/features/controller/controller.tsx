@@ -11,7 +11,7 @@ import { registerMirrorSwitch } from '@/features/controller/mirror-switch'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { buildItems, CLASS_NAMES } from '@/features/magnetic-tile/layout-menu'
-import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import {
   bindMirrorTransition,
   findMirrorDirection,
@@ -264,9 +264,7 @@ const Controller = {
                   size={value.size}
                   shape={value.shape}
                   direction={value.direction}>
-                  <OverlayProvider magneticTileID={value.id}>
-                    <Component {...value} />
-                  </OverlayProvider>
+                  <Component {...value} />
                 </MagneticTile.Suspense>
               </MagneticTile.Enter>
             )

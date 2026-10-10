@@ -1,4 +1,4 @@
-const COMPONENT_LABELS: Record<MagneticTile.Component, string> = {
+const COMPONENT_LABELS: Partial<Record<MagneticTile.Component, string>> = {
   bookmark: '书签',
   calendar: '日历',
   clock: '时钟',
@@ -10,7 +10,7 @@ const COMPONENT_LABELS: Record<MagneticTile.Component, string> = {
   markdown: '笔记',
   morph: '变形',
   settings: '设置',
-  intelligence: '智能',
+  agent: '智能',
   developer: '开发者',
   gallery: '图库',
   signboard: '看板',
@@ -31,7 +31,7 @@ const TILE_HINTS: Partial<Record<MagneticTile.Component, string>> = {
   markdown: '备忘录与 Markdown 笔记',
   morph: '形态变换与视觉实验',
   settings: '应用偏好与系统设置',
-  intelligence: 'AI Hub 智能助手',
+  agent: 'AI Hub 智能助手',
   developer: '开发者工具与调试',
   gallery: '图库浏览与管理',
   signboard: '看板任务与状态流转',

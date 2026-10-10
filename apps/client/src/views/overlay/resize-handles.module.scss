@@ -3,8 +3,8 @@
   width: 10px;
   height: 10px;
   border-radius: 3px;
-  background: var(--ith-color-primary);
-  border: 1.5px solid var(--ith-color-bg-container);
+  background: var(--primary);
+  border: 1.5px solid var(--card);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   opacity: 0;
   transition:
@@ -14,12 +14,12 @@
   z-index: 10;
 
   &:hover {
-    background: color-mix(in srgb, var(--ith-color-primary) 80%, white);
+    background: color-mix(in srgb, var(--primary) 80%, white);
     transform: scale(1.15);
   }
 
   &:active {
-    background: color-mix(in srgb, var(--ith-color-primary) 70%, black);
+    background: color-mix(in srgb, var(--primary) 70%, black);
     transform: scale(0.95);
   }
 }

@@ -1,4 +1,5 @@
 import React from '@vitejs/plugin-react-swc'
+import tailwindcss from '@tailwindcss/vite'
 import { createHash } from 'node:crypto'
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
@@ -55,6 +56,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   return {
     envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
     plugins: [
+      tailwindcss(),
       React({
         // jsxRuntime: 'automatic',
         // include: [/\.[jt]sx$/]

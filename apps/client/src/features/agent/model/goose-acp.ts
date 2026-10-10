@@ -19,7 +19,7 @@ import { clearGooseUsage, writeGooseUsage } from '@/features/agent/acp/goose-usa
 import { parseAcpSessionUpdate, parseAcpUsageUpdate } from '@/features/agent/acp/normalize'
 import { parseModels, stringifyModels } from '@/features/agent/model/providers'
 import type { ChatMessage, NormalizedChunk, ProviderConfig } from '@/features/agent/types'
-import { useIntelligenceStore } from '@/stores/intelligence'
+import { useAgentStore } from '@/stores/agent'
 import { useProviderStore } from '@/stores/provider'
 
 interface GooseChatParams {
@@ -51,7 +51,7 @@ bindGooseNotReady(function () {
 })
 
 async function findWorkspaceCwd(): Promise<string> {
-  const state = useIntelligenceStore.getState()
+  const state = useAgentStore.getState()
   const workspaceID = state.activeWorkspaceID
   const primary = state.workspaceFolders.find(function (item) {
     return item.workspaceID === workspaceID && item.isPrimary

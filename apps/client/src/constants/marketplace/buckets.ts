@@ -41,7 +41,7 @@ const COMPONENT_BUCKET: Partial<Record<MagneticTile.Component, Exclude<BoothBuck
   collection: 'apps',
   marketplace: 'apps',
   settings: 'system',
-  intelligence: 'system'
+  agent: 'system'
 }
 
 function findBoothBucket(component: MagneticTile.Component): Exclude<BoothBucket, 'all'> {

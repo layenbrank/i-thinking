@@ -1,3 +1,3 @@
 pub mod service;
 
-pub use cogito::Service;
+pub use service::Service;

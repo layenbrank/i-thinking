@@ -1,40 +1,30 @@
 /**
- * Overview 壳层：搜索 / Mirror 舞台 / 胶囊浮层 / 登录入口
- * 同时承担主窗口的全局初始化职责（数据加载、插件注册、corex 就绪检测）
+ * Overview 壳层：标题栏（镜像切换 / 状态 / 账号）+ 搜索 + Mirror 舞台 + 登录入口。
+ * 同时承担主窗口的全局初始化职责（数据加载、corex 就绪检测、全局快捷键）。
  */
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut'
 import { attachConsole } from '@tauri-apps/plugin-log'
-import { Layout as Payload } from 'antd'
-import { App as AntApp } from 'antd'
 import { clsx } from 'clsx'
 import { useEffect, useState } from 'react'
 
 import ReSignIn from '@/features/signin/signin.tsx'
 import Controller from '@/features/controller/controller.tsx'
-import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
+import { WindowFrame } from '@/components/window-frame/index.ts'
 import { EngineSearch } from '@/views/overview/engine/engine-search'
-import { OverviewCapsule } from '@/views/overview/overview-capsule'
+import { CaptionAccount } from '@/views/overview/caption/account'
+import { MirrorSwitcher } from '@/views/overview/caption/mirror'
+import { CaptionStatus } from '@/views/overview/caption/status'
 import styles from '@/views/overview/overview.module.scss'
-import { IntelligencePlugin } from '@/plugins/intelligence.ts'
-import { StoragePlugin } from '@/plugins/storage.ts'
+import { dispatchKeyCode } from '@/keycodes/dispatcher'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { useSettingsStore } from '@/stores/setting.ts'
 import { applyCliMatches } from '@/utils/cli'
 import { checkUpdate } from '@/utils/updater'
 
-const { Content: Cogito, Header: Prefix, Footer: Suffix } = Payload
-
-const plugins: Plugin[] = [
-  {
-    ...StoragePlugin,
-    priority: 10
-  },
-  IntelligencePlugin
-]
+/** 截图全局快捷键；可配置 bindings 已移除（见 keycodes/types.ts），这里保持硬编码 */
 const SCREENSHOT_SHORTCUT = 'Alt+Q'
-const COREX_NOT_READY = 'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-daemon 后重启应用。'
 
 export default function Overview() {
   const [signinOpen, setSigninOpen] = useState(false)
@@ -105,11 +95,19 @@ export default function Overview() {
     let cleanup: (() => void) | null = null
     let cancelled = false
 
+    /** 截图键：先派发给注册了 `useKeyCode('screenshot')` 的组件（如盘面上的截图磁贴），
+     *  没人接管就直连命令 —— 磁贴被删掉时快捷键仍然可用 */
+    async function requestCapture() {
+      const handled = await dispatchKeyCode('screenshot')
+      if (handled) return
+      await invoke('capture:open')
+    }
+
     async function bootstrap() {
       try {
         if (await isRegistered(SCREENSHOT_SHORTCUT)) await unregister(SCREENSHOT_SHORTCUT)
         await register(SCREENSHOT_SHORTCUT, function (event) {
-          if (event.state === 'Pressed') void invoke('capture:open')
+          if (event.state === 'Pressed') void requestCapture()
         })
         if (cancelled) await unregister(SCREENSHOT_SHORTCUT)
         else {
@@ -130,76 +128,51 @@ export default function Overview() {
     }
   }, [])
 
-  function onPluginError(plugin: Plugin, error: unknown) {
-    console.error(`plugin error "${plugin.unique}"`, error)
-  }
-
   return (
-    <Payload className={clsx(styles.overview, styles.payload)}>
-      <PluginProvider
-        plugins={plugins}
-        onError={onPluginError}>
-        <CorexReadyGate />
-        <Prefix className={clsx(styles.overview, styles.prefix)}>
-          <EngineSearch />
-        </Prefix>
-        <Cogito className={clsx(styles.overview, styles.core)}>
-          <Controller.Mirror>
-            <Controller.MagneticTile />
-          </Controller.Mirror>
-        </Core>
-        <Suffix className={clsx(styles.overview, styles.suffix)}></Suffix>
-        <OverviewCapsule
-          onSignIn={function () {
-            setSigninOpen(true)
-          }}
-        />
-        <ReSignIn
-          open={signinOpen}
-          onClose={function () {
-            setSigninOpen(false)
-          }}
-        />
-      </PluginProvider>
-    </Payload>
+    /*
+      主窗口也走 WindowFrame 当容器（`decorations: false` 后窗口必须自绘标题栏），
+      但 `isFramed={false}`：窗口自带 mica，别用内层卡片盖死它 —— 外壳只负责
+      标题栏 + 把内容撑满（`.core` 的 `flex: 1` 依赖这层纵向 flex）。
+      标题栏内容：左＝品牌 + 镜像切换器，右＝状态区 + 账号（窗口键由 Caption 自绘）。
+    */
+    <WindowFrame
+      isFramed={false}
+      isScrollable={false}
+      className={styles.overview}
+      start={
+        <>
+          <span className={styles.brand}>i-thinking</span>
+          <span
+            className={styles.brandDivider}
+            aria-hidden
+          />
+          <MirrorSwitcher />
+        </>
+      }
+      actions={
+        <>
+          <CaptionStatus />
+          <CaptionAccount
+            onSignIn={function () {
+              setSigninOpen(true)
+            }}
+          />
+        </>
+      }>
+      <header className={clsx(styles.overview, styles.prefix)}>
+        <EngineSearch />
+      </header>
+      <main className={clsx(styles.overview, styles.core)}>
+        <Controller.Mirror>
+          <Controller.MagneticTile />
+        </Controller.Mirror>
+      </main>
+      <ReSignIn
+        open={signinOpen}
+        onClose={function () {
+          setSigninOpen(false)
+        }}
+      />
+    </WindowFrame>
   )
-}
-
-/** 必须挂在 AntApp 内，才能走动态 message 上下文 */
-function CorexReadyGate() {
-  const { message } = AntApp.useApp()
-
-  useEffect(
-    function () {
-      let unlisten: (() => void) | undefined
-      let disposed = false
-      let warned = false
-
-      function warn() {
-        if (disposed || warned) return
-        warned = true
-        message.warning(COREX_NOT_READY, 8)
-      }
-
-      async function bootstrap() {
-        try {
-          unlisten = await listen('corex://not-ready', warn)
-          const ready = await invoke<boolean | null>('ipc:ready')
-          if (ready === false) warn()
-        } catch (err) {
-          console.warn('[Overview] corex 状态检查失败', err)
-        }
-      }
-
-      void bootstrap()
-
-      return function () {
-        disposed = true
-        unlisten?.()
-      }
-    },
-    [message]
-  )
-
-  return null
 }

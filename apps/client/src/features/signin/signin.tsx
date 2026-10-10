@@ -1,5 +1,5 @@
-import { Modal, Typography } from 'antd'
 import { Icon } from '@iconify/react/offline'
+import { Dialog, DialogContent, DialogTitle } from '@i-thinking/design/components/dialog'
 import clsx from 'clsx'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'
@@ -72,112 +72,104 @@ function SignIn(props: SignInProps) {
   }
 
   return (
-    <Modal
-      centered
+    <Dialog
       open={open}
-      footer={null}
-      destroyOnHidden
-      onCancel={onClose}
-      rootClassName={styles.signin}
-      style={{
-        width: 'min(92vw, 880px)',
-        maxHeight: 'min(90vh, 560px)',
-        aspectRatio: 'unset',
-        minWidth: 'unset',
-        height: 'auto'
-      }}
-      styles={{
-        body: {
-          padding: 0,
-          height: 'auto'
-        }
+      onOpenChange={function (nextOpen) {
+        if (!nextOpen) onClose()
       }}>
-      <div className={styles.body}>
-        <aside className={styles.brand}>
-          <div className={styles.core}>
-            <div className={styles.logo}>
-              <Icon
-                icon="ant-design:bulb-outlined"
-                aria-hidden
-              />
+      <DialogContent
+        className={clsx(
+          styles.dialog,
+          'max-w-none gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-none'
+        )}>
+        <DialogTitle className="sr-only">登录 i-thinking</DialogTitle>
+        <div className={styles.body}>
+          <aside className={styles.brand}>
+            <div className={styles.core}>
+              <div className={styles.logo}>
+                <Icon
+                  icon="lucide:lightbulb"
+                  aria-hidden
+                />
+              </div>
+              <h3>i-thinking</h3>
+              <p>企业智能工作台，赋能团队高效决策与协作</p>
             </div>
-            <Typography.Title level={3}>i-thinking</Typography.Title>
-            <Typography.Paragraph>企业智能工作台，赋能团队高效决策与协作</Typography.Paragraph>
-          </div>
-          <ul className={styles.points}>
-            <li>
-              <Icon icon="ant-design:safety-certificate-outlined" />
-              <span>企业级安全防护</span>
-            </li>
-            <li>
-              <Icon icon="ant-design:cloud-sync-outlined" />
-              <span>多端数据实时同步</span>
-            </li>
-            <li>
-              <Icon icon="ant-design:team-outlined" />
-              <span>智能协作工作流</span>
-            </li>
-          </ul>
-          <footer className={styles.foot}>© 2026 i-thinking · SSL 加密传输</footer>
-        </aside>
-        <section className={styles.panel}>
-          <AnimatePresence
-            mode="wait"
-            initial={false}>
-            <motion.header
-              key={panelView}
-              className={styles.head}
-              initial={headVariants.initial}
-              animate={headVariants.animate}
-              exit={headVariants.exit}
-              transition={viewTransition}>
-              <Typography.Title level={4}>{headText.title}</Typography.Title>
-              <Typography.Text type="secondary">{headText.subtitle}</Typography.Text>
-            </motion.header>
-          </AnimatePresence>
-          <div className={styles.stage}>
-            {/* stage 不用 initial={false}：会经 PresenceContext 屏蔽嵌套 FormStagger 进场 */}
-            <AnimatePresence mode="wait">
-              <motion.div
+            <ul className={styles.points}>
+              <li>
+                <Icon icon="lucide:shield-check" />
+                <span>企业级安全防护</span>
+              </li>
+              <li>
+                <Icon icon="lucide:refresh-cw" />
+                <span>多端数据实时同步</span>
+              </li>
+              <li>
+                <Icon icon="lucide:users" />
+                <span>智能协作工作流</span>
+              </li>
+            </ul>
+            <footer className={styles.foot}>© 2026 i-thinking · SSL 加密传输</footer>
+          </aside>
+          <section className={styles.panel}>
+            <AnimatePresence
+              mode="wait"
+              initial={false}>
+              <motion.header
                 key={panelView}
-                initial={viewVariants.initial}
-                animate={viewVariants.animate}
-                exit={viewVariants.exit}
-                transition={viewTransition}
-                className={clsx(
-                  styles.formWrap,
-                  panelView === PANEL.FORGOT && styles.formWrapScroll
-                )}>
-                {panelView === PANEL.SIGNIN && (
-                  <SigninForm
-                    motionKey={panelMotionKey}
-                    signinMode={signinMode}
-                    onModeChange={setSigninMode}
-                    onForgot={onForgot}
-                    onSignup={onSignup}
-                    onSuccess={onClose}
-                  />
-                )}
-                {panelView === PANEL.FORGOT && (
-                  <ForgotForm
-                    motionKey={panelMotionKey}
-                    forgotMode={forgotMode}
-                    onModeChange={setForgotMode}
-                    onSignin={onSignin}
-                  />
-                )}
-                {panelView === PANEL.SIGNUP && (
-                  <SignupForm
-                    motionKey={panelMotionKey}
-                    onSignin={onSignin}
-                  />
-                )}
-              </motion.div>
+                className={styles.head}
+                initial={headVariants.initial}
+                animate={headVariants.animate}
+                exit={headVariants.exit}
+                transition={viewTransition}>
+                <h4 className="text-base font-medium">{headText.title}</h4>
+                <span className="text-sm text-muted-foreground">{headText.subtitle}</span>
+              </motion.header>
             </AnimatePresence>
-          </div>
-        </section>
-      </div>
-    </Modal>
+            <div className={styles.stage}>
+              {/* stage 不用 initial={false}：会经 PresenceContext 屏蔽嵌套 FormStagger 进场 */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={panelView}
+                  initial={viewVariants.initial}
+                  animate={viewVariants.animate}
+                  exit={viewVariants.exit}
+                  transition={viewTransition}
+                  className={clsx(
+                    styles.formWrap,
+                    panelView === PANEL.FORGOT && styles.formWrapScroll
+                  )}>
+                  {panelView === PANEL.SIGNIN && (
+                    <SigninForm
+                      motionKey={panelMotionKey}
+                      signinMode={signinMode}
+                      onModeChange={setSigninMode}
+                      onForgot={onForgot}
+                      onSignup={onSignup}
+                      onSuccess={onClose}
+                    />
+                  )}
+                  {panelView === PANEL.FORGOT && (
+                    <ForgotForm
+                      motionKey={panelMotionKey}
+                      forgotMode={forgotMode}
+                      onModeChange={setForgotMode}
+                      onSignin={onSignin}
+                    />
+                  )}
+                  {panelView === PANEL.SIGNUP && (
+                    <SignupForm
+                      motionKey={panelMotionKey}
+                      onSignin={onSignin}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

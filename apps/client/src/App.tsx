@@ -1,7 +1,5 @@
-import { StyleProvider } from '@ant-design/cssinjs'
-import { XProvider } from '@ant-design/x'
-import { App as AntApp } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
+import { Toaster } from '@i-thinking/design/components/sonner'
+import { TooltipProvider } from '@i-thinking/design/components/tooltip'
 import { MotionConfig } from 'motion/react'
 
 import dayjs from 'dayjs'
@@ -14,32 +12,26 @@ import { RouterProvider } from 'react-router-dom'
 import { Fallback } from '@/components/fallback/index.ts'
 import { QueryProvider } from '@/components/provider/query'
 import { router } from '@/routers/index'
-import { useProviderProps } from '@/themes'
 
 dayjs.extend(localeData)
 dayjs.locale('zh-cn')
 
 function App() {
-  const provider = useProviderProps()
-
   return (
-    <MotionConfig reducedMotion="user">
-      <StyleProvider hashPriority="low">
-        <XProvider
-          locale={zhCN}
-          {...provider}>
-          <AntApp
-            message={{ maxCount: 3 }}
-            notification={{ maxCount: 1 }}>
-            <QueryProvider>
+    <>
+      <TooltipProvider>
+        <MotionConfig reducedMotion="user">
+          <QueryProvider>
+            <Fallback.ErrorBoundary>
               <Suspense fallback={<Fallback.Route />}>
                 <RouterProvider router={router} />
               </Suspense>
-            </QueryProvider>
-          </AntApp>
-        </XProvider>
-      </StyleProvider>
-    </MotionConfig>
+            </Fallback.ErrorBoundary>
+          </QueryProvider>
+        </MotionConfig>
+      </TooltipProvider>
+      <Toaster />
+    </>
   )
 }
 

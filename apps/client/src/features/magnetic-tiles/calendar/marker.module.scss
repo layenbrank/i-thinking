@@ -33,7 +33,7 @@
   border-radius: inherit;
   border: none;
   background: transparent;
-  color: var(--ith-color-text);
+  color: var(--foreground);
   display: flex;
   align-items: stretch;
   justify-content: stretch;
@@ -62,14 +62,14 @@
 }
 
 .compactBody .month {
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 10px;
   font-weight: 500;
   line-height: 1.2;
 }
 
 .compactBody .day {
-  color: var(--ith-color-primary);
+  color: var(--primary);
   font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -94,7 +94,7 @@
 }
 
 .weekday {
-  color: var(--ith-color-primary);
+  color: var(--primary);
   line-height: 1.2;
   font-weight: 600;
   white-space: nowrap;
@@ -102,7 +102,7 @@
 }
 
 .ymd {
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   white-space: nowrap;
   font-size: 12px;
   font-weight: 500;
@@ -112,7 +112,7 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
 }
 
 .lunar,
@@ -120,7 +120,7 @@
 .iso,
 .gods {
   font-size: 11px;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   white-space: nowrap;
   line-height: 1.35;
   max-width: 100%;
@@ -134,12 +134,12 @@
   flex-shrink: 0;
   max-width: 100%;
   padding: 1px 7px;
-  border-radius: var(--ith-border-radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.45;
-  color: var(--ith-color-primary);
-  background: var(--ith-color-primary-bg);
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -157,11 +157,11 @@
   display: inline-flex;
   align-items: center;
   padding: 1px 6px;
-  border-radius: var(--ith-border-radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-size: 10px;
   line-height: 1.4;
-  color: var(--ith-color-text-secondary);
-  background: var(--ith-color-fill-tertiary, var(--ith-color-fill-secondary));
+  color: var(--muted-foreground);
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
   white-space: nowrap;
 }
 
@@ -173,13 +173,13 @@
   min-width: 0;
   font-size: 12px;
   line-height: 1.35;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   flex: 0 0 auto;
 }
 
 .dotSep {
   flex-shrink: 0;
-  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+  color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
 }
 
 .yiJiInline {
@@ -199,7 +199,7 @@
   max-width: 100%;
   font-size: 12px;
   line-height: 1.35;
-  color: var(--ith-color-text);
+  color: var(--foreground);
   overflow: hidden;
 }
 
@@ -217,17 +217,17 @@
   font-weight: 700;
   line-height: 1.35;
   padding: 1px 6px;
-  border-radius: var(--ith-border-radius-sm, 4px);
+  border-radius: var(--radius-sm);
 }
 
 .yiJiLabel {
-  color: var(--ith-color-success);
-  background: var(--ith-color-success-bg, color-mix(in srgb, var(--ith-color-success) 12%, transparent));
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, transparent);
 }
 
 .jiLabel {
-  color: var(--ith-color-error);
-  background: var(--ith-color-error-bg, color-mix(in srgb, var(--ith-color-error) 12%, transparent));
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 12%, transparent);
 }
 
 /* —— 日期徽章 —— */
@@ -239,9 +239,9 @@
   gap: 8px;
   min-width: 4.25em;
   padding: 8px 10px;
-  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
-  background: var(--ith-color-primary-bg);
-  border: 1px solid var(--ith-color-primary-border, var(--ith-color-primary));
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--primary) 35%, transparent);
   box-sizing: border-box;
   align-self: stretch;
   min-height: 0;
@@ -251,7 +251,7 @@
   flex: 0 0 auto;
   font-size: 40px;
   letter-spacing: -0.03em;
-  color: var(--ith-color-primary);
+  color: var(--primary);
   line-height: 1;
 }
 
@@ -259,7 +259,7 @@
   flex: 0 0 auto;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ith-color-primary);
+  color: var(--primary);
   line-height: 1;
   white-space: nowrap;
 }
@@ -287,7 +287,7 @@
 }
 
 .infoTop .ymd {
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
   font-size: 15px;
   font-weight: 600;
   flex: 0 0 auto;
@@ -298,7 +298,7 @@
 .infoRail .lunar,
 .infoRail .ganzhi {
   font-size: 13px;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -387,7 +387,7 @@
 
 .tall .agenda {
   border-left: none;
-  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   padding: 8px 0 0;
   height: auto;
   flex: 1 1 auto;
@@ -484,7 +484,7 @@
 .square .agenda,
 .circle .agenda {
   border-left: none;
-  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   padding: 6px 0 0;
   height: auto;
   flex: 0 0 auto;
@@ -517,7 +517,7 @@
   justify-content: flex-start;
   gap: 6px;
   padding: 0 0 0 10px;
-  border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  border-left: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   box-sizing: border-box;
   height: 100%;
 }
@@ -533,7 +533,7 @@
 .agendaTitle {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
   white-space: nowrap;
 }
 
@@ -546,8 +546,8 @@
   font-weight: 600;
   line-height: 1.35em;
   text-align: center;
-  color: var(--ith-color-primary);
-  background: var(--ith-color-primary-bg);
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
 }
 
 .agendaList {
@@ -581,17 +581,17 @@
 }
 
 .agendaDotEvent {
-  background: var(--ith-color-primary);
+  background: var(--primary);
 }
 
 .agendaDotReminder {
-  background: var(--ith-color-warning, #faad14);
+  background: var(--warning);
 }
 
 .agendaTime {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
   white-space: nowrap;
 }
 
@@ -603,12 +603,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--ith-color-text);
+  color: var(--foreground);
   display: block;
 }
 
 .agendaTextDone {
-  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+  color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
   text-decoration: line-through;
 }
 
@@ -618,13 +618,13 @@
   align-items: flex-start;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
 }
 
 .agendaMore {
   flex: 0 0 auto;
   font-size: 11px;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
 }
 
 /* —— 圆形：仅日期 —— */
@@ -655,5 +655,5 @@
 }
 
 .circle .dayRail .bigDay {
-  color: var(--ith-color-primary);
+  color: var(--primary);
 }

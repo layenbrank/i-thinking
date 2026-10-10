@@ -1,23 +1,13 @@
-import { useContext, type MouseEvent } from 'react'
+import { type MouseEvent } from 'react'
 
 import clsx from 'clsx'
 
-import {
-  MagneticTile,
-  OverlayContext,
-  type SectionProps
-} from '@/features/magnetic-tile/magnetic-tile.tsx'
-import { OverlaySkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
+import { MagneticTile, type SectionProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/marketplace/marketplace.module.scss'
 
 import Marker from '@/features/magnetic-tiles/marketplace/marker.tsx'
-import Overlay from '@/features/magnetic-tiles/marketplace/overlay.tsx'
 
 export default function Marketplace(props: SectionProps) {
-  const { renderable } = useContext(OverlayContext)
-  const cache = props.cache ?? 'destroy'
-  const isRenderOverlay = renderable
-
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
@@ -32,13 +22,6 @@ export default function Marketplace(props: SectionProps) {
         direction={props.direction}
         shape={props.shape}
       />
-      {isRenderOverlay ? (
-        <Overlay
-          cache={cache}
-          onAbort={props.onAbort}
-          abortTimeoutMs={props.abortTimeoutMs}
-        />
-      ) : null}
     </MagneticTile.Section>
   )
 }

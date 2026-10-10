@@ -1,0 +1,316 @@
+/* 主窗口标题栏（caption）内部元素 —— 只放标题栏里的东西，页面骨架仍在 overview.module.scss */
+
+/* ── 镜像切换器 ── */
+
+.mirrorStatic {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mirrorTrigger {
+  max-width: 260px;
+  min-width: 0;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+
+  &:not(:disabled):hover {
+    color: var(--foreground);
+  }
+}
+
+.mirrorPage {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+.mirrorName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mirrorChevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+}
+
+.mirrorList {
+  width: 288px;
+  padding: 6px;
+}
+
+.mirrorItem {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background-color 140ms ease-out;
+
+  &[data-cursor='true'] {
+    background: var(--accent-hover);
+  }
+
+  /* 工具按钮默认低调，指针/键盘进入该行再显形 */
+  &:hover .mirrorTool,
+  &:focus-within .mirrorTool {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.mirrorItemActive {
+  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--accent);
+}
+
+.mirrorItemMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mirrorRename {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  margin: 4px 0 4px 8px;
+  font-size: 13px;
+}
+
+.mirrorItemTools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-right: 6px;
+}
+
+.mirrorTool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 140ms ease-out,
+    color 140ms ease-out,
+    background-color 140ms ease-out;
+
+  &:hover {
+    background: var(--accent-active);
+    color: var(--foreground);
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.mirrorToolDanger:hover {
+  background: color-mix(in oklab, var(--destructive) 14%, transparent);
+  color: var(--destructive);
+}
+
+.mirrorCreate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--foreground);
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.mirrorItemIndex {
+  flex-shrink: 0;
+  min-width: 20px;
+  padding-top: 1px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.mirrorItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mirrorItemTitle {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mirrorItemDesc {
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mirrorItemCheck {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  color: var(--primary);
+}
+
+/* ── 状态芯片 ── */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chipAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chipIcon {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.chipInfo {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--primary);
+
+  .chipAction:hover {
+    background: color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+}
+
+.chipWarn {
+  background: color-mix(in oklab, var(--warning) 20%, transparent);
+  color: color-mix(in oklab, var(--warning-foreground) 70%, var(--warning));
+
+  .chipAction:hover {
+    background: color-mix(in oklab, var(--warning) 32%, transparent);
+  }
+}
+
+.chipDismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+    background: color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* ── 账号 ── */
+
+.accountSignIn {
+  color: var(--muted-foreground);
+  font-size: 13px;
+
+  &:not(:disabled):hover {
+    color: var(--foreground);
+  }
+}
+
+.accountAvatar {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+}

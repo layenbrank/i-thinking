@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
-import { generate } from '@ant-design/colors'
+
+import { generateRamp } from '@/utils/color'
 
 interface SurfaceStyleInput {
   round?: string | null
@@ -69,7 +70,7 @@ function buildSurfaceStyle(input: SurfaceStyleInput = {}): CSSProperties {
 }
 
 function paintPrimary(color: string) {
-  return generate(color)
+  return generateRamp(color)
 }
 
 export { buildSurfaceStyle, paintPrimary }

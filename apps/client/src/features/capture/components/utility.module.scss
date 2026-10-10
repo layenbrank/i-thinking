@@ -71,8 +71,8 @@
   }
 }
 
-// ─── ColorPicker 弹层内部：预设色板在上、取色面板在下（仅方向改为纵向） ───
-// 宽度还原为 antd 原生面板宽度（colorPickerWidth: 234），避免比例失真
+// ─── 取色弹层内部：预设色板在上、取色器在下（纵向堆叠） ───
+// 宽度对齐取色面板（234），避免色板比例失真
 .panelStack {
   display: flex;
   flex-direction: column;

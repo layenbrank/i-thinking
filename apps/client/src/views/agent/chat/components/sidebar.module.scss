@@ -1,0 +1,346 @@
+/* Qoder 单列左侧：模式 / 导航 / 工作区会话树 / 底栏头像设置 */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 10px 8px;
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.topNav {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.scenarioGlide {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+}
+
+.scenarioRow {
+  gap: 2px;
+  padding: 2px;
+}
+
+.scenarioBtn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  margin: 0;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--muted-foreground);
+
+  &:hover {
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+}
+
+.scenarioBtnActive {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  font-weight: 500;
+
+  &:hover {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+  }
+}
+
+.section {
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.sectionHeader {
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  padding: 2px 4px;
+  border-radius: 8px;
+
+  &:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+}
+
+.sectionTitle {
+  height: auto;
+  padding: 4px 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+
+  &:hover {
+    color: var(--foreground);
+    background: transparent;
+  }
+}
+
+.sectionAdd {
+  color: var(--muted-foreground);
+
+  &:hover {
+    color: var(--foreground);
+    background: transparent;
+  }
+}
+
+.tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 4px;
+  background: transparent;
+  border: none;
+}
+
+.branch {
+  margin-bottom: 2px;
+}
+
+.workspaceHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  line-height: 1.3;
+
+  &:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+}
+
+.workspaceActive {
+  .workspaceTitle {
+    font-weight: 600;
+  }
+}
+
+.expandIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  color: var(--muted-foreground);
+}
+
+.workspaceTitleSlot {
+  display: inline-flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workspaceTitleInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  color: var(--foreground);
+
+  :global(svg) {
+    flex-shrink: 0;
+  }
+}
+
+.workspaceDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.workspaceTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceActions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.workspaceAction {
+  color: var(--muted-foreground);
+
+  &:hover {
+    color: var(--foreground);
+    background: transparent;
+  }
+}
+
+.sessionBody {
+  padding: 2px 2px 4px 18px;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 4px 0 2px;
+  border-radius: 8px;
+
+  &:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+
+    .sessionMore {
+      opacity: 1;
+    }
+
+    .sessionMain {
+      color: var(--foreground);
+    }
+  }
+}
+
+.sessionActive {
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
+
+  .sessionMore {
+    opacity: 1;
+  }
+
+  .sessionMain {
+    color: var(--foreground);
+    font-weight: 500;
+  }
+}
+
+.sessionMain {
+  display: inline-flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: auto;
+  min-height: 34px;
+  margin: 0;
+  padding: 6px 6px 6px 8px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &:focus-visible {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.sessionMore {
+  flex-shrink: 0;
+  margin: 0;
+  opacity: 0;
+  color: var(--muted-foreground);
+
+  &:hover {
+    color: var(--foreground);
+    background: transparent;
+  }
+}
+
+.sessionTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptySession {
+  display: block;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.empty {
+  margin-block: 12px;
+  padding-inline: 8px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.hoverCard {
+  width: 260px !important;
+}
+
+.hoverTitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--foreground);
+}
+
+.profile {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.profileUser {
+  min-width: 0;
+  flex: 1;
+}
+
+.profileName {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileSettings {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+
+  &:hover {
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+}

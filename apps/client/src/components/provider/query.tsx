@@ -9,5 +9,6 @@ interface QueryProviderProps {
 
 export function QueryProvider(props: QueryProviderProps) {
   const [client] = useState(buildQueryClient)
+
   return <QueryClientProvider client={client}>{props.children}</QueryClientProvider>
 }

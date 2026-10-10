@@ -26,13 +26,13 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
   letter-spacing: -0.02em;
   transform-origin: center center;
 }
 
 .colon {
-  color: var(--ith-color-primary);
+  color: var(--primary);
   font-weight: 600;
   line-height: 1;
   padding: 0 1px;
@@ -44,7 +44,7 @@
 .neon {
   .digit,
   .colon {
-    color: var(--ith-color-primary);
+    color: var(--primary);
   }
 }
 
@@ -52,6 +52,6 @@
 .tonePrimary {
   .digit,
   .colon {
-    color: var(--ith-color-primary);
+    color: var(--primary);
   }
 }

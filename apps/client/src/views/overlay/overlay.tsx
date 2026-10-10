@@ -6,6 +6,7 @@ import { useHotkeys } from 'react-hotkeys-hook'
 
 import { isMagneticTileComponent } from '@/constants/magnetic-tile/components'
 import { useThrough } from '@/hooks/use-through'
+import { dispatchKeyCode } from '@/keycodes/dispatcher'
 import {
   useOverlayStore,
   type OverlayMode,
@@ -73,13 +74,18 @@ function OverlayShell() {
 
   useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: !isScreenshot })
 
-  // 全局 ESC fallback：screenshot 模式下仍能退出截屏
+  /**
+   * ESC：先派发给窗口内注册了 `useKeyCode('escape')` 的组件（截屏浮层逐级退出），
+   * 没人接管才兜底退出截屏 —— 浮层没挂上/还没加载完时也能退出来。
+   */
   useHotkeys(
     'escape',
-    function () {
-      if (isScreenshot) {
+    function (event) {
+      event.preventDefault()
+      void dispatchKeyCode('escape').then(function (handled) {
+        if (handled) return
         void toScreenshotExit()
-      }
+      })
     },
     { enabled: isScreenshot }
   )

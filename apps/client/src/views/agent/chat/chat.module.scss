@@ -1,0 +1,53 @@
+/* Agent 聊天子页：标题栏 + 可拖拽分栏，沿用主题主色 */
+
+.chat {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.titlebar {
+  grid-column: 1 / -1;
+}
+
+.body {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.splitter {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sidebar,
+.workbench,
+.planPane {
+  height: 100%;
+  min-height: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--card);
+}
+
+.workbench {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--card);
+}
+
+.planPane {
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}

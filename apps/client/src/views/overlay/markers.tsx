@@ -44,8 +44,8 @@ const MorphMarker = lazyMarker(function () {
 const SettingsMarker = lazyMarker(function () {
   return import('@/features/magnetic-tiles/settings/marker')
 })
-const IntelligenceMarker = lazyMarker(function () {
-  return import('@/features/magnetic-tiles/intelligence/marker')
+const AgentMarker = lazyMarker(function () {
+  return import('@/features/magnetic-tiles/agent/marker')
 })
 const NavigationMarker = lazyMarker(function () {
   return import('@/features/magnetic-tiles/navigation/marker')
@@ -85,8 +85,8 @@ function bindMarker(
   }
 }
 
-/** 浮层 Marker 映射，覆盖全部 MagneticTile.Component */
-const MARKERS: Record<MagneticTile.Component, (props: MarkerRenderProps) => ReactNode> = {
+/** 浮层 Marker 映射；client 未实现的组件留空，消费侧兜底 */
+const MARKERS: Partial<Record<MagneticTile.Component, (props: MarkerRenderProps) => ReactNode>> = {
   bookmark: bindMarker(BookmarkMarker),
   calendar: bindMarker(CalendarMarker),
   clock: bindMarker(ClockMarker),
@@ -97,7 +97,7 @@ const MARKERS: Record<MagneticTile.Component, (props: MarkerRenderProps) => Reac
   markdown: bindMarker(MarkdownMarker),
   morph: bindMarker(MorphMarker),
   settings: bindMarker(SettingsMarker),
-  intelligence: bindMarker(IntelligenceMarker),
+  agent: bindMarker(AgentMarker),
   navigation: bindMarker(NavigationMarker),
   marketplace: bindMarker(MarketplaceMarker),
   developer: bindMarker(DeveloperMarker),
@@ -108,7 +108,8 @@ const MARKERS: Record<MagneticTile.Component, (props: MarkerRenderProps) => Reac
 }
 
 function RenderMarker(component: MagneticTile.Component, props: MarkerRenderProps): ReactNode {
-  return MARKERS[component](props)
+  const Marker = MARKERS[component]
+  return Marker ? Marker(props) : null
 }
 
 export { MARKERS, RenderMarker }

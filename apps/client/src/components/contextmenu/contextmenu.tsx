@@ -24,7 +24,6 @@ import type {
 } from '@/components/contextmenu/menu'
 import { Surface } from '@/components/contextmenu/surface'
 import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
-import { CSSVAR } from '@/themes'
 
 import '@/components/contextmenu/contextmenu.scss'
 
@@ -127,7 +126,7 @@ function MenuLayer(props: MenuLayerProps) {
   // 壳层仅 opacity，禁止 transform/filter，避免 fixed 面板包含块被改写
   return (
     <Motion.div
-      className={clsx('contextmenu-root', CSSVAR.KEY)}
+      className="contextmenu-root"
       initial={SHELL_MOTION.initial}
       animate={SHELL_MOTION.animate}
       exit={SHELL_MOTION.exit}

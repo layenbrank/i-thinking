@@ -6,7 +6,15 @@ import type {
   RequestPermissionRequest,
   RequestPermissionResponse
 } from '@agentclientprotocol/sdk'
-import { Button, Modal, Space } from 'antd'
+import { Button } from '@i-thinking/design/components/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@i-thinking/design/components/dialog'
 import { createElement, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
@@ -66,58 +74,64 @@ function PermissionDialog(props: PermissionDialogProps) {
   }
 
   return createElement(
-    Modal,
+    Dialog,
     {
       open,
-      title: heading,
-      centered: true,
-      closable: true,
-      maskClosable: false,
-      footer: null,
-      onCancel() {
-        finish(cancelledResponse())
+      disablePointerDismissal: true,
+      onOpenChange(nextOpen: boolean) {
+        if (!nextOpen) finish(cancelledResponse())
       }
     },
     createElement(
-      'pre',
-      {
-        style: {
-          margin: '0 0 16px',
-          maxHeight: 240,
-          overflow: 'auto',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word'
-        }
-      },
-      detail
-    ),
-    createElement(
-      Space,
-      { wrap: true, style: { width: '100%', justifyContent: 'flex-end' } },
-      ...options.map(function (option) {
-        return createElement(
-          Button,
-          {
-            key: option.optionId,
-            type: isAllowOption(option) ? 'primary' : 'default',
-            onClick() {
-              finish(selectedResponse(option.optionId))
-            }
-          },
-          option.name || option.kind
+      DialogContent,
+      { className: 'sm:max-w-lg' },
+      createElement(
+        DialogHeader,
+        null,
+        createElement(DialogTitle, null, heading),
+        createElement(
+          DialogDescription,
+          { className: 'sr-only' },
+          '代理请求执行一项可能敏感的操作，请选择处理方式'
         )
-      }),
-      options.length === 0
-        ? createElement(
+      ),
+      createElement(
+        'pre',
+        {
+          className:
+            'bg-muted/40 max-h-60 overflow-auto rounded-md p-3 text-xs break-words whitespace-pre-wrap'
+        },
+        detail
+      ),
+      createElement(
+        DialogFooter,
+        null,
+        ...options.map(function (option) {
+          return createElement(
             Button,
             {
+              key: option.optionId,
+              variant: isAllowOption(option) ? 'default' : 'outline',
               onClick() {
-                finish(cancelledResponse())
+                finish(selectedResponse(option.optionId))
               }
             },
-            '取消'
+            option.name || option.kind
           )
-        : null
+        }),
+        options.length === 0
+          ? createElement(
+              Button,
+              {
+                variant: 'outline',
+                onClick() {
+                  finish(cancelledResponse())
+                }
+              },
+              '取消'
+            )
+          : null
+      )
     )
   )
 }

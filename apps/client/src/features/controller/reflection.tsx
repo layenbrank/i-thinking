@@ -24,8 +24,8 @@ const Developer = React.lazy(function () {
 const Example = React.lazy(function () {
   return import('@/features/magnetic-tiles/example/example.tsx')
 })
-const Intelligence = React.lazy(function () {
-  return import('@/features/magnetic-tiles/intelligence/intelligence.tsx')
+const Agent = React.lazy(function () {
+  return import('@/features/magnetic-tiles/agent/agent.tsx')
 })
 const Morph = React.lazy(function () {
   return import('@/features/magnetic-tiles/morph/morph.tsx')
@@ -63,7 +63,7 @@ const Reflection: Readonly<MagneticTile.Reflection> = {
   clipchamp: Clipchamp,
   clock: Clock,
   countdown: Countdown,
-  intelligence: Intelligence,
+  agent: Agent,
   settings: Settings,
   navigation: Navigation,
   markdown: Markdown,
@@ -89,7 +89,7 @@ export {
   Developer,
   Example,
   Gallery,
-  Intelligence,
+  Agent,
   Markdown,
   Marketplace,
   Navigation,

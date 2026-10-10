@@ -1,0 +1,96 @@
+.calendar {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card);
+  container-type: size;
+  container-name: calendar;
+}
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.95fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--cal-gap);
+  overflow: hidden;
+  --cal-gap: 8px;
+  --cal-main-pad: 8px;
+  --cal-th-fs: 12px;
+  --cal-th-h: 28px;
+  --cal-spacing: 4px;
+  --cal-year-spacing: 6px;
+  --cal-detail-max: 42%;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(200px, 1fr) minmax(160px, auto);
+    overflow: auto;
+  }
+}
+
+.main {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-radius: var(--radius-lg);
+  padding: var(--cal-main-pad);
+  overflow: hidden;
+}
+
+.side {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cal-gap);
+  padding: 0;
+  overflow: hidden;
+}
+
+.gridPane {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+@container calendar (min-height: 480px) {
+  .layout {
+    --cal-gap: 10px;
+    --cal-main-pad: 10px;
+    --cal-th-fs: 13px;
+    --cal-th-h: 32px;
+    --cal-spacing: 5px;
+    --cal-year-spacing: 8px;
+    --cal-detail-max: 48%;
+  }
+}
+
+@container calendar (min-height: 560px) {
+  .layout {
+    --cal-gap: 12px;
+    --cal-main-pad: 12px;
+    --cal-th-fs: 13px;
+    --cal-th-h: 34px;
+    --cal-spacing: 6px;
+    --cal-year-spacing: 10px;
+    --cal-detail-max: 52%;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr);
+  }
+}
+
+@container calendar (min-width: 980px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+  }
+}

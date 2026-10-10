@@ -35,7 +35,7 @@
   border-radius: inherit;
   border: none;
   background: transparent;
-  color: var(--ith-color-text);
+  color: var(--foreground);
   overflow: hidden;
   display: flex;
   align-items: stretch;
@@ -55,7 +55,7 @@
   flex-shrink: 0;
   width: 1.5em;
   height: 1.5em;
-  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  border-radius: var(--radius-sm);
   font-size: 14px;
   line-height: 1;
 }
@@ -67,29 +67,29 @@
 }
 
 .iconWellPrimary {
-  color: var(--ith-color-primary);
-  background: var(--ith-color-primary-bg);
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
 }
 
 .iconWellSuccess {
-  color: var(--ith-color-success);
-  background: var(--ith-color-success-bg, var(--ith-color-primary-bg));
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, transparent);
 }
 
 .iconWellStatus {
-  color: var(--ith-color-success);
-  background: var(--ith-color-success-bg, var(--ith-color-fill-secondary));
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, transparent);
 }
 
 .after .iconWellStatus,
 .rest .iconWellStatus {
-  color: var(--ith-color-text-secondary);
-  background: var(--ith-color-fill-secondary);
+  color: var(--muted-foreground);
+  background: var(--muted);
 }
 
 .before .iconWellStatus {
-  color: var(--ith-color-primary);
-  background: var(--ith-color-primary-bg);
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
 }
 
 .metricHead {
@@ -102,7 +102,7 @@
 .inlineIcon {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
   vertical-align: -0.125em;
 }
 
@@ -112,7 +112,7 @@
   bottom: -8%;
   font-size: 88px;
   line-height: 1;
-  color: var(--ith-color-primary);
+  color: var(--primary);
   opacity: 0.06;
   pointer-events: none;
   user-select: none;
@@ -141,14 +141,14 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   line-height: 1.1;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
 }
 
 .compactTrack {
   width: 70%;
   height: 3px;
   border-radius: 999px;
-  background: var(--ith-color-fill-secondary);
+  background: var(--muted);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -156,7 +156,7 @@
 .compactFill {
   height: 100%;
   border-radius: inherit;
-  background: var(--ith-color-primary);
+  background: var(--primary);
   transition: width 180ms ease;
 }
 
@@ -179,7 +179,7 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   line-height: 1;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
   white-space: nowrap;
 }
 
@@ -188,14 +188,14 @@
   min-width: 24px;
   height: 4px;
   border-radius: 999px;
-  background: var(--ith-color-fill-secondary);
+  background: var(--muted);
   overflow: hidden;
 }
 
 .stripFill {
   height: 100%;
   border-radius: inherit;
-  background: var(--ith-color-primary);
+  background: var(--primary);
   transition: width 180ms ease;
 }
 
@@ -204,14 +204,14 @@
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   min-width: 2em;
   text-align: right;
 }
 
 .after .stripFill,
 .rest .stripFill {
-  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+  background: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
 }
 
 /* ── expanded：顶指标（弹性）· 进度带 · 底栏，撑满卡片无悬空 ── */
@@ -251,12 +251,12 @@
 
 .col + .col {
   padding: 0 0 0 12px;
-  border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  border-left: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
 }
 
 .label {
   line-height: 1.2;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 500;
 }
@@ -265,23 +265,23 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .valueDim {
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   font-weight: 600;
 }
 
 .earn .label {
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
 }
 
 .earn .value {
-  color: var(--ith-color-success);
+  color: var(--success);
 }
 
 .progress {
@@ -309,14 +309,14 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  color: var(--muted-foreground);
 }
 
 .track {
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: var(--ith-color-fill-secondary);
+  background: var(--muted);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -324,7 +324,7 @@
 .fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--ith-color-primary);
+  background: var(--primary);
   transition: width 180ms ease;
 }
 
@@ -333,7 +333,7 @@
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--ith-color-text);
+  color: var(--foreground);
 }
 
 .footer {
@@ -344,14 +344,14 @@
   line-height: 1.2;
   flex: 0 0 auto;
   padding-top: 6px;
-  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
 }
 
 .status {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--ith-color-text);
+  color: var(--foreground);
   font-size: 12px;
   font-weight: 500;
 }
@@ -360,7 +360,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ith-color-success);
+  background: var(--success);
   flex-shrink: 0;
 }
 
@@ -368,7 +368,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   font-size: 12px;
@@ -389,9 +389,9 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border-radius: var(--ith-border-radius);
-  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
-  background: var(--ith-color-bg-layout);
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--background);
   min-width: 0;
 }
 
@@ -400,7 +400,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .panelHero {
@@ -408,19 +408,19 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
 }
 
 .panelUnit {
   font-size: 12px;
   font-weight: 500;
   margin-left: 2px;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .panelSub {
   font-size: 11px;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -452,7 +452,7 @@
 .rectangle.vertical .col + .col {
   border-left: none;
   padding-left: 0;
-  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   padding-top: 6px;
   margin-top: 2px;
 }
@@ -463,26 +463,26 @@
 }
 
 .working .dot {
-  background: var(--ith-color-success);
+  background: var(--success);
 }
 
 .after .dot,
 .rest .dot {
-  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+  background: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
 }
 
 .after .fill,
 .rest .fill {
-  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+  background: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
 }
 
 .after .progressLabel,
 .rest .progressLabel {
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .before .dot {
-  background: var(--ith-color-primary);
+  background: var(--primary);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,240 @@
+/* Qoder 风格模型设置：疏朗表头 + 等距上下文滑块 */
+
+/* 覆盖浮层外壳：宽表格弹框，标题/表体/底栏各自成段 */
+.modal {
+  width: 920px !important;
+  max-width: calc(100vw - 2rem) !important;
+}
+
+.title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.desc {
+  margin: 8px 0 0;
+  max-width: 36em;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+.table {
+  width: 100%;
+  margin-top: 4px;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  }
+
+  td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    transition: background-color 120ms ease;
+  }
+
+  tbody tr:last-child td {
+    border-bottom-color: transparent;
+  }
+
+  /* 悬浮：整行圆角矩形高亮 */
+  tbody tr:hover td {
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+  }
+
+  tbody tr:hover td:first-child {
+    border-radius: 10px 0 0 10px;
+  }
+
+  tbody tr:hover td:last-child {
+    border-radius: 0 10px 10px 0;
+  }
+}
+
+.modelCell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.modelBadge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.modelName {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--foreground);
+}
+
+.modelMeta {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+.unsupported {
+  font-size: 12px;
+  color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+}
+
+.thinkingSelect {
+  min-width: 112px;
+}
+
+/* 上下文滑块：当前值 + 轨道 + 等分刻度标签 */
+.contextControl {
+  width: 100%;
+  min-width: 200px;
+  max-width: 300px;
+  padding: 2px 0 0;
+  outline: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.contextValue {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+}
+
+.contextDragging {
+  cursor: grabbing;
+}
+
+.contextTrack {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
+  cursor: grab;
+
+  .contextDragging & {
+    cursor: grabbing;
+  }
+}
+
+.contextFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 4px 0 0 4px;
+  background: var(--primary);
+  pointer-events: none;
+
+  [data-at-end='true'] & {
+    border-radius: 4px;
+  }
+
+  [data-at-start='true'] & {
+    border-radius: 4px;
+  }
+}
+
+.contextThumb {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  .contextControl:focus-visible & {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  }
+}
+
+.contextLabels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.contextLabel {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:first-child {
+    text-align: left;
+  }
+
+  &:last-child {
+    text-align: right;
+  }
+
+  &:hover {
+    color: var(--foreground);
+  }
+}
+
+.contextLabelActive {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.cancelBtn {
+  color: var(--muted-foreground);
+  font-weight: 500;
+
+  &:hover {
+    color: var(--foreground);
+  }
+}
+
+.saveBtn {
+  min-width: 96px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.empty {
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.emptyAction {
+  margin-top: 8px;
+}

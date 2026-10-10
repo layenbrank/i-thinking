@@ -1,0 +1,408 @@
+.panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cal-spacing, 4px);
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--cal-spacing, 4px);
+  flex-shrink: 0;
+}
+
+.weekCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--cal-th-h, 28px);
+  font-size: var(--cal-th-fs, 12px);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+}
+
+.weekCellWeekend {
+  color: var(--destructive);
+}
+
+.grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: var(--cal-spacing, 4px);
+}
+
+.yearGrid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: var(--cal-year-spacing, var(--cal-spacing, 6px));
+}
+
+.dateCell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0;
+  font: inherit;
+  background: var(--card);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+    border-color: var(--border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--primary) 35%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+.today {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.text {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cal-cell-gap, 3px);
+  padding: var(--cal-cell-pad, 6px 4px 8px);
+  position: relative;
+  z-index: 1;
+  color: var(--foreground);
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: inherit;
+}
+
+.dayNum {
+  font-size: var(--cal-day-num, 13px);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.lunar {
+  color: var(--muted-foreground);
+  font-size: var(--cal-lunar, 10px);
+  font-weight: 400;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-inline: 2px;
+}
+
+.festival {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.weekend {
+  color: var(--destructive);
+}
+
+.outside {
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+
+  .dayNum,
+  .lunar,
+  .festival,
+  .weekend {
+    color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+  }
+}
+
+.current {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent);
+
+  .dayNum {
+    color: var(--primary);
+  }
+
+  .lunar {
+    color: var(--primary);
+    opacity: 0.88;
+  }
+
+  .festival {
+    color: var(--primary);
+    opacity: 1;
+  }
+
+  .weekend {
+    color: var(--primary);
+  }
+}
+
+.markSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+  height: var(--cal-mark-slot, 10px);
+  margin-top: 1px;
+}
+
+.mark {
+  display: block;
+  width: var(--cal-mark-size, 5px);
+  height: var(--cal-mark-size, 5px);
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+
+.markOnCurrent {
+  background: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.monthCell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--card);
+
+  &:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+    border-color: var(--border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--primary) 35%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+.monthCellToday {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.monthCellCurrent {
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent);
+
+  &:hover {
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    color: var(--primary);
+  }
+
+  .monthNum,
+  .monthUnit {
+    color: var(--primary);
+  }
+
+  .monthLunar {
+    color: var(--primary);
+    opacity: 0.88;
+  }
+}
+
+.monthText {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cal-month-gap, 6px);
+  padding: var(--cal-month-pad, 10px 8px);
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: inherit;
+}
+
+.monthPrimary {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1;
+}
+
+.monthNum {
+  font-size: var(--cal-month-num, 22px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.monthUnit {
+  font-size: var(--cal-month-unit, 12px);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  line-height: 1;
+}
+
+.monthLunar {
+  font-size: var(--cal-month-lunar, 11px);
+  font-weight: 400;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 var(--cal-toolbar-pad, 8px);
+  min-height: var(--cal-toolbar-h, 28px);
+  flex-shrink: 0;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@container calendar (min-height: 480px) {
+  .text {
+    --cal-cell-gap: 4px;
+    --cal-cell-pad: 8px 6px 10px;
+  }
+
+  .dayNum {
+    --cal-day-num: 15px;
+  }
+
+  .lunar {
+    --cal-lunar: 11px;
+  }
+
+  .markSlot {
+    --cal-mark-slot: 12px;
+  }
+
+  .mark {
+    --cal-mark-size: 6px;
+  }
+
+  .monthText {
+    --cal-month-gap: 8px;
+    --cal-month-pad: 12px 10px;
+  }
+
+  .monthNum {
+    --cal-month-num: 26px;
+  }
+
+  .monthUnit {
+    --cal-month-unit: 13px;
+  }
+
+  .monthLunar {
+    --cal-month-lunar: 12px;
+  }
+
+  .toolbar {
+    --cal-toolbar-pad: 8px;
+    --cal-toolbar-h: 32px;
+  }
+}
+
+@container calendar (min-height: 560px) {
+  .text {
+    --cal-cell-gap: 5px;
+    --cal-cell-pad: 10px 8px 12px;
+  }
+
+  .dayNum {
+    --cal-day-num: 17px;
+  }
+
+  .lunar {
+    --cal-lunar: 12px;
+  }
+
+  .markSlot {
+    --cal-mark-slot: 14px;
+  }
+
+  .mark {
+    --cal-mark-size: 6px;
+  }
+
+  .monthText {
+    --cal-month-gap: 10px;
+    --cal-month-pad: 14px 12px;
+  }
+
+  .monthNum {
+    --cal-month-num: 30px;
+  }
+
+  .monthUnit {
+    --cal-month-unit: 14px;
+  }
+
+  .monthLunar {
+    --cal-month-lunar: 13px;
+  }
+
+  .toolbar {
+    --cal-toolbar-pad: 10px;
+    --cal-toolbar-h: 36px;
+  }
+}

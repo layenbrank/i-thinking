@@ -2,16 +2,12 @@ import { LazyStore } from '@tauri-apps/plugin-store'
 import { create } from 'zustand'
 
 import { syncAutostart } from '@/features/magnetic-tiles/settings/autostart'
-import type { Appearance as ThemeAppearance } from '@/themes/appearance'
-import { APPEARANCE_PRESET } from '@/themes/appearance'
 
 declare namespace Setting {
   export interface General {
     autostart: boolean
     language: string
   }
-
-  export type Appearance = ThemeAppearance
 
   export type CaptureDetect = 'off' | 'window'
 
@@ -21,7 +17,6 @@ declare namespace Setting {
 
   export interface Composite {
     general: General
-    appearance: Appearance
     capture: Capture
   }
 }
@@ -38,7 +33,6 @@ const SETTINGS: Setting.Composite = {
     autostart: true,
     language: 'zh-CN'
   },
-  appearance: APPEARANCE_PRESET,
   capture: CAPTURE
 }
 
@@ -56,7 +50,6 @@ interface SettingsStore {
     value: Partial<Setting.Composite[K]>
   ) => Promise<void>
   toReset: () => Promise<void>
-  toResetAppearance: () => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsStore>(function (setter, getter) {
@@ -112,17 +105,6 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
       } catch (error) {
         console.warn('[settings] syncAutostart on reset failed', error)
       }
-    },
-
-    async toResetAppearance() {
-      const current = getter().settings
-      setter({
-        settings: {
-          ...current,
-          appearance: APPEARANCE_PRESET
-        }
-      })
-      await settingStore.set('appearance', APPEARANCE_PRESET)
     }
   }
 })

@@ -1,10 +1,10 @@
 import { open as dialogOpen } from '@tauri-apps/plugin-dialog'
-import { message as antdMessage } from 'antd'
+import { toast } from 'sonner'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { parseRangesToOffsets } from '@/features/magnetic-tiles/morph/workspace/tasks/page-ranges'
+import { parseRangesToOffsets } from '@/features/magnetic-tiles/morph/page-ranges'
 import { MorphIpc } from '@/lib/morph-ipc'
 
 // import {
@@ -731,14 +731,14 @@ const useMorphStore = create<MorphState>()(
           })
           try {
             await MorphIpc.toMerge(mergeModal.inputs, mergeModal.output)
-            antdMessage.success(`合并完成 → ${mergeModal.output}`)
+            toast.success(`合并完成 → ${mergeModal.output}`)
             getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
               s.mergeModal.error = msg
             })
-            antdMessage.error(`合并失败：${msg}`)
+            toast.error(`合并失败：${msg}`)
           } finally {
             setter((s) => {
               s.mergeModal.loading = false
@@ -766,14 +766,14 @@ const useMorphStore = create<MorphState>()(
           })
           try {
             const outPath = await MorphIpc.toStack(file.path, mergeModal.output)
-            antdMessage.success(`拼接完成 → ${outPath}`)
+            toast.success(`拼接完成 → ${outPath}`)
             getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
               s.mergeModal.error = msg
             })
-            antdMessage.error(`拼接失败：${msg}`)
+            toast.error(`拼接失败：${msg}`)
           } finally {
             setter((s) => {
               s.mergeModal.loading = false
@@ -826,7 +826,7 @@ const useMorphStore = create<MorphState>()(
               const paths: string[] = await MorphIpc.toSplit(file.path, splitModal.destDir, {
                 ranges: rangeParts
               })
-              antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
+              toast.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             } else {
               if (splitModal.limit <= 0) {
                 throw new Error('每文件页数须大于 0')
@@ -834,7 +834,7 @@ const useMorphStore = create<MorphState>()(
               const paths: string[] = await MorphIpc.toSplit(file.path, splitModal.destDir, {
                 limit: splitModal.limit
               })
-              antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
+              toast.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             }
             getter().toCloseOperation()
           } catch (e) {
@@ -842,7 +842,7 @@ const useMorphStore = create<MorphState>()(
             setter((s) => {
               s.splitModal.error = msg
             })
-            antdMessage.error(`拆分失败：${msg}`)
+            toast.error(`拆分失败：${msg}`)
           } finally {
             setter((s) => {
               s.splitModal.loading = false
@@ -870,7 +870,7 @@ const useMorphStore = create<MorphState>()(
                 convertModal.format,
                 convertModal.destDir
               )
-              antdMessage.success(
+              toast.success(
                 `转换完成，已生成 ${paths.length} 张图片 → ${convertModal.destDir}`
               )
             } else {
@@ -879,7 +879,7 @@ const useMorphStore = create<MorphState>()(
                 convertModal.format,
                 convertModal.destDir
               )
-              antdMessage.success(`转换完成 → ${outPath}`)
+              toast.success(`转换完成 → ${outPath}`)
             }
             getter().toCloseOperation()
           } catch (e) {
@@ -887,7 +887,7 @@ const useMorphStore = create<MorphState>()(
             setter((s) => {
               s.convertModal.error = msg
             })
-            antdMessage.error(`转换失败：${msg}`)
+            toast.error(`转换失败：${msg}`)
           } finally {
             setter((s) => {
               s.convertModal.loading = false
@@ -904,7 +904,7 @@ const useMorphStore = create<MorphState>()(
           const { organizeModal, file } = getter()
           if (!file) return
           if (!organizeModal.dest) {
-            antdMessage.warning('请先选择输出路径')
+            toast.warning('请先选择输出路径')
             return
           }
           setter((s) => {
@@ -935,7 +935,7 @@ const useMorphStore = create<MorphState>()(
                 organizeModal.dest
               )
             }
-            antdMessage.success(`整理完成 → ${outPath}`)
+            toast.success(`整理完成 → ${outPath}`)
             getter().toCloseOperation()
             await getter().toOpenFile(outPath)
           } catch (e) {
@@ -943,7 +943,7 @@ const useMorphStore = create<MorphState>()(
             setter((s) => {
               s.organizeModal.error = msg
             })
-            antdMessage.error(`整理失败：${msg}`)
+            toast.error(`整理失败：${msg}`)
           } finally {
             setter((s) => {
               s.organizeModal.loading = false
@@ -960,11 +960,11 @@ const useMorphStore = create<MorphState>()(
           const { extractModal, file } = getter()
           if (!file) return
           if (!extractModal.selected.length) {
-            antdMessage.warning('请先选择要抽取的页面')
+            toast.warning('请先选择要抽取的页面')
             return
           }
           if (!extractModal.dest) {
-            antdMessage.warning('请先选择输出路径')
+            toast.warning('请先选择输出路径')
             return
           }
           setter((s) => {
@@ -977,14 +977,14 @@ const useMorphStore = create<MorphState>()(
               extractModal.selected,
               extractModal.dest
             )
-            antdMessage.success(`抽取完成 → ${outPath}`)
+            toast.success(`抽取完成 → ${outPath}`)
             getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
               s.extractModal.error = msg
             })
-            antdMessage.error(`抽取失败：${msg}`)
+            toast.error(`抽取失败：${msg}`)
           } finally {
             setter((s) => {
               s.extractModal.loading = false

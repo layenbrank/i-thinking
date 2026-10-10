@@ -76,14 +76,6 @@ export const chunks: CodeSplitting[] = [
     }
   },
   {
-    name: 'core-plugins',
-    priority: 100,
-    test(id) {
-      const patterns = [/[\\/]src[\\/]plugins[\\/]/]
-      return patterns.some((pattern) => pattern.test(id))
-    }
-  },
-  {
     name: 'core-database',
     priority: 100,
     test(id) {
@@ -93,12 +85,15 @@ export const chunks: CodeSplitting[] = [
   },
   {
     name(id) {
-      const match = id.match(/[\\/]magnetic-tiles[\\/]([^\\/]+)[\\/]/)
-      return match ? `tile-${match[1]}` : null
+      const view = id.match(/[\\/]views[\\/]([^\\/]+)[\\/]/)
+      if (view) return `tile-${view[1]}`
+      const tile = id.match(/[\\/]magnetic-tiles[\\/]([^\\/]+)[\\/]/)
+      return tile ? `tile-${tile[1]}` : null
     },
     priority: 80,
     test(id) {
-      return /[\\/]magnetic-tiles[\\/]/.test(id)
+      // 磁贴窗口页在 `views/<component>/`，磁贴表面在 `features/magnetic-tiles/<component>/`：同一个组
+      return /[\\/]views[\\/]/.test(id) || /[\\/]magnetic-tiles[\\/]/.test(id)
     }
   },
   {
@@ -145,26 +140,20 @@ export const chunks: CodeSplitting[] = [
 
   // ========== 中优先级 (50)：UI 组件库 ==========
   {
-    name: 'ui-antd',
+    name: 'ui',
     priority: 50,
     test(id) {
       const patterns = [
-        /[\\/]node_modules[\\/]antd[\\/]/,
-        /[\\/]node_modules[\\/]@rc-component[\\/]/,
-        /[\\/]node_modules[\\/]@ant-design[\\/]/,
-        /[\\/]node_modules[\\/]antd-style[\\/]/,
-        /[\\/]node_modules[\\/]use-merge-value[\\/]/,
-        /[\\/]node_modules[\\/]throttle-debounce[\\/]/,
-        /[\\/]node_modules[\\/]@emotion[\\/]/,
-        /[\\/]node_modules[\\/]hoist-non-react-statics[\\/]/,
-        /[\\/]node_modules[\\/]react-is[\\/]/,
-        /[\\/]node_modules[\\/]json2mq[\\/]/,
-        /[\\/]node_modules[\\/]string-convert[\\/]/,
-        /[\\/]node_modules[\\/]stylis[\\/]/,
-        /[\\/]node_modules[\\/]is-mobile[\\/]/,
-        /[\\/]node_modules[\\/]rc-util[\\/]/,
-        /[\\/]node_modules[\\/]rc-motion[\\/]/,
-        /[\\/]node_modules[\\/]mermaid[\\/]/,
+        /[\\/]node_modules[\\/]@i-thinking[\\/]design[\\/]/,
+        /[\\/]node_modules[\\/]@i-thinking[\\/]chat[\\/]/,
+        /[\\/]node_modules[\\/]@base-ui[\\/]/,
+        /[\\/]node_modules[\\/]@assistant-ui[\\/]/,
+        /[\\/]node_modules[\\/]assistant-stream[\\/]/,
+        /[\\/]node_modules[\\/](class-variance-authority|tailwind-merge|tw-shimmer|sonner|react-hook-form|react-resizable-panels)[\\/]/,
+        /[\\/]node_modules[\\/](remark-gfm|mdast-|micromark|unified|unist-|hast-|vfile|decode-named-character-reference)[\\/]/,
+        /[\\/]node_modules[\\/]react-remove-scroll[\\/]/,
+        /[\\/]node_modules[\\/]@floating-ui[\\/]/,
+        /[\\/]node_modules[\\/](mermaid)[\\/]/,
         /[\\/]node_modules[\\/]ts-dedent[\\/]/,
         /[\\/]node_modules[\\/]roughjs[\\/]/,
         /[\\/]node_modules[\\/]@iconify[\\/]/,

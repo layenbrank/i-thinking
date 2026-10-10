@@ -1,5 +1,7 @@
-import Route from '@/components/fallback/route.tsx'
+import { ErrorBoundary } from '@/components/fallback/ErrorBoundary.tsx'
+import RouteFallback from '@/components/fallback/route.tsx'
 
 export const Fallback = {
-  Route
+  Route: RouteFallback,
+  ErrorBoundary
 }

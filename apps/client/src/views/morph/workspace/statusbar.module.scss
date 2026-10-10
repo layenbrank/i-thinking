@@ -1,0 +1,39 @@
+@use '../styles/tokens.scss' as t;
+
+.statusbar {
+  height: t.$statusbar-h;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  @include t.panel-well;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  user-select: none;
+}
+
+.left,
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
+.dot {
+  display: inline-block;
+  width: 1px;
+  height: 10px;
+  margin: 0 8px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}

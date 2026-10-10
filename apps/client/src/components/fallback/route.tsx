@@ -1,12 +1,9 @@
-import { Spin } from 'antd'
+import { Spinner } from '@i-thinking/design/components/spinner'
 
 export default function RouteFallback() {
   return (
-    <div className="w-[100vw] h-[100vh] bg-transparent flex items-center justify-center">
-      <Spin
-        spinning={true}
-        size="small"
-      />
+    <div className="flex h-screen w-screen items-center justify-center bg-transparent">
+      <Spinner className="size-4 text-muted-foreground" />
     </div>
   )
 }

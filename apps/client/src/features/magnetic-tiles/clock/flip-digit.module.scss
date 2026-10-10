@@ -7,10 +7,10 @@
   --flip-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
   --flip-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --flip-radius: max(3px, 0.08em);
-  --flip-face: var(--ith-color-bg-container, #fff);
-  --flip-ink: var(--ith-color-text-heading, var(--ith-color-text, #141414));
-  --flip-edge: var(--ith-color-border-secondary, var(--ith-color-border, rgba(0, 0, 0, 0.1)));
-  --flip-rim: var(--ith-color-border, rgba(0, 0, 0, 0.08));
+  --flip-face: var(--card);
+  --flip-ink: var(--foreground);
+  --flip-edge: color-mix(in oklab, var(--border) 70%, transparent);
+  --flip-rim: var(--border);
 
   position: relative;
   display: inline-block;
@@ -280,7 +280,7 @@
     width: 0.11em;
     height: 0.11em;
     border-radius: 50%;
-    background: var(--ith-color-primary);
+    background: var(--primary);
     opacity: 0.85;
     flex-shrink: 0;
   }
@@ -293,7 +293,7 @@
   justify-content: center;
   align-self: center;
   height: var(--flip-h);
-  color: var(--ith-color-primary);
+  color: var(--primary);
   font-weight: 600;
   line-height: 1;
   padding: 0 0.02em;

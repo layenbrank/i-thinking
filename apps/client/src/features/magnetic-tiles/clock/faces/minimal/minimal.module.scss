@@ -22,7 +22,7 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
   line-height: 1;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
+  color: var(--foreground);
   transform-origin: center center;
   backface-visibility: hidden;
 }
@@ -42,7 +42,7 @@
   font-size: 0.45em;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--ith-color-text-secondary);
+  color: var(--muted-foreground);
   transform-origin: center center;
   backface-visibility: hidden;
 }
@@ -50,6 +50,6 @@
 /** 仅主色时间，供 overlay 预览等场景使用 */
 .tonePrimary {
   .minimalTime {
-    color: var(--ith-color-primary);
+    color: var(--primary);
   }
 }

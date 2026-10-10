@@ -5,7 +5,7 @@ import type { WindowOptions } from '@tauri-apps/api/window'
 
 type Configure = Omit<WebviewOptions, 'x' | 'y' | 'width' | 'height'> & WindowOptions
 
-type WindowConfigure = Record<MagneticTile.Component, Configure>
+type WindowConfigure = Partial<Record<MagneticTile.Component, Configure>>
 
 const DEFAULT: Configure = {
   backgroundColor: '#00000000',
@@ -74,7 +74,7 @@ const WINDOW: WindowConfigure = {
   developer: DEFAULT,
   example: DEFAULT,
   gallery: DEFAULT,
-  intelligence: DEFAULT,
+  agent: DEFAULT,
   markdown: DEFAULT,
   morph: {
     ...DEFAULT,
@@ -88,8 +88,7 @@ const WINDOW: WindowConfigure = {
   },
   navigation: {
     ...DEFAULT,
-    transparent: true,
-    decorations: true
+    transparent: true
   },
   capture: {
     ...DEFAULT,
@@ -99,4 +98,17 @@ const WINDOW: WindowConfigure = {
   signboard: DEFAULT
 }
 
-export { WINDOW }
+/**
+ * 磁贴 → 窗口路由：与 `views/<component>` 同形（`/agent`、`/morph` …）。
+ * 组件名即路由段，所以这里不再需要例外表。
+ */
+function findTileRoute(component: MagneticTile.Component) {
+  return `/${component}`
+}
+
+/** 未登记的磁贴回落到 DEFAULT，避免新增组件时漏配就建不出窗 */
+function findTileWindowOptions(component: MagneticTile.Component): Configure {
+  return WINDOW[component] ?? DEFAULT
+}
+
+export { DEFAULT, findTileRoute, findTileWindowOptions, WINDOW }

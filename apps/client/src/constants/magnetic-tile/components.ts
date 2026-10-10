@@ -14,7 +14,7 @@ const MAGNETIC_TILE_COMPONENTS = [
   'markdown',
   'morph',
   'settings',
-  'intelligence',
+  'agent',
   'navigation',
   'marketplace',
   'developer',

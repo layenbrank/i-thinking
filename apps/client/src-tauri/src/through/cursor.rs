@@ -15,7 +15,7 @@ pub fn get_cursor_position() -> Option<(i32, i32)> {
 
 #[cfg(target_os = "macos")]
 pub fn get_cursor_position() -> Option<(i32, i32)> {
-    use cogito_graphics::event::{CGEvent, CGEventSource, CGEventSourceStateID};
+    use core_graphics::event::{CGEvent, CGEventSource, CGEventSourceStateID};
     let source = CGEventSource::new(CGEventSourceStateID::HIDSystemState).ok()?;
     let evt = CGEvent::new(source).ok()?;
     let p = evt.location();

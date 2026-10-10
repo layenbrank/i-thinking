@@ -1,0 +1,315 @@
+@use '../styles/tokens.scss' as t;
+
+.navigation {
+  &.root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    @include t.panel-well;
+    border-right: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  }
+}
+
+.tabs {
+  padding: t.$panel-gap t.$panel-gap 0;
+  flex-shrink: 0;
+}
+
+.tabSegment {
+  border-radius: t.$radius-control;
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+
+  [data-pressed] {
+    .segBadge {
+      opacity: 1;
+    }
+
+    .segText {
+      color: var(--foreground);
+      font-weight: 600;
+    }
+  }
+}
+
+.segItem {
+  color: var(--muted-foreground);
+  font-size: 13px;
+
+  &:hover {
+    color: var(--foreground);
+  }
+}
+
+.segmentLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1;
+  min-width: 0;
+}
+
+.segBadge {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: #fff;
+  flex-shrink: 0;
+  opacity: 0.72;
+  transition: opacity t.$transition;
+
+  &[data-tone='file'] {
+    background: #2563eb;
+  }
+
+  &[data-tone='page'] {
+    background: #7c3aed;
+  }
+}
+
+.segText {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  transition:
+    color t.$transition,
+    font-weight t.$transition;
+}
+
+.tabContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 10px 16px;
+}
+
+.workspaceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+  min-height: 32px;
+  margin-bottom: 4px;
+}
+
+.workspaceLabel {
+  @include t.section-label;
+  line-height: 1;
+}
+
+.addBtn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: t.$radius-control;
+  border: 1px dashed var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: none;
+
+  &:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    border-style: solid;
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+}
+
+.emptyCta {
+  @include t.empty-cta;
+  width: 100%;
+  min-height: 88px;
+  padding: 16px 12px;
+  gap: 8px;
+}
+
+.emptyCtaIcon {
+  color: #ea580c;
+  flex-shrink: 0;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: t.$radius-control;
+  cursor: pointer;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--card);
+  outline: none;
+  transition:
+    background t.$transition,
+    border-color t.$transition,
+    box-shadow t.$transition;
+
+  &:hover {
+    background: color-mix(in srgb, var(--card) 88%, var(--muted));
+    border-color: var(--border);
+
+    .fileItemClose {
+      opacity: 1;
+    }
+  }
+
+  @include t.focus-ring;
+}
+
+.fileItemActive {
+  background: var(--card);
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+
+  .fileItemName {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .fileItemMeta {
+    color: var(--muted-foreground);
+  }
+
+  .fileItemBadge {
+    box-shadow: 0 1px 2px color-mix(in srgb, #b91c1c 28%, transparent);
+  }
+
+  &:hover {
+    background: var(--card);
+    border-color: var(--primary);
+  }
+}
+
+.fileItemBadge {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #fff;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, #f43f5e 88%, #fff) 0%,
+      #e11d48 55%,
+      #be123c 100%
+    );
+}
+
+.fileItemBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileItemName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+
+.fileItemMeta {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.fileItemClose {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: t.$radius-control;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity t.$transition,
+    background t.$transition,
+    color t.$transition;
+  color: var(--muted-foreground);
+  padding: 0;
+
+  &:hover {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+
+  @include t.focus-ring;
+}
+
+.thumbnailList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pageCount {
+  @include t.section-label;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-align: right;
+  padding: 0 2px;
+  margin-bottom: -2px;
+}
+
+.thumbLoading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeletonThumb {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: t.$radius-control;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.empty {
+  @include t.empty-block;
+  padding-block: 32px;
+}

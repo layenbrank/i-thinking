@@ -1,0 +1,68 @@
+@use '@/views/morph/styles/tokens.scss' as t;
+
+$bar-h: 32px;
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--card);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.stacked {
+  min-height: auto;
+}
+
+.settings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--background) 55%, var(--card));
+}
+
+.actionBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 16px;
+}
+
+.actionLead {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.actionTrail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.hint {
+  font-size: 12px;
+  line-height: $bar-h;
+  color: var(--muted-foreground);
+  max-width: min(220px, 24vw);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.submit {
+  height: $bar-h;
+  min-height: $bar-h;
+  min-width: 112px;
+  gap: 6px;
+  padding-inline: 16px;
+}

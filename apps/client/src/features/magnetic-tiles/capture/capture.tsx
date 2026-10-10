@@ -1,4 +1,4 @@
-/** 磁贴入口；快捷键走 capture:open */
+/** 磁贴入口；`screenshot` 键由 `useKeyCode` 接管（派发点在 `views/overview` 的全局快捷键） */
 import { invoke } from '@tauri-apps/api/core'
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'

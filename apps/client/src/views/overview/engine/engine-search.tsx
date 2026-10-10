@@ -1,7 +1,9 @@
 /**
  * Overview 顶栏搜索：建议请求、键盘导航、面板显隐
  */
-import { Input } from 'antd'
+import { Button } from '@i-thinking/design/components/button'
+import { Input } from '@i-thinking/design/components/input'
+import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
 import { AnimatePresence } from 'motion/react'
 import { useClickOutside } from '@reactuses/core'
@@ -199,20 +201,29 @@ function EngineSearch() {
       className={clsx(styles.engine, styles.section, {
         [styles.active]: isPanelOpen
       })}>
-      <Input.Search
-        value={keyword}
-        onChange={changeKeyword}
-        onSearch={search}
-        onKeyDown={onKeyDown}
-        classNames={{
-          root: clsx(styles.engine, styles.keyword),
-          input: clsx(styles.engine, styles.trigger),
-          button: {
-            root: clsx(styles.engine, styles.series),
-            icon: clsx(styles.engine, styles.mark)
-          }
-        }}
-      />
+      <div className={clsx(styles.engine, styles.keyword)}>
+        <Input
+          value={keyword}
+          onChange={changeKeyword}
+          onKeyDown={onKeyDown}
+          placeholder="搜索或输入网址"
+          aria-label="搜索"
+          className={clsx(styles.engine, styles.trigger)}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="搜索"
+          className={clsx(styles.engine, styles.series)}
+          onClick={search}>
+          <span className={clsx(styles.engine, styles.mark)}>
+            <Icon
+              icon="lucide:search"
+              aria-hidden
+            />
+          </span>
+        </Button>
+      </div>
       <AnimatePresence>
         {isPanelOpen && (
           <EngineFragment

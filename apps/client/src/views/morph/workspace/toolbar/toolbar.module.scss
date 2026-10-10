@@ -1,0 +1,84 @@
+@use '../../styles/tokens.scss' as t;
+
+.toolbar {
+  &.root {
+    height: t.$toolbar-h;
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    @include t.chrome-surface;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+}
+
+.navGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 t.$chrome-pad-x;
+  flex-shrink: 0;
+  border-right: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+
+.pageInput {
+  @include t.number-field;
+  width: 40px;
+  height: t.$tool-size;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.pageTotal {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  padding-right: 2px;
+}
+
+.zoomBtn {
+  min-width: 48px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+
+  &:hover {
+    color: var(--foreground);
+  }
+}
+
+.scrollRoot {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.toolsRow {
+  display: flex;
+  align-items: center;
+  gap: t.$tool-gap;
+  padding: 0 t.$chrome-pad-x;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.sep {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1px;
+  height: t.$sep-h;
+  background: color-mix(in oklab, var(--border) 70%, transparent);
+  margin: 0 8px;
+  align-self: center;
+}
+
+.rightGroup {
+  display: flex;
+  align-items: center;
+  gap: t.$tool-gap;
+  padding: 0 t.$chrome-pad-x;
+  flex-shrink: 0;
+  border-left: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+

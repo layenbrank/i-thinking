@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { MODE, RULE, findIdentity } from '@/features/signin/constants.ts'
+import {
+  FORGOT_SCHEMA,
+  MODE,
+  SIGNIN_SCHEMA,
+  SIGNUP_SCHEMA,
+  findIdentity
+} from '@/features/signin/constants.ts'
 
 describe('findIdentity', function () {
   it('returns username for username mode', function () {
@@ -20,28 +26,81 @@ describe('findIdentity', function () {
   })
 })
 
-describe('RULE.confirm', function () {
-  it('resolves when confirm matches password', async function () {
-    const form = {
-      getFieldValue: function (name: string) {
-        if (name === 'password') return 'secret'
-        return undefined
-      }
-    }
-    const rule = RULE.confirm(form)
-    await expect(rule.validator!({}, 'secret', function () {})).resolves.toBeUndefined()
+describe('SIGNUP_SCHEMA confirm', function () {
+  it('passes when confirm matches password', function () {
+    const result = SIGNUP_SCHEMA.safeParse({
+      username: 'alice',
+      password: 'secret',
+      confirm: 'secret'
+    })
+    expect(result.success).toBe(true)
   })
 
-  it('rejects when confirm differs from password', async function () {
-    const form = {
-      getFieldValue: function (name: string) {
-        if (name === 'password') return 'secret'
-        return undefined
-      }
-    }
-    const rule = RULE.confirm(form)
-    await expect(rule.validator!({}, 'other', function () {})).rejects.toThrow(
-      '两次输入的密码不一致！'
+  it('rejects when confirm differs from password', function () {
+    const result = SIGNUP_SCHEMA.safeParse({
+      username: 'alice',
+      password: 'secret',
+      confirm: 'other'
+    })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.issues[0]?.message).toBe('两次输入的密码不一致！')
+    expect(result.error.issues[0]?.path).toEqual(['confirm'])
+  })
+})
+
+describe('SIGNIN_SCHEMA', function () {
+  it('手机号模式要求 6 位数字验证码', function () {
+    expect(SIGNIN_SCHEMA.phone.safeParse({ phone: '13800138000', captcha: '123456' }).success).toBe(
+      true
     )
+    expect(SIGNIN_SCHEMA.phone.safeParse({ phone: '13800138000', captcha: '12' }).success).toBe(
+      false
+    )
+    expect(
+      SIGNIN_SCHEMA.phone.safeParse({ phone: '13800138000', captcha: 'abcdef' }).success
+    ).toBe(false)
+  })
+
+  it('邮箱模式要求邮箱格式与密码', function () {
+    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'a@b.com', password: 'secret' }).success).toBe(
+      true
+    )
+    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'nope', password: 'secret' }).success).toBe(false)
+    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'a@b.com', password: 'abc' }).success).toBe(false)
+  })
+
+  it('用户名模式校验 2–12 个字符', function () {
+    expect(SIGNIN_SCHEMA.username.safeParse({ username: 'alice', password: 'secret' }).success).toBe(
+      true
+    )
+    expect(SIGNIN_SCHEMA.username.safeParse({ username: 'a', password: 'secret' }).success).toBe(
+      false
+    )
+  })
+})
+
+describe('FORGOT_SCHEMA confirm', function () {
+  it('新密码与确认密码一致时通过', function () {
+    const result = FORGOT_SCHEMA.phone.safeParse({
+      phone: '13800138000',
+      captcha: '123456',
+      password: 'secret',
+      confirm: 'secret'
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('新密码与确认密码不一致时给出提示', function () {
+    const result = FORGOT_SCHEMA.phone.safeParse({
+      phone: '13800138000',
+      captcha: '123456',
+      password: 'secret',
+      confirm: 'other'
+    })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.issues[0]?.message).toBe('两次输入的密码不一致！')
+    expect(result.error.issues[0]?.path).toEqual(['confirm'])
   })
 })

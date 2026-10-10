@@ -1,8 +1,8 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { calendar, timeSphere } from '@i-thinking/utils'
-import { Tooltip } from 'antd'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import { findCapacity, isWide, markerClass, type Capacity } from '@/features/magnetic-tile/marker'
@@ -156,6 +156,25 @@ function findYiJiMax(capacity: Capacity) {
   return 2
 }
 
+/** 文本提示：无提示内容时退化为纯文本，避免空浮层 */
+function Hint(props: {
+  hint: string
+  side?: 'top' | 'bottom'
+  className: string
+  children: ReactNode
+}) {
+  if (!props.hint) return <span className={props.className}>{props.children}</span>
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span className={props.className} />}>
+        {props.children}
+      </TooltipTrigger>
+      <TooltipContent side={props.side ?? 'top'}>{props.hint}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function ChipRow(props: { dayInfo: DayInfo; fields: VisibleFields }) {
   const { dayInfo, fields } = props
   if (!fields.showChips) return null
@@ -190,22 +209,20 @@ function YiJiBlock(props: { dayInfo: DayInfo; maxItems: number }) {
 
   return (
     <div className={styles.yiJiInline}>
-      <Tooltip
-        placement="bottom"
-        title={dayInfo.beneficial || undefined}>
-        <span className={styles.yiLine}>
-          <span className={styles.yiJiLabel}>宜</span>
-          <span className={styles.yiJiBody}>{yiText}</span>
-        </span>
-      </Tooltip>
-      <Tooltip
-        placement="bottom"
-        title={dayInfo.unbeneficial || undefined}>
-        <span className={styles.jiLine}>
-          <span className={styles.jiLabel}>忌</span>
-          <span className={styles.yiJiBody}>{jiText}</span>
-        </span>
-      </Tooltip>
+      <Hint
+        hint={dayInfo.beneficial}
+        side="bottom"
+        className={styles.yiLine}>
+        <span className={styles.yiJiLabel}>宜</span>
+        <span className={styles.yiJiBody}>{yiText}</span>
+      </Hint>
+      <Hint
+        hint={dayInfo.unbeneficial}
+        side="bottom"
+        className={styles.jiLine}>
+        <span className={styles.jiLabel}>忌</span>
+        <span className={styles.yiJiBody}>{jiText}</span>
+      </Hint>
     </div>
   )
 }
@@ -236,11 +253,11 @@ function AgendaPanel(props: { items: AgendaItem[]; limit: number }) {
                   }
                 />
                 <span className={styles.agendaTime}>{item.timeLabel}</span>
-                <Tooltip title={item.title}>
-                  <span className={item.isCompleted ? styles.agendaTextDone : styles.agendaText}>
-                    {item.title}
-                  </span>
-                </Tooltip>
+                <Hint
+                  hint={item.title}
+                  className={item.isCompleted ? styles.agendaTextDone : styles.agendaText}>
+                  {item.title}
+                </Hint>
               </li>
             )
           })}
@@ -269,9 +286,11 @@ function InfoBlock(props: {
       {fields.showLunar || fields.showGanZhi ? (
         <div className={styles.infoSub}>
           {fields.showLunar ? (
-            <Tooltip title={dayInfo.lunar}>
-              <span className={styles.lunar}>{dayInfo.lunar}</span>
-            </Tooltip>
+            <Hint
+              hint={dayInfo.lunar}
+              className={styles.lunar}>
+              {dayInfo.lunar}
+            </Hint>
           ) : null}
           {fields.showLunar && fields.showGanZhi ? <span className={styles.dotSep}>·</span> : null}
           {fields.showGanZhi ? <span className={styles.ganzhi}>{dayInfo.ganZhi}</span> : null}

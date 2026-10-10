@@ -21,61 +21,61 @@
 }
 
 .dialPlate {
-  fill: var(--ith-color-bg-container);
+  fill: var(--card);
 }
 
 .dialRim {
-  stroke: var(--ith-color-border-secondary, var(--ith-color-border));
+  stroke: color-mix(in oklab, var(--border) 70%, transparent);
   stroke-width: 0.7;
 }
 
 .tickLine {
-  stroke: var(--ith-color-text-tertiary, var(--ith-color-border));
+  stroke: var(--muted-foreground);
   stroke-width: 0.38;
   stroke-linecap: round;
   opacity: 0.45;
 }
 
 .tickHourLine {
-  stroke: var(--ith-color-text-secondary, var(--ith-color-text));
+  stroke: var(--muted-foreground);
   stroke-width: 0.95;
   opacity: 0.72;
 }
 
 .tickCardinalLine {
-  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke: var(--foreground);
   stroke-width: 1.35;
   opacity: 0.88;
 }
 
 .handHourLine {
-  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke: var(--foreground);
   stroke-width: 3.4;
   stroke-linecap: round;
 }
 
 .handMinuteLine {
-  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke: var(--foreground);
   stroke-width: 2.2;
   stroke-linecap: round;
   opacity: 0.82;
 }
 
 .handSecondLine {
-  stroke: var(--ith-color-primary);
+  stroke: var(--primary);
   stroke-width: 0.85;
   stroke-linecap: round;
 }
 
 .hubOuter {
-  fill: var(--ith-color-bg-container);
-  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  fill: var(--card);
+  stroke: var(--foreground);
   stroke-width: 0.95;
   r: 2.8;
 }
 
 .hubInner {
-  fill: var(--ith-color-primary);
+  fill: var(--primary);
 }
 
 /* 容器查询：小尺寸时隐藏分钟刻度 */

@@ -1,25 +1,12 @@
-import { openUrl } from '@tauri-apps/plugin-opener'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-
-import { Tooltip } from 'antd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { clsx, type ClassValue } from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
-import { Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 
-import { WINDOW } from '@/constants/magnetic-tile/window'
-import { Caption } from '@/features/magnetic-tile/caption'
+import { activateTile } from '@/features/magnetic-tile/activate'
 import { Enter, ENTER, useEnter } from '@/features/magnetic-tile/enter'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
-import {
-  Overlay,
-  OverlayContext,
-  OverlayProvider,
-  type Cache,
-  type OverlayControlProps,
-  type OverlayMode,
-  type OverlayProps
-} from '@/features/magnetic-tile/overlay'
 import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 
 interface SectionProps extends MagneticTile {
@@ -30,9 +17,6 @@ interface SectionProps extends MagneticTile {
   shape: MagneticTile.Shape
   direction: MagneticTile.Direction
   onTrash?: MouseEventHandler<HTMLElement>
-  cache?: Cache
-  onAbort?: () => Promise<void>
-  abortTimeoutMs?: number
 }
 
 interface MarkerProps {
@@ -60,46 +44,6 @@ interface MagneticTileSuspenseProps extends SkeletonProps {
   fadeMs?: number
   skeletonClassName?: ClassValue
   skeletonStyle?: CSSProperties
-}
-
-type ActivateCtx = {
-  tile: Pick<MagneticTile, 'component' | 'url'>
-  present: () => void
-}
-
-type ActivateFn = (ctx: ActivateCtx) => void | Promise<void>
-
-/**
- * 双击侧通道：未登记组件默认 present Overlay。
- * Overlay 蒙层隔离交互，不 pause Mirror 滚动景深。
- */
-const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
-  navigation(ctx) {
-    if (!ctx.tile.url) return
-    void openUrl(ctx.tile.url)
-  },
-  async intelligence() {
-    const existing = await WebviewWindow.getByLabel('agent')
-    if (existing) {
-      await existing.setFocus()
-      return
-    }
-    new WebviewWindow('agent', {
-      url: '/agent',
-      title: 'Agent',
-      ...WINDOW.intelligence
-    })
-  }
-}
-
-function activateTile(tile: Pick<MagneticTile, 'component' | 'url'>, present: () => void) {
-  const channel = SIDE_CHANNELS[tile.component]
-  if (channel) {
-    void channel({ tile, present })
-    return
-  }
-
-  present()
 }
 
 const MagneticTile = {
@@ -151,13 +95,14 @@ const MagneticTile = {
       </Suspense>
     )
   },
-  Caption,
-  Overlay,
+  /**
+   * 磁贴表面。双击激活：一律开独立窗口（见 `activate.ts`），
+   * 主窗内不再有 Dialog 挡层，所以这里也不接管任何浮层状态。
+   */
   Section(props: SectionProps) {
     const nodeRef = useRef<HTMLDivElement>(null)
     // 默认近视口，避免首屏先空 surface 再挂 Marker 闪一下
     const [isNear, setIsNear] = useState(true)
-    const { visible, onUpdateVisible } = useContext(OverlayContext)
     const enter = useEnter()
     const isReducedMotion = useReducedMotion()
     const isEnter = enter.isActive
@@ -208,13 +153,9 @@ const MagneticTile = {
       <div
         ref={nodeRef}
         onDoubleClick={function () {
-          activateTile(props, function () {
-            onUpdateVisible(true)
-          })
+          void activateTile(props)
         }}
         data-id={props.id}
-        // 仅 Sortable filter 禁拖；与 Mirror 滚动景深零耦合
-        data-overlay-open={visible ? 'true' : undefined}
         className={clsx([
           'magnetic-tile',
           styles.magneticTile,
@@ -242,11 +183,9 @@ const MagneticTile = {
           </div>
         )}
         <span className={styles.title}>
-          <Tooltip
-            placement="bottom"
-            title={props.title}
-            autoAdjustOverflow={false}>
-            <span>{props.title}</span>
+          <Tooltip>
+            <TooltipTrigger render={<span>{props.title}</span>} />
+            <TooltipContent side="bottom">{props.title}</TooltipContent>
           </Tooltip>
         </span>
         <button
@@ -261,6 +200,5 @@ const MagneticTile = {
   }
 }
 
-export { MagneticTile, OverlayContext, OverlayProvider }
-
-export type { Cache, MarkerProps, OverlayControlProps, OverlayMode, OverlayProps, SectionProps }
+export { MagneticTile }
+export type { MagneticTileSuspenseProps, MarkerProps, SectionProps, SkeletonProps }
